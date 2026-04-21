@@ -1,29 +1,20 @@
 'use client';
 
-import { useState, useCallback, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { useState, useCallback, useEffect, useMemo } from 'react';
+import { motion } from 'framer-motion';
 import {
   Truck,
   Package,
-  MapPin,
-  Clock,
-  CheckCircle2,
-  Circle,
-  Navigation,
-  Archive,
-  Eye,
   Route,
-  BarChart3,
-  Gauge,
-  PackageCheck,
-  Users,
-  ChevronDown,
-  ChevronUp,
-  DollarSign,
-  BoxIcon,
-  Plus,
+  Eye,
+  Archive,
   Search,
-  X,
+  CheckCircle2,
+  DollarSign,
+  Navigation,
+  Plus,
+  CalendarClock,
+  AlertTriangle,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -46,7 +37,6 @@ import {
 } from '@/components/shared/animated-components';
 import { AnimatedCard } from '@/components/shared/animated-card';
 import { Progress } from '@/components/ui/progress';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -67,6 +57,16 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
+import { Badge } from '@/components/ui/badge';
 
 /* ---------- Status Mapping ---------- */
 
@@ -79,187 +79,227 @@ const routeStatusMap: Record<
   pending: 'pending',
 };
 
-const stopStatusIcon: Record<
-  StopStatus,
-  { icon: typeof CheckCircle2; className: string }
-> = {
-  delivered: {
-    icon: CheckCircle2,
-    className: 'text-green-500 dark:text-green-400',
-  },
-  in_transit: {
-    icon: Navigation,
-    className: 'text-blue-500 dark:text-blue-400',
-  },
-  pending: {
-    icon: Circle,
-    className: 'text-muted-foreground/40',
-  },
-};
+type StatusFilter = 'all' | 'active' | 'completed' | 'pending';
 
-/* ---------- Stop number circled characters ---------- */
+/* ---------- Reschedule Dialog Component ---------- */
 
-const circledNumbers = ['\u2460', '\u2461', '\u2462', '\u2463', '\u2464', '\u2465', '\u2466'];
-
-/* ---------- Stat Card Component ---------- */
-
-function StatCard({
-  icon: Icon,
-  label,
-  value,
-  sub,
-  color,
+function RescheduleDialog({
+  open,
+  onOpenChange,
+  route,
+  onConfirm,
 }: {
-  icon: typeof Truck;
-  label: string;
-  value: string | number;
-  sub?: string;
-  color: string;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  route: DeliveryRoute | null;
+  onConfirm: (routeId: string, newDate: string, newTime: string, reason: string) => void;
 }) {
+  const getDefaultDate = () => {
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    return tomorrow.toISOString().split('T')[0];
+  };
+
+  const [newDate, setNewDate] = useState(getDefaultDate);
+  const [newTime, setNewTime] = useState('08:00');
+  const [reason, setReason] = useState('');
+
+  const handleConfirm = () => {
+    if (!route) return;
+    if (!newDate) {
+      toast.error('Please select a new date');
+      return;
+    }
+    onConfirm(route.id, newDate, newTime, reason);
+    onOpenChange(false);
+  };
+
+  const formattedSchedule = newDate
+    ? new Date(newDate + 'T' + newTime).toLocaleDateString('en-US', {
+        weekday: 'short',
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+      }) +
+      ' at ' +
+      new Date(newDate + 'T' + newTime).toLocaleTimeString('en-US', {
+        hour: 'numeric',
+        minute: '2-digit',
+        hour12: true,
+      })
+    : '';
+
   return (
-    <AnimatedCard className="p-4">
-      <div className="flex items-center gap-3">
-        <div
-          className={cn(
-            'flex h-10 w-10 shrink-0 items-center justify-center rounded-lg',
-            color
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-[460px]">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <CalendarClock className="h-5 w-5 text-blue-600" />
+            Reschedule Delivery
+          </DialogTitle>
+          <DialogDescription>
+            Choose a new schedule for route{' '}
+            <span className="font-semibold text-foreground">{route?.id}</span>{' '}
+            ({route?.driver} &middot; {route?.vehicle})
+          </DialogDescription>
+        </DialogHeader>
+        <div className="grid gap-4 py-4">
+          {/* Current schedule info */}
+          <div className="rounded-lg border border-muted bg-muted/30 p-3">
+            <p className="text-xs font-medium text-muted-foreground mb-1">Current Schedule</p>
+            <p className="text-sm font-medium">
+              {route?.scheduledDate
+                ? new Date(route.scheduledDate + 'T' + (route.scheduledTime || '08:00')).toLocaleDateString('en-US', {
+                    weekday: 'short', month: 'short', day: 'numeric', year: 'numeric',
+                  }) +
+                  ' at ' +
+                  new Date(route.scheduledDate + 'T' + (route.scheduledTime || '08:00')).toLocaleTimeString('en-US', {
+                    hour: 'numeric', minute: '2-digit', hour12: true,
+                  })
+                : 'Not yet scheduled'}
+            </p>
+          </div>
+
+          {/* New date */}
+          <div className="grid gap-2">
+            <Label htmlFor="reschedule-date">New Date</Label>
+            <Input
+              id="reschedule-date"
+              type="date"
+              min={new Date().toISOString().split('T')[0]}
+              value={newDate}
+              onChange={(e) => setNewDate(e.target.value)}
+            />
+          </div>
+
+          {/* New time */}
+          <div className="grid gap-2">
+            <Label htmlFor="reschedule-time">New Time</Label>
+            <Input
+              id="reschedule-time"
+              type="time"
+              value={newTime}
+              onChange={(e) => setNewTime(e.target.value)}
+            />
+          </div>
+
+          {/* Preview */}
+          {formattedSchedule && (
+            <div className="rounded-lg border border-blue-200 bg-blue-50 dark:border-blue-800 dark:bg-blue-950/30 p-3">
+              <p className="text-xs font-medium text-blue-600 dark:text-blue-400 mb-1">New Schedule</p>
+              <p className="text-sm font-semibold text-blue-700 dark:text-blue-300">{formattedSchedule}</p>
+            </div>
           )}
-        >
-          <Icon className="h-5 w-5" />
+
+          {/* Reason */}
+          <div className="grid gap-2">
+            <Label htmlFor="reschedule-reason">Reason (optional)</Label>
+            <Select value={reason} onValueChange={setReason}>
+              <SelectTrigger id="reschedule-reason">
+                <SelectValue placeholder="Select a reason" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="customer_request">Customer Request</SelectItem>
+                <SelectItem value="weather_delay">Weather Delay</SelectItem>
+                <SelectItem value="driver_unavailable">Driver Unavailable</SelectItem>
+                <SelectItem value="stock_not_ready">Stock Not Ready</SelectItem>
+                <SelectItem value="high_order_volume">High Order Volume</SelectItem>
+                <SelectItem value="other">Other</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
         </div>
-        <div className="min-w-0">
-          <p className="text-xs text-muted-foreground font-medium">{label}</p>
-          <p className="text-lg font-bold leading-tight">{value}</p>
-          {sub && (
-            <p className="text-xs text-muted-foreground/70">{sub}</p>
-          )}
-        </div>
-      </div>
-    </AnimatedCard>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>
+            Cancel
+          </Button>
+          <Button className="gap-2" onClick={handleConfirm}>
+            <CalendarClock className="h-4 w-4" />
+            Reschedule
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
 
-/* ---------- Stop Row Component ---------- */
+/* ---------- Journey Strip Components ---------- */
 
-function StopRow({
+function StopCircle({
   stop,
   index,
-  totalStops,
   isLast,
 }: {
   stop: DeliveryStop;
   index: number;
-  totalStops: number;
   isLast: boolean;
 }) {
-  const statusConf = stopStatusIcon[stop.status];
-  const StatusIcon = statusConf.icon;
+  const isDelivered = stop.status === 'delivered';
   const isInTransit = stop.status === 'in_transit';
+  const nextDelivered = isDelivered;
 
   return (
-    <div className="relative flex gap-3">
-      {/* Left: sequential line + icon */}
-      <div className="flex flex-col items-center">
-        {/* Stop number circle */}
+    <div className="flex items-center shrink-0">
+      {/* Stop circle and label */}
+      <div className="flex flex-col items-center gap-1.5">
+        {/* Circle */}
         <div
           className={cn(
-            'relative z-10 flex h-7 w-7 shrink-0 items-center justify-center rounded-full border-2 text-xs font-bold',
-            stop.status === 'delivered'
-              ? 'border-green-500 bg-green-500 text-white dark:border-green-400 dark:bg-green-500'
-              : isInTransit
-                ? 'border-blue-500 bg-blue-500 text-white dark:border-blue-400 dark:bg-blue-500'
-                : 'border-muted-foreground/25 bg-background text-muted-foreground/60'
+            'relative flex h-8 w-8 items-center justify-center rounded-full border-2 text-xs font-bold transition-colors',
+            isDelivered &&
+              'border-green-500 bg-green-500 text-white dark:border-green-400 dark:bg-green-500',
+            isInTransit &&
+              'border-blue-500 bg-blue-500 text-white dark:border-blue-400 dark:bg-blue-500',
+            !isDelivered &&
+              !isInTransit &&
+              'border-muted-foreground/30 bg-background text-muted-foreground'
           )}
         >
-          {stop.status === 'delivered' ? (
-            <CheckCircle2 className="h-3.5 w-3.5" />
+          {isDelivered ? (
+            <CheckCircle2 className="h-4 w-4" />
           ) : isInTransit ? (
-            <span className="relative flex h-2 w-2">
+            <span className="relative flex h-2.5 w-2.5">
               <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-white opacity-75" />
-              <span className="relative inline-flex h-2 w-2 rounded-full bg-white" />
+              <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-white" />
             </span>
           ) : (
-            <span>{circledNumbers[index] || index + 1}</span>
+            <span className="text-[10px]">{index + 1}</span>
           )}
         </div>
-
-        {/* Connecting line */}
-        {!isLast && (
-          <div
+        {/* Customer name + status dot */}
+        <div className="flex flex-col items-center gap-0.5 w-16 text-center">
+          <span
+            className="text-[11px] leading-tight font-medium truncate w-full"
+            title={stop.customer}
+          >
+            {stop.customer}
+          </span>
+          <span
             className={cn(
-              'w-0.5 flex-1 min-h-[16px]',
-              stop.status === 'delivered'
-                ? 'bg-green-300 dark:bg-green-700'
-                : 'bg-muted-foreground/15'
+              'h-1.5 w-1.5 rounded-full shrink-0',
+              isDelivered && 'bg-green-500',
+              isInTransit && 'bg-blue-500',
+              !isDelivered && !isInTransit && 'bg-muted-foreground/30'
             )}
           />
-        )}
-      </div>
-
-      {/* Right: stop content */}
-      <div className={cn('flex-1 min-w-0 pb-4', isLast && 'pb-0')}>
-        <div className="flex items-start justify-between gap-2">
-          <div className="min-w-0 flex-1">
-            <div className="flex items-center gap-2 flex-wrap">
-              <span className="text-sm font-semibold truncate">
-                {stop.customer}
-              </span>
-              <Badge
-                variant="outline"
-                className="text-[10px] font-mono px-1.5 py-0"
-              >
-                {stop.orderId}
-              </Badge>
-            </div>
-            <div className="flex items-center gap-1 mt-0.5 text-xs text-muted-foreground">
-              <MapPin className="h-3 w-3 shrink-0" />
-              <span className="truncate">{stop.address}</span>
-            </div>
-          </div>
-
-          {/* Status badge + ETA */}
-          <div className="flex flex-col items-end gap-1 shrink-0">
-            <StatusBadge
-              status={
-                stop.status === 'delivered'
-                  ? 'delivered'
-                  : stop.status === 'in_transit'
-                    ? 'on_delivery'
-                    : 'pending'
-              }
-              pulse={isInTransit}
-            />
-            <span className="text-[11px] text-muted-foreground flex items-center gap-1">
-              <Clock className="h-3 w-3" />
-              {stop.estimatedArrival}
-            </span>
-          </div>
-        </div>
-
-        {/* Items + value row */}
-        <div className="flex items-center gap-3 mt-1.5 text-xs text-muted-foreground">
-          <span className="flex items-center gap-1">
-            <BoxIcon className="h-3 w-3" />
-            {stop.items} items
-          </span>
-          <span className="flex items-center gap-1">
-            <DollarSign className="h-3 w-3" />
-            {stop.total.toLocaleString('en-US', {
-              minimumFractionDigits: 2,
-            })}
-          </span>
-          {stop.deliveredAt && (
-            <span className="text-green-600 dark:text-green-400">
-              Delivered {stop.deliveredAt.split(' ')[1]}
-            </span>
-          )}
-          {stop.notes && (
-            <span className="text-amber-600 dark:text-amber-400 truncate" title={stop.notes}>
-              {stop.notes}
-            </span>
-          )}
         </div>
       </div>
+
+      {/* Connecting line */}
+      {!isLast && (
+        <div className="mx-1 mb-5">
+          <div
+            className={cn(
+              'w-10 h-0.5',
+              nextDelivered
+                ? 'bg-green-400 dark:bg-green-600'
+                : isInTransit
+                  ? 'border-t-2 border-dashed border-blue-400 dark:border-blue-500'
+                  : 'bg-muted-foreground/15'
+            )}
+          />
+        </div>
+      )}
     </div>
   );
 }
@@ -270,13 +310,13 @@ function RouteCard({
   route,
   onViewDetail,
   onArchive,
+  onReschedule,
 }: {
   route: DeliveryRoute;
   onViewDetail: (id: string, e?: React.MouseEvent) => void;
   onArchive: (route: DeliveryRoute) => void;
+  onReschedule: (route: DeliveryRoute) => void;
 }) {
-  const [expanded, setExpanded] = useState(false);
-
   const deliveredStops = route.stops.filter(
     (s) => s.status === 'delivered'
   ).length;
@@ -284,72 +324,53 @@ function RouteCard({
   const progressPct = Math.round((deliveredStops / totalStops) * 100);
   const isActive = route.status === 'in_transit';
   const isDelivered = route.status === 'delivered';
+  const isPending = route.status === 'pending';
+
+  const statusBg: Record<string, string> = {
+    in_transit: 'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300',
+    delivered: 'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300',
+    pending: 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300',
+  };
+
+  const progressColor: Record<string, string> = {
+    in_transit: '[&>div]:bg-blue-500',
+    delivered: '[&>div]:bg-green-500',
+    pending: '[&>div]:bg-amber-500',
+  };
+
+  const progressText = isDelivered
+    ? 'Route Complete'
+    : isActive
+      ? `${deliveredStops} of ${totalStops} stops completed`
+      : `${totalStops} stops scheduled`;
 
   return (
     <AnimatedCard className="overflow-hidden">
-      {/* Card Header */}
-      <div className="p-4 pb-3">
+      <div className="p-4 sm:p-5 space-y-4">
+        {/* Card Header */}
         <div className="flex items-start justify-between gap-3">
           {/* Left: Route info */}
           <div className="flex items-start gap-3 min-w-0">
-            <div
+            {/* Route ID badge */}
+            <span
               className={cn(
-                'flex h-10 w-10 shrink-0 items-center justify-center rounded-lg',
-                isActive
-                  ? 'bg-blue-100 dark:bg-blue-900/30'
-                  : isDelivered
-                    ? 'bg-green-100 dark:bg-green-900/30'
-                    : 'bg-yellow-100 dark:bg-yellow-900/30'
+                'inline-flex items-center rounded-md px-2.5 py-1 text-xs font-mono font-bold shrink-0',
+                statusBg[route.status]
               )}
             >
-              <Truck
-                className={cn(
-                  'h-5 w-5',
-                  isActive
-                    ? 'text-blue-600 dark:text-blue-400'
-                    : isDelivered
-                      ? 'text-green-600 dark:text-green-400'
-                      : 'text-yellow-600 dark:text-yellow-400'
-                )}
-              />
-            </div>
+              {route.id}
+            </span>
             <div className="min-w-0 flex-1">
-              <div className="flex items-center gap-2 flex-wrap">
-                <span className="font-semibold text-sm">{route.id}</span>
-                {isActive && (
-                  <span className="relative flex h-2 w-2">
-                    <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-blue-400 opacity-75" />
-                    <span className="relative inline-flex h-2 w-2 rounded-full bg-blue-500" />
-                  </span>
-                )}
-              </div>
-              <div className="flex items-center gap-2 mt-0.5 text-xs text-muted-foreground">
-                <Users className="h-3 w-3" />
-                <span>{route.driver}</span>
-                <span className="text-muted-foreground/50">&middot;</span>
-                <Truck className="h-3 w-3" />
-                <span>{route.vehicle}</span>
-                <span className="text-muted-foreground/50">&middot;</span>
-                <Route className="h-3 w-3" />
-                <span>{route.totalDistance} km</span>
-              </div>
-              <div className="flex items-center gap-2 mt-2">
+              {/* Driver + vehicle */}
+              <p className="text-sm text-muted-foreground truncate">
+                {route.driver} &middot; {route.vehicle}
+              </p>
+              {/* Status badge */}
+              <div className="mt-1">
                 <StatusBadge
                   status={routeStatusMap[route.status]}
                   pulse={isActive}
                 />
-                <Badge
-                  variant="outline"
-                  className="text-xs bg-muted/50"
-                >
-                  {deliveredStops}/{totalStops} stops
-                </Badge>
-                <span className="text-xs text-muted-foreground flex items-center gap-1">
-                  <DollarSign className="h-3 w-3" />
-                  {route.totalValue.toLocaleString('en-US', {
-                    minimumFractionDigits: 2,
-                  })}
-                </span>
               </div>
             </div>
           </div>
@@ -365,6 +386,18 @@ function RouteCard({
             >
               <Eye className="h-4 w-4" />
             </Button>
+            {/* Reschedule - only for pending and in_transit */}
+            {(isPending || isActive) && (
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 text-muted-foreground/70 hover:text-blue-600 hover:bg-blue-50 dark:hover:text-blue-400 dark:hover:bg-blue-950/40"
+                onClick={(e) => { e.stopPropagation(); onReschedule(route); }}
+                aria-label="Reschedule delivery"
+              >
+                <CalendarClock className="h-4 w-4" />
+              </Button>
+            )}
             <AlertDialog>
               <AlertDialogTrigger asChild>
                 <Button
@@ -399,74 +432,90 @@ function RouteCard({
           </div>
         </div>
 
-        {/* Progress bar */}
-        <div className="mt-3">
-          <div className="flex items-center justify-between text-xs text-muted-foreground mb-1.5">
-            <span className="font-medium">
-              {isDelivered
-                ? 'Route Complete'
-                : isActive
-                  ? `${deliveredStops} of ${totalStops} stops completed`
-                  : `${totalStops} stops scheduled`}
-            </span>
-            <span className="font-semibold">{progressPct}%</span>
+        {/* Horizontal Journey Strip */}
+        <div className="overflow-x-auto pb-1 -mx-1 px-1">
+          <div className="flex items-start min-w-max py-1">
+            {route.stops.map((stop, idx) => (
+              <StopCircle
+                key={stop.id}
+                stop={stop}
+                index={idx}
+                isLast={idx === route.stops.length - 1}
+              />
+            ))}
           </div>
-          <Progress
-            value={progressPct}
-            className={cn(
-              'h-2',
-              isDelivered && '[&>div]:bg-green-500',
-              isActive && '[&>div]:bg-blue-500'
-            )}
-          />
         </div>
 
-        {/* Expand toggle */}
-        <Button
-          variant="ghost"
-          size="sm"
-          className="mt-2 w-full h-8 text-xs text-muted-foreground hover:text-foreground gap-1"
-          onClick={() => setExpanded(!expanded)}
-        >
-          {expanded ? (
-            <>
-              <ChevronUp className="h-3.5 w-3.5" />
-              Hide stops
-            </>
-          ) : (
-            <>
-              <ChevronDown className="h-3.5 w-3.5" />
-              Show {totalStops} stops
-            </>
-          )}
-        </Button>
-      </div>
-
-      {/* Expanded Stops List */}
-      <AnimatePresence>
-        {expanded && (
-          <motion.div
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: 'auto', opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.3, ease: [0.25, 0.46, 0.45, 0.94] }}
-            className="overflow-hidden"
-          >
-            <div className="border-t px-4 pt-3 pb-4">
-              {route.stops.map((stop, idx) => (
-                <StopRow
-                  key={stop.id}
-                  stop={stop}
-                  index={idx}
-                  totalStops={totalStops}
-                  isLast={idx === route.stops.length - 1}
-                />
-              ))}
-            </div>
-          </motion.div>
+        {/* Rescheduled badge */}
+        {route.rescheduledDate && (
+          <div className="flex items-center gap-2 rounded-lg border border-blue-200 bg-blue-50 dark:border-blue-800 dark:bg-blue-950/30 px-3 py-1.5">
+            <CalendarClock className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400" />
+            <span className="text-xs font-medium text-blue-700 dark:text-blue-300">
+              Rescheduled: {new Date(route.rescheduledDate + 'T' + (route.rescheduledTime || '08:00')).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} at {route.rescheduledTime || '08:00'}
+            </span>
+          </div>
         )}
-      </AnimatePresence>
+
+        {/* Bottom Bar */}
+        <div className="flex items-center gap-4">
+          {/* Left: progress text */}
+          <span className="text-xs text-muted-foreground font-medium whitespace-nowrap">
+            {progressText}
+          </span>
+          {/* Center: progress bar */}
+          <div className="flex-1 min-w-0">
+            <Progress
+              value={progressPct}
+              className={cn('h-1.5', progressColor[route.status] || '')}
+            />
+          </div>
+          {/* Right: distance + value */}
+          <div className="flex items-center gap-3 shrink-0 text-xs text-muted-foreground">
+            <span className="flex items-center gap-1">
+              <Route className="h-3 w-3" />
+              {route.totalDistance} km
+            </span>
+            <span className="flex items-center gap-1">
+              <DollarSign className="h-3 w-3" />
+              {route.totalValue.toLocaleString('en-US', {
+                minimumFractionDigits: 2,
+              })}
+            </span>
+          </div>
+        </div>
+      </div>
     </AnimatedCard>
+  );
+}
+
+/* ---------- Compact Stat Item ---------- */
+
+function CompactStat({
+  icon: Icon,
+  label,
+  value,
+  color,
+}: {
+  icon: typeof Truck;
+  label: string;
+  value: string | number;
+  color: string;
+}) {
+  return (
+    <div className="flex items-center gap-3 rounded-lg border bg-card p-3">
+      <div
+        className={cn(
+          'flex h-9 w-9 shrink-0 items-center justify-center rounded-lg',
+          color
+        )}
+      >
+        <Icon className="h-4 w-4" />
+      </div>
+      <div className="min-w-0">
+        <p className="text-xs text-muted-foreground">{label}</p>
+        <p className="text-base font-bold leading-tight">{value}</p>
+      </div>
+    </div>
   );
 }
 
@@ -475,7 +524,8 @@ function RouteCard({
 export default function DeliveriesPage() {
   const [data, setData] = useState<DeliveryRoute[]>(initialDeliveries);
   const [searchQuery, setSearchQuery] = useState('');
-  const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
+
   const setCurrentView = useNavigationStore((s) => s.setCurrentView);
   const setSelectedDeliveryId = usePageContext((s) => s.setSelectedDeliveryId);
   const setReturnTo = usePageContext((s) => s.setReturnTo);
@@ -484,14 +534,44 @@ export default function DeliveriesPage() {
 
   // Computed stats
   const activeCount = data.filter((d) => d.status === 'in_transit').length;
-  const completedCount = data.filter((d) => d.status === 'delivered').length;
-  const pendingCount = data.filter((d) => d.status === 'pending').length;
-  const totalStops = data.reduce((acc, r) => acc + r.stops.length, 0);
   const totalDelivered = data.reduce(
     (acc, r) => acc + r.stops.filter((s) => s.status === 'delivered').length,
     0
   );
   const totalDistance = data.reduce((acc, r) => acc + r.totalDistance, 0);
+
+  // Filter logic
+  const filteredRoutes = useMemo(() => {
+    let result = data;
+
+    // Status filter
+    if (statusFilter === 'active') {
+      result = result.filter((r) => r.status === 'in_transit');
+    } else if (statusFilter === 'completed') {
+      result = result.filter((r) => r.status === 'delivered');
+    } else if (statusFilter === 'pending') {
+      result = result.filter((r) => r.status === 'pending');
+    }
+
+    // Search filter
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase().trim();
+      result = result.filter(
+        (r) =>
+          r.id.toLowerCase().includes(q) ||
+          r.driver.toLowerCase().includes(q) ||
+          r.vehicle.toLowerCase().includes(q) ||
+          r.stops.some(
+            (s) =>
+              s.customer.toLowerCase().includes(q) ||
+              s.address.toLowerCase().includes(q) ||
+              s.orderId.toLowerCase().includes(q)
+          )
+      );
+    }
+
+    return result;
+  }, [data, searchQuery, statusFilter]);
 
   // Listen for search navigation to auto-navigate to delivery detail
   useEffect(() => {
@@ -527,27 +607,6 @@ export default function DeliveriesPage() {
     return () => window.removeEventListener('archive:restored', handleRestored);
   }, []);
 
-  // Filter routes by search and status
-  const filteredData = data.filter((route) => {
-    // Status filter
-    if (statusFilter !== 'all' && route.status !== statusFilter) {
-      return false;
-    }
-    // Search filter
-    if (searchQuery.trim()) {
-      const q = searchQuery.toLowerCase();
-      return (
-        route.id.toLowerCase().includes(q) ||
-        route.driver.toLowerCase().includes(q) ||
-        route.vehicle.toLowerCase().includes(q) ||
-        route.stops.some((stop) => stop.customer.toLowerCase().includes(q))
-      );
-    }
-    return true;
-  });
-
-  const hasActiveFilters = searchQuery.trim() !== '' || statusFilter !== 'all';
-
   // Listen for new deliveries created from the Create Delivery page
   useEffect(() => {
     const handleDeliveryCreated = (e: Event) => {
@@ -567,6 +626,42 @@ export default function DeliveriesPage() {
     toast.success(`Route ${route.id} archived successfully`);
   };
 
+  // Reschedule state
+  const [rescheduleOpen, setRescheduleOpen] = useState(false);
+  const [reschedulingRoute, setReschedulingRoute] = useState<DeliveryRoute | null>(null);
+
+  const openRescheduleDialog = (route: DeliveryRoute) => {
+    setReschedulingRoute(route);
+    setRescheduleOpen(true);
+  };
+
+  const handleReschedule = (routeId: string, newDate: string, newTime: string, reason: string) => {
+    const reasonLabels: Record<string, string> = {
+      customer_request: 'Customer Request',
+      weather_delay: 'Weather Delay',
+      driver_unavailable: 'Driver Unavailable',
+      stock_not_ready: 'Stock Not Ready',
+      high_order_volume: 'High Order Volume',
+      other: 'Other',
+    };
+    const formattedNewDate = new Date(newDate + 'T' + newTime).toLocaleDateString('en-US', {
+      weekday: 'short', month: 'short', day: 'numeric', year: 'numeric',
+    }) + ' at ' + new Date(newDate + 'T' + newTime).toLocaleTimeString('en-US', {
+      hour: 'numeric', minute: '2-digit', hour12: true,
+    });
+    setData((prev) =>
+      prev.map((r) =>
+        r.id === routeId
+          ? { ...r, rescheduledDate: newDate, rescheduledTime: newTime, rescheduleReason: reason }
+          : r
+      )
+    );
+    toast.success(
+      `Route ${routeId} rescheduled to ${formattedNewDate}` +
+        (reason ? ` (${reasonLabels[reason] || reason})` : '')
+    );
+  };
+
   const handleViewDetail = useCallback(
     (deliveryId: string, e?: React.MouseEvent) => {
       if (e) e.stopPropagation();
@@ -579,7 +674,7 @@ export default function DeliveriesPage() {
 
   return (
     <PageTransition>
-      <div className="space-y-6">
+      <div className="space-y-5">
         {/* Page Header */}
         <FadeIn>
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -589,143 +684,97 @@ export default function DeliveriesPage() {
                 Multi-stop route tracking &amp; management
               </p>
             </div>
-            <div className="flex items-center gap-2">
-              <Button
-                className="gap-2"
-                onClick={() => {
-                  setReturnTo('deliveries');
-                  setCurrentView('create-delivery');
-                }}
-              >
-                <Plus className="h-4 w-4" />
-                Create Delivery
-              </Button>
-              <Badge
-                variant="outline"
-                className="flex items-center gap-1.5 bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 border-green-200 dark:border-green-800"
-              >
-                <span className="relative flex h-2 w-2">
-                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-green-400 opacity-75" />
-                  <span className="relative inline-flex h-2 w-2 rounded-full bg-green-500" />
-                </span>
-                {activeCount} Active
-              </Badge>
-              <Badge
-                variant="outline"
-                className="bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800"
-              >
-                <CheckCircle2 className="h-3 w-3 mr-1" />
-                {completedCount} Completed
-              </Badge>
-              <Badge
-                variant="outline"
-                className="bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400 border-yellow-200 dark:border-yellow-800"
-              >
-                <Clock className="h-3 w-3 mr-1" />
-                {pendingCount} Pending
-              </Badge>
-            </div>
+            <Button
+              className="gap-2 w-fit"
+              onClick={() => {
+                setReturnTo('deliveries');
+                setCurrentView('create-delivery');
+              }}
+            >
+              <Plus className="h-4 w-4" />
+              Create Delivery
+            </Button>
           </div>
         </FadeIn>
 
-        {/* Stats Summary */}
+        {/* Compact Stats Row */}
         <FadeIn delay={0.05}>
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
-            <StatCard
-              icon={BarChart3}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <CompactStat
+              icon={Route}
               label="Total Routes"
               value={data.length}
-              color="bg-violet-100 text-violet-600 dark:bg-violet-900/30 dark:text-violet-400"
+              color="bg-slate-100 text-slate-600 dark:bg-slate-800/50 dark:text-slate-300"
             />
-            <StatCard
-              icon={Truck}
-              label="Active"
+            <CompactStat
+              icon={Navigation}
+              label="Active Now"
               value={activeCount}
-              sub="In transit now"
               color="bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400"
             />
-            <StatCard
-              icon={MapPin}
-              label="Total Stops"
-              value={totalStops}
-              sub={`${totalDelivered} delivered`}
-              color="bg-orange-100 text-orange-600 dark:bg-orange-900/30 dark:text-orange-400"
-            />
-            <StatCard
-              icon={PackageCheck}
-              label="Delivered"
+            <CompactStat
+              icon={CheckCircle2}
+              label="Stops Delivered"
               value={totalDelivered}
-              sub={totalStops > 0 ? `${Math.round((totalDelivered / totalStops) * 100)}% rate` : '--'}
               color="bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400"
             />
-            <StatCard
-              icon={Gauge}
+            <CompactStat
+              icon={Truck}
               label="Total Distance"
               value={`${totalDistance.toFixed(1)} km`}
-              sub="All routes"
-              color="bg-rose-100 text-rose-600 dark:bg-rose-900/30 dark:text-rose-400"
+              color="bg-amber-100 text-amber-600 dark:bg-amber-900/30 dark:text-amber-400"
             />
           </div>
         </FadeIn>
 
-        {/* Search & Filter Bar */}
+        {/* Search + Filter Bar */}
         <FadeIn delay={0.1}>
           <AnimatedCard>
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
+            <div className="flex flex-col sm:flex-row gap-3">
+              {/* Search input */}
               <div className="relative flex-1">
-                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
-                  placeholder="Search routes by ID, driver, vehicle, customer..."
+                  placeholder="Search by ID, driver, vehicle, customer..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-9"
+                  className="pl-9 h-9"
                 />
               </div>
-              <div className="flex gap-3">
-                <Select value={statusFilter} onValueChange={setStatusFilter}>
-                  <SelectTrigger className="w-[160px]">
-                    <SelectValue placeholder="Status" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Statuses</SelectItem>
-                    <SelectItem value="in_transit">In Transit</SelectItem>
-                    <SelectItem value="pending">Pending</SelectItem>
-                    <SelectItem value="delivered">Delivered</SelectItem>
-                  </SelectContent>
-                </Select>
-                {hasActiveFilters && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="gap-1.5 text-muted-foreground hover:text-foreground"
-                    onClick={() => {
-                      setSearchQuery('');
-                      setStatusFilter('all');
-                    }}
-                  >
-                    <X className="h-3.5 w-3.5" />
-                    Clear
-                  </Button>
-                )}
-              </div>
+              {/* Status filter */}
+              <Select
+                value={statusFilter}
+                onValueChange={(val) => setStatusFilter(val as StatusFilter)}
+              >
+                <SelectTrigger className="w-full sm:w-[160px] h-9">
+                  <SelectValue placeholder="Filter status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Status</SelectItem>
+                  <SelectItem value="active">Active</SelectItem>
+                  <SelectItem value="completed">Completed</SelectItem>
+                  <SelectItem value="pending">Pending</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </AnimatedCard>
         </FadeIn>
 
         {/* Route Cards */}
-        <StaggerContainer className="space-y-4" staggerDelay={0.08}>
-          {filteredData.map((route) => (
+        <StaggerContainer className="space-y-4" staggerDelay={0.06}>
+          {filteredRoutes.map((route) => (
             <StaggerItem key={route.id}>
               <RouteCard
                 route={route}
                 onViewDetail={handleViewDetail}
                 onArchive={handleArchive}
+                onReschedule={openRescheduleDialog}
               />
             </StaggerItem>
           ))}
         </StaggerContainer>
 
-        {/* Empty state - no routes at all */}
+        {/* Empty state — no data */}
         {data.length === 0 && (
           <FadeIn>
             <div className="flex flex-col items-center justify-center py-16 text-center">
@@ -740,31 +789,38 @@ export default function DeliveriesPage() {
           </FadeIn>
         )}
 
-        {/* Empty state - filters match nothing */}
-        {data.length > 0 && filteredData.length === 0 && (
+        {/* Empty state — filtered results */}
+        {data.length > 0 && filteredRoutes.length === 0 && (
           <FadeIn>
             <div className="flex flex-col items-center justify-center py-16 text-center">
               <div className="flex h-16 w-16 items-center justify-center rounded-full bg-muted">
                 <Search className="h-8 w-8 text-muted-foreground" />
               </div>
-              <h3 className="mt-4 text-lg font-semibold">No routes match your search</h3>
+              <h3 className="mt-4 text-lg font-semibold">No matching routes</h3>
               <p className="mt-1 text-sm text-muted-foreground">
-                Try adjusting your search query or status filter.
+                Try adjusting your search or filter criteria.
               </p>
               <Button
                 variant="outline"
-                className="mt-4 gap-2"
+                className="mt-4"
                 onClick={() => {
                   setSearchQuery('');
                   setStatusFilter('all');
                 }}
               >
-                <X className="h-4 w-4" />
                 Clear filters
               </Button>
             </div>
           </FadeIn>
         )}
+
+        {/* Reschedule Dialog */}
+        <RescheduleDialog
+          open={rescheduleOpen}
+          onOpenChange={setRescheduleOpen}
+          route={reschedulingRoute}
+          onConfirm={handleReschedule}
+        />
       </div>
     </PageTransition>
   );

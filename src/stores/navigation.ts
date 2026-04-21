@@ -15,7 +15,6 @@ export type NavItem =
   | 'notifications'
   | 'settings'
   | 'reports'
-  | 'payments'
   | 'archived'
   | 'central-inbox'
   // Sub-pages (no sidebar nav item)
@@ -59,7 +58,6 @@ export const NAV_ITEMS: { id: NavItem; label: string; icon: string; group: strin
   { id: 'deliveries', label: 'Deliveries', icon: 'Truck', group: 'Main' },
   { id: 'analytics', label: 'Analytics', icon: 'BarChart3', group: 'Insights' },
   { id: 'reports', label: 'Reports', icon: 'FileText', group: 'Insights' },
-  { id: 'payments', label: 'Payments', icon: 'CreditCard', group: 'Main' },
   { id: 'users', label: 'Users', icon: 'Users', group: 'Management' },
   { id: 'customers', label: 'Customers', icon: 'Contact', group: 'Management' },
   { id: 'roles', label: 'Roles & Permissions', icon: 'Shield', group: 'Management' },

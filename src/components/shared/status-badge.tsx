@@ -3,7 +3,7 @@
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 
-type StatusVariant = 'in_stock' | 'low_stock' | 'out_of_stock' | 'pending' | 'processing' | 'shipped' | 'delivered' | 'cancelled' | 'active' | 'inactive' | 'available' | 'on_delivery' | 'offline' | 'info' | 'success' | 'warning' | 'error' | 'completed' | 'failed' | 'refunded';
+type StatusVariant = 'in_stock' | 'low_stock' | 'out_of_stock' | 'pending' | 'processing' | 'shipped' | 'delivered' | 'cancelled' | 'active' | 'inactive' | 'available' | 'on_delivery' | 'offline' | 'info' | 'success' | 'warning' | 'error';
 
 const statusConfig: Record<StatusVariant, { label: string; className: string }> = {
   in_stock: { label: 'In Stock', className: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 border-green-200 dark:border-green-800' },
@@ -23,9 +23,6 @@ const statusConfig: Record<StatusVariant, { label: string; className: string }> 
   success: { label: 'Success', className: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 border-green-200 dark:border-green-800' },
   warning: { label: 'Warning', className: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400 border-yellow-200 dark:border-yellow-800' },
   error: { label: 'Error', className: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 border-red-200 dark:border-red-800' },
-  completed: { label: 'Completed', className: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 border-green-200 dark:border-green-800' },
-  failed: { label: 'Failed', className: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 border-red-200 dark:border-red-800' },
-  refunded: { label: 'Refunded', className: 'bg-gray-100 text-gray-600 dark:bg-gray-800/50 dark:text-gray-400 border-gray-200 dark:border-gray-700' },
 };
 
 interface StatusBadgeProps {

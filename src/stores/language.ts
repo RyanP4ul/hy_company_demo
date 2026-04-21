@@ -15,7 +15,7 @@ export const useLanguageStore = create<LanguageState>()(
       setLanguage: (lang) => set({ language: lang }),
     }),
     {
-      name: 'cloudinventory-language',
+      name: 'hyops-language',
     }
   )
 );

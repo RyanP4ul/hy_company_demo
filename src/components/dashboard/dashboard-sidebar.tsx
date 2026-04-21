@@ -25,7 +25,6 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
   MessageSquare,
-  CreditCard,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -48,7 +47,6 @@ const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
   Settings,
   Archive,
   MessageSquare,
-  CreditCard,
 };
 
 interface SidebarProps {
@@ -127,7 +125,7 @@ export function DashboardSidebar({ className, mobileOpen, onMobileClose }: Sideb
                 transition={{ duration: 0.2 }}
                 className="overflow-hidden whitespace-nowrap text-base font-semibold tracking-tight"
               >
-                CloudInventory
+                HyOps
               </motion.span>
             )}
           </AnimatePresence>

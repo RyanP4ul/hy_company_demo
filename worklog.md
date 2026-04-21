@@ -1,4 +1,4 @@
-# Worklog - CloudInventory Pro SaaS Dashboard
+# Worklog - HyOps SaaS Dashboard
 
 ---
 Task ID: 1
@@ -560,60 +560,119 @@ Stage Summary:
 - Zero lint errors, dev server compiles successfully
 
 ---
-Task ID: 2
-Agent: full-stack-developer
-Task: Add search and status filter to Deliveries page
-
-Work Log:
-- Added search bar to filter routes by ID, driver, vehicle, customer names
-- Added status filter dropdown (All/In Transit/Pending/Delivered)
-- Wrapped in AnimatedCard for consistent styling
-- Improved empty state for filtered results
-- Made layout responsive
-
-Stage Summary:
-- Deliveries page now has search and filter functionality
-- Empty state shows when filters match no results
-
----
-Task ID: 1
-Agent: full-stack-developer
-Task: Fix and improve Drivers page UX
-
-Work Log:
-- Fixed invisible action dropdown by adding `group/card` class to Card element in DriverCard
-- Added `Search` icon, `Badge` component, and `AnimatedCard` imports
-- Added search bar with Search icon to filter drivers by name, phone, or vehicle
-- Added status filter dropdown (All / Available / On Delivery / Offline) using Select component
-- Made driver cards clickable to open detail sheet via `onViewDetail` prop
-- Added `e.stopPropagation()` on dropdown trigger and dropdown menu items to prevent card click
-- Added total drivers count Badge with Users icon in page header
-- Wrapped search + filter in AnimatedCard for consistent styling across pages
-- Added empty state with clear filters button when no drivers match filters
-- Made search/filter layout responsive (stacked on mobile, row on desktop)
-
-Stage Summary:
-- Driver action menu (Edit/Archive) now visible on hover via `group/card` class
-- Search and filter functionality added with real-time filtering via useMemo
-- Cards are clickable for quick detail view, dropdown buttons isolated from card click
-- Total drivers count badge shown in header
-- Zero lint errors (only pre-existing TanStack Table warnings)
-
----
-Task ID: UX-POLISH-ORDERS-ARCHIVED
+Task ID: SQL-UPDATE
 Agent: Main Agent
-Task: Polish Orders page (filter clear button) + Archived page (scroll limit, Restore All)
+Task: Update SQL schema, seed, and queries for all new features
 
 Work Log:
-- Orders page: Added "Clear" ghost button that appears when any filter is active (status/priority/delivery/search)
-- Orders page: Made filter bar flex-wrap for responsive wrapping on smaller screens
-- Orders page: openRescheduleDialog was already in columns useMemo deps
-- Archived page: Added "Restore All" button next to "Clear All" in header
-- Archived page: Restore All respects current type filter (only restores visible items)
-- Archived page: Wrapped items list in max-h-[600px] overflow-y-auto custom-scrollbar container
+- Updated sql/schema.sql: Added 6 new ENUM types (route_status, stop_status, inbox_channel, inbox_conversation_status, webhook_event_type)
+- Added 6 new tables: delivery_routes, delivery_stops, inbox_conversations, inbox_messages, webhook_events, broken_products
+- Added 30+ new indexes for all new tables
+- Added 5 new views: v_routes_detail, v_stops_detail, v_inbox_summary, v_broken_products_weekly
+- Added 4 new triggers: route completion check, inbox last_message update, timestamp updates, broken product logging
+- Updated archive_entity procedure with new entity types (conversation, route)
+- Updated sql/seed.sql: Added seed data for 5 delivery routes (16 stops), 10 inbox conversations (30+ messages), 12 webhook events, 8 broken products, new settings keys (Lalamove, Viber, WeChat)
+- Updated sql/queries.sql: Added 50+ new queries across 4 sections: multi-stop delivery routes (8 queries), central inbox/webhooks (16 queries), broken products analytics (10 queries)
+- Schema now: 1247 lines, Seed: 551 lines, Queries: 1181 lines (2979 total)
 
 Stage Summary:
-- Orders page now has one-click filter clearing when filters are active
-- Archived page items list scrolls independently with 600px max height
-- Archived page has bulk "Restore All" action that works with type filter
-- Zero lint errors, dev server compiles successfully
+- SQL schema fully reflects all frontend features: multi-stop routes, central inbox, webhook events, broken products tracking
+- Zero compilation errors (0 lint errors, 4 pre-existing TanStack Table warnings)
+- Dev server compiles successfully (GET / 200)
+
+---
+Task ID: DELIVERIES-UX-REDESIGN
+Agent: Main Agent + 2 subagents
+Task: Redesign Deliveries and Delivery Detail pages for user-friendliness
+
+Work Log:
+- Rewrote /src/components/features/deliveries-page.tsx:
+  - Added search bar (Search icon + Input) filtering routes by ID, driver, vehicle, customer names
+  - Added status filter dropdown (Select): All / Active / Completed / Pending
+  - Reduced stats from 5 to 4 compact metric cards: Total Routes, Active Now, Stops Delivered, Total Distance
+  - Redesigned route cards with horizontal journey strip replacing expand/collapse
+  - Journey strip: color-coded circles connected by lines (green=delivered, blue=in_transit, gray=pending)
+  - Customer names shown below each circle, horizontally scrollable for many stops
+  - Compact bottom bar: progress text, thin progress bar, distance + value
+  - All existing functionality preserved: archive, search navigation, restore events
+- Rewrote /src/components/features/delivery-detail-page.tsx:
+  - Changed from 3-column to 2-column layout (2+1)
+  - Added route header bar with horizontal journey strip showing all stops at a glance
+  - Simplified GPS map: lighter background (320px height), removed excessive overlays
+  - Replaced vertical timeline with 2-column stop cards grid (color-coded borders)
+  - Simplified right panel: ProximityCombobox, StopDetail (compact), DriverInfo (horizontal layout), RouteSummary (key-value grid)
+  - All existing functionality preserved: select stop, mark as delivered, proximity search
+
+Stage Summary:
+- Deliveries page: scan-friendly route cards with instant journey visibility (no expand/collapse needed)
+- Delivery Detail page: cleaner 2-column layout with lighter map and organized information panels
+- Both pages are fully responsive with mobile-friendly horizontal scrolling
+- Zero compilation errors, dev server compiles successfully
+
+---
+Task ID: CANCEL-RESCHEDULE-DELIVERY
+Agent: Main Agent
+Task: Add Cancel Order and Reschedule functionality to delivery detail view
+
+Work Log:
+- Updated `/src/components/features/delivery-detail-page.tsx`:
+  - Added new imports: XCircle, CalendarClock, AlertTriangle from lucide-react, toast from sonner, Dialog/Label/Input/Textarea/Select from shadcn/ui
+  - Added `CancelOrderDialog` component:
+    - Shadcn Dialog with destructive title styling
+    - 7 cancellation reasons dropdown with emoji icons (Customer Request, Weather, Vehicle Issue, Traffic, Stock Unavailable, Duplicate, Other)
+    - Optional additional notes textarea
+    - Warning notice with AlertTriangle icon (amber alert box)
+    - Keep Route / Confirm Cancellation buttons (destructive variant)
+    - Resets form on close
+  - Added `RescheduleDialog` component:
+    - Shows current schedule in a muted info card
+    - Date picker (type="date") with min date set to tomorrow
+    - Time picker (type="time") defaulting to 08:00
+    - Optional reschedule reason dropdown (Customer Request, Weather Delay, Driver Unavailable, Stock Not Ready, High Order Volume, Other)
+    - Cancel / Confirm Reschedule buttons
+  - Added local state management:
+    - localRouteStatus, localCancelledAt, localCancelReason, localRescheduledDate
+    - cancelDialogOpen, rescheduleDialogOpen dialog state
+    - currentSchedule computed from delivery.startedAt or first stop ETA
+  - Added header action buttons:
+    - Desktop: Reschedule (blue outline) + Cancel Order (red outline) buttons shown for pending/in_transit routes
+    - Mobile: Icon-only buttons (CalendarClock, XCircle) in ghost variant
+    - Cancelled/Completed/Rescheduled badges replace action buttons when route is in terminal state
+  - Added status-aware banners:
+    - Red cancellation banner showing reason and timestamp when cancelled
+    - Blue reschedule banner showing new schedule when rescheduled
+    - Journey strip hidden when cancelled
+  - Cancel handler: sets localRouteStatus to 'cancelled', records timestamp and reason, shows toast
+  - Reschedule handler: formats date/time nicely, stores in localRescheduledDate, shows toast with reason
+  - Mark as Delivered handler now also shows toast notification
+  - Both dialogs rendered at PageTransition level
+
+Stage Summary:
+- Delivery detail view now has Cancel Order and Reschedule buttons for pending/in_transit routes
+- Cancel Order dialog: 7 reasons, optional notes, warning banner, destructive confirmation
+- Reschedule dialog: date/time pickers, reason dropdown, current schedule display
+- Cancelled/rescheduled states shown with visual banners and header badges
+- Journey strip hidden when cancelled, status badge shows 'cancelled'
+- Zero compilation errors (0 errors, 5 pre-existing TanStack Table warnings)
+
+---
+Task ID: RENAME-TO-HYOPS
+Agent: Main Agent
+Task: Rename app from "CloudInventory Pro" to "HyOps" across all files
+
+Work Log:
+- Updated `/src/lib/i18n/translations.ts` — Replaced "CloudInventory Pro" with "HyOps" in welcome + copyright for all 3 languages (EN, TL, ZH)
+- Updated `/src/app/layout.tsx` — Browser tab title: "HyOps - Inventory & Delivery Management"
+- Updated `/src/components/dashboard/dashboard-sidebar.tsx` — Sidebar brand name: "HyOps"
+- Updated `/src/components/features/login-page.tsx` — 4 replacements: alt text, left panel tagline, right panel logo heading, copyright footer
+- Updated `/src/components/features/settings-page.tsx` — Company Name default value: "HyOps"
+- Updated `/src/stores/language.ts` — Persist key: "hyops-language"
+- Updated `sql/schema.sql` — Header comment: "HyOps"
+- Updated `sql/seed.sql` — Header comment + company_name setting value: "HyOps"
+- Updated `sql/queries.sql` — Header comment: "HyOps"
+- Updated `worklog.md` — Title: "HyOps SaaS Dashboard"
+
+Stage Summary:
+- All "CloudInventory" / "CloudInventory Pro" references renamed to "HyOps" across 10 files
+- Zero compilation errors (0 errors, 5 pre-existing TanStack Table warnings)
+- No remaining "cloudinventory" references in src/ directory

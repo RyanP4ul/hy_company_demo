@@ -16,7 +16,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "CloudInventory Pro - Inventory & Delivery Management",
+  title: "HyOps - Inventory & Delivery Management",
   description: "Cloud-based real-time inventory, order, and delivery management system for modern enterprises.",
   icons: {
     icon: "https://z-cdn.chatglm.cn/z-ai/static/logo.svg",

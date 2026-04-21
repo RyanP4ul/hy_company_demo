@@ -17,7 +17,6 @@ import { cn } from '@/lib/utils';
 import { useArchiveStore } from '@/stores/archive';
 import { useSearchStore } from '@/stores/search';
 import { users as initialUsers } from '@/lib/mock-data';
-import { registerUserCredentials, changeUserPassword } from '@/stores/auth';
 import {
   PageTransition,
   FadeIn,
@@ -99,10 +98,11 @@ import {
   Mail,
   Shield,
   Clock,
-  Lock,
+  KeyRound,
   Eye,
   EyeOff,
-  KeyRound,
+  Lock,
+  CheckCircle2,
 } from 'lucide-react';
 
 type User = (typeof initialUsers)[number];
@@ -112,6 +112,10 @@ interface UserFormState {
   email: string;
   role: string;
   password: string;
+}
+
+interface ChangePasswordForm {
+  newPassword: string;
   confirmPassword: string;
 }
 
@@ -120,6 +124,10 @@ const emptyForm: UserFormState = {
   email: '',
   role: 'Staff',
   password: '',
+};
+
+const emptyPasswordForm: ChangePasswordForm = {
+  newPassword: '',
   confirmPassword: '',
 };
 
@@ -149,16 +157,24 @@ export default function UsersPage() {
   const [formDialogOpen, setFormDialogOpen] = useState(false);
   const [archiveDialogOpen, setArchiveDialogOpen] = useState(false);
   const [toggleDialogOpen, setToggleDialogOpen] = useState(false);
-  const [changePasswordDialogOpen, setChangePasswordDialogOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [archivingUser, setArchivingUser] = useState<User | null>(null);
   const [togglingUser, setTogglingUser] = useState<User | null>(null);
-  const [changingPasswordUser, setChangingPasswordUser] = useState<User | null>(null);
   const [form, setForm] = useState<UserFormState>(emptyForm);
   const archiveStore = useArchiveStore();
   const clearSearchTarget = useSearchStore((s) => s.clearTarget);
   const [detailUser, setDetailUser] = useState<User | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
+
+  // Change password dialog states
+  const [changePasswordOpen, setChangePasswordOpen] = useState(false);
+  const [changingPasswordUser, setChangingPasswordUser] = useState<User | null>(null);
+  const [passwordForm, setPasswordForm] = useState<ChangePasswordForm>(emptyPasswordForm);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
+  // Show/hide password in create form
+  const [showCreatePassword, setShowCreatePassword] = useState(false);
 
   // Listen for search navigation to auto-open user detail
   useEffect(() => {
@@ -199,24 +215,12 @@ export default function UsersPage() {
     setFormDialogOpen(true);
   }, []);
 
-  // Password visibility toggles
-  const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-
-  // Change Password dialog state
-  const [newPassword, setNewPassword] = useState('');
-  const [confirmNewPassword, setConfirmNewPassword] = useState('');
-  const [showNewPassword, setShowNewPassword] = useState(false);
-  const [showConfirmNewPassword, setShowConfirmNewPassword] = useState(false);
-
   const openEditDialog = useCallback((user: User) => {
     setEditingUser(user);
     setForm({
       name: user.name,
       email: user.email,
       role: user.role,
-      password: '',
-      confirmPassword: '',
     });
     setFormDialogOpen(true);
   }, []);
@@ -235,7 +239,49 @@ export default function UsersPage() {
     setFormDialogOpen(false);
     setForm(emptyForm);
     setEditingUser(null);
+    setShowCreatePassword(false);
   }, []);
+
+  const resetChangePasswordDialog = useCallback(() => {
+    setChangePasswordOpen(false);
+    setChangingPasswordUser(null);
+    setPasswordForm(emptyPasswordForm);
+    setShowNewPassword(false);
+    setShowConfirmPassword(false);
+  }, []);
+
+  const openChangePasswordDialog = useCallback((user: User) => {
+    setChangingPasswordUser(user);
+    setPasswordForm(emptyPasswordForm);
+    setShowNewPassword(false);
+    setShowConfirmPassword(false);
+    setChangePasswordOpen(true);
+  }, []);
+
+  const getPasswordStrength = useCallback((pw: string) => {
+    let score = 0;
+    if (pw.length >= 8) score++;
+    if (/[A-Z]/.test(pw)) score++;
+    if (/[a-z]/.test(pw)) score++;
+    if (/[0-9]/.test(pw)) score++;
+    if (/[^A-Za-z0-9]/.test(pw)) score++;
+    return score; // 0-5
+  }, []);
+
+  const getStrengthLabel = (score: number) => {
+    if (score <= 1) return { label: 'Weak', color: 'bg-red-500' };
+    if (score <= 2) return { label: 'Fair', color: 'bg-orange-500' };
+    if (score <= 3) return { label: 'Good', color: 'bg-yellow-500' };
+    if (score <= 4) return { label: 'Strong', color: 'bg-emerald-500' };
+    return { label: 'Very Strong', color: 'bg-emerald-600' };
+  };
+
+  const getStrengthTextColor = (score: number) => {
+    if (score <= 1) return 'text-red-500';
+    if (score <= 2) return 'text-orange-500';
+    if (score <= 3) return 'text-yellow-500';
+    return 'text-emerald-500';
+  };
 
   const resetArchiveDialog = useCallback(() => {
     setArchiveDialogOpen(false);
@@ -247,48 +293,6 @@ export default function UsersPage() {
     setTogglingUser(null);
   }, []);
 
-  const openChangePasswordDialog = useCallback((user: User) => {
-    setChangingPasswordUser(user);
-    setNewPassword('');
-    setConfirmNewPassword('');
-    setShowNewPassword(false);
-    setShowConfirmNewPassword(false);
-    setChangePasswordDialogOpen(true);
-  }, []);
-
-  const resetChangePasswordDialog = useCallback(() => {
-    setChangePasswordDialogOpen(false);
-    setChangingPasswordUser(null);
-    setNewPassword('');
-    setConfirmNewPassword('');
-    setShowNewPassword(false);
-    setShowConfirmNewPassword(false);
-  }, []);
-
-  const handleChangePassword = useCallback(() => {
-    if (!changingPasswordUser) return;
-    if (!newPassword) {
-      toast.error('New password is required');
-      return;
-    }
-    if (newPassword.length < 6) {
-      toast.error('Password must be at least 6 characters');
-      return;
-    }
-    if (newPassword !== confirmNewPassword) {
-      toast.error('Passwords do not match');
-      return;
-    }
-
-    const success = changeUserPassword(changingPasswordUser.email, newPassword);
-    if (success) {
-      toast.success(`Password changed successfully for ${changingPasswordUser.name}`);
-    } else {
-      toast.error(`Failed to change password. User ${changingPasswordUser.email} not found in credentials.`);
-    }
-    resetChangePasswordDialog();
-  }, [changingPasswordUser, newPassword, confirmNewPassword, resetChangePasswordDialog]);
-
   const handleSubmit = useCallback(() => {
     if (!form.name.trim()) {
       toast.error('User name is required');
@@ -299,32 +303,14 @@ export default function UsersPage() {
       return;
     }
 
-    // Password validation for new users
-    if (!editingUser) {
-      if (!form.password) {
-        toast.error('Password is required');
-        return;
-      }
-      if (form.password.length < 6) {
-        toast.error('Password must be at least 6 characters');
-        return;
-      }
-      if (form.password !== form.confirmPassword) {
-        toast.error('Passwords do not match');
-        return;
-      }
+    // Password required only when creating a new user
+    if (!editingUser && !form.password.trim()) {
+      toast.error('Password is required for new users');
+      return;
     }
-
-    // If editing and password fields are filled, validate them
-    if (editingUser && (form.password || form.confirmPassword)) {
-      if (form.password.length < 6) {
-        toast.error('Password must be at least 6 characters');
-        return;
-      }
-      if (form.password !== form.confirmPassword) {
-        toast.error('Passwords do not match');
-        return;
-      }
+    if (!editingUser && form.password.length < 8) {
+      toast.error('Password must be at least 8 characters');
+      return;
     }
 
     if (editingUser) {
@@ -335,12 +321,12 @@ export default function UsersPage() {
             : user
         )
       );
-      // If password was updated, re-register credentials
-      if (form.password) {
-        registerUserCredentials(form.email.trim(), form.password, form.name.trim(), form.role);
-      }
       toast.success('User updated successfully');
     } else {
+      if (getPasswordStrength(form.password) < 3) {
+        toast.error('Password is too weak. Include uppercase, lowercase, numbers, and special characters.');
+        return;
+      }
       const maxNum = data.reduce((max, user) => {
         const num = parseInt(user.id.replace('USR-', ''), 10);
         return num > max ? num : max;
@@ -356,9 +342,7 @@ export default function UsersPage() {
         avatar: '',
       };
       setData((prev) => [newUser, ...prev]);
-      // Register credentials so user can log in
-      registerUserCredentials(form.email.trim(), form.password, form.name.trim(), form.role);
-      toast.success('User added successfully. They can now log in with their credentials.');
+      toast.success('User added successfully');
     }
 
     resetFormDialog();
@@ -532,7 +516,7 @@ export default function UsersPage() {
         },
       },
     ],
-    [openEditDialog, openChangePasswordDialog, openToggleDialog, openArchiveDialog]
+    [openEditDialog, openToggleDialog, openArchiveDialog, openChangePasswordDialog]
   );
 
   const table = useReactTable({
@@ -695,8 +679,8 @@ export default function UsersPage() {
               </DialogTitle>
               <DialogDescription>
                 {editingUser
-                  ? 'Update the user details below. Leave password fields empty to keep current password.'
-                  : 'Create a new user account. They will use these credentials to log in.'}
+                  ? 'Update the user details below.'
+                  : 'Fill in the details to add a new team member.'}
               </DialogDescription>
             </DialogHeader>
             <div className="grid gap-4 py-4">
@@ -719,6 +703,70 @@ export default function UsersPage() {
                   onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
                 />
               </div>
+              {!editingUser && (
+                <div className="grid gap-2">
+                  <Label htmlFor="user-password">Password</Label>
+                  <div className="relative">
+                    <Lock className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+                    <Input
+                      id="user-password"
+                      type={showCreatePassword ? 'text' : 'password'}
+                      placeholder="Minimum 8 characters"
+                      value={form.password}
+                      onChange={(e) => setForm((f) => ({ ...f, password: e.target.value }))}
+                      className="pl-9 pr-10"
+                    />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="absolute right-1 top-1/2 size-7 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                      onClick={() => setShowCreatePassword((v) => !v)}
+                    >
+                      {showCreatePassword ? <EyeOff className="size-3.5" /> : <Eye className="size-3.5" />}
+                    </Button>
+                  </div>
+                  {form.password.length > 0 && (
+                    <div className="space-y-1.5">
+                      <div className="flex items-center justify-between">
+                        <div className="flex gap-1">
+                          {[1, 2, 3, 4, 5].map((level) => (
+                            <div
+                              key={level}
+                              className={cn(
+                                'h-1 w-8 rounded-full transition-colors',
+                                getPasswordStrength(form.password) >= level
+                                  ? getStrengthLabel(getPasswordStrength(form.password)).color
+                                  : 'bg-muted'
+                              )}
+                            />
+                          ))}
+                        </div>
+                        <span className={cn('text-xs font-medium', getStrengthTextColor(getPasswordStrength(form.password)))}>
+                          {getStrengthLabel(getPasswordStrength(form.password)).label}
+                        </span>
+                      </div>
+                      <div className="flex flex-wrap gap-x-4 gap-y-1">
+                        <span className={cn('text-xs', /[A-Z]/.test(form.password) ? 'text-emerald-600' : 'text-muted-foreground')}>
+                          Uppercase
+                        </span>
+                        <span className={cn('text-xs', /[a-z]/.test(form.password) ? 'text-emerald-600' : 'text-muted-foreground')}>
+                          Lowercase
+                        </span>
+                        <span className={cn('text-xs', /[0-9]/.test(form.password) ? 'text-emerald-600' : 'text-muted-foreground')}>
+                          Number
+                        </span>
+                        <span className={cn('text-xs', /[^A-Za-z0-9]/.test(form.password) ? 'text-emerald-600' : 'text-muted-foreground')}>
+                          Special
+                        </span>
+                        <span className={cn('text-xs', form.password.length >= 8 ? 'text-emerald-600' : 'text-muted-foreground')}>
+                          8+ chars
+                        </span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
               <div className="grid gap-2">
                 <Label htmlFor="user-role">Role</Label>
                 <Select
@@ -737,50 +785,6 @@ export default function UsersPage() {
                   </SelectContent>
                 </Select>
               </div>
-              <div className="grid gap-2">
-                <Label htmlFor="user-password">Password {!editingUser && <span className="text-destructive">*</span>}</Label>
-                <div className="relative">
-                  <Lock className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-                  <Input
-                    id="user-password"
-                    type={showPassword ? 'text' : 'password'}
-                    placeholder={editingUser ? 'Leave empty to keep current' : 'Minimum 6 characters'}
-                    value={form.password}
-                    onChange={(e) => setForm((f) => ({ ...f, password: e.target.value }))}
-                    className="pl-9 pr-9"
-                  />
-                  <button
-                    type="button"
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                    onClick={() => setShowPassword(!showPassword)}
-                  >
-                    {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
-                  </button>
-                </div>
-              </div>
-              {!editingUser && (
-                <div className="grid gap-2">
-                  <Label htmlFor="user-confirm-password">Confirm Password <span className="text-destructive">*</span></Label>
-                  <div className="relative">
-                    <Lock className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-                    <Input
-                      id="user-confirm-password"
-                      type={showConfirmPassword ? 'text' : 'password'}
-                      placeholder="Re-enter password"
-                      value={form.confirmPassword}
-                      onChange={(e) => setForm((f) => ({ ...f, confirmPassword: e.target.value }))}
-                      className="pl-9 pr-9"
-                    />
-                    <button
-                      type="button"
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                    >
-                      {showConfirmPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
-                    </button>
-                  </div>
-                </div>
-              )}
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={resetFormDialog}>
@@ -847,84 +851,150 @@ export default function UsersPage() {
         </AlertDialog>
 
         {/* Change Password Dialog */}
-        <Dialog open={changePasswordDialogOpen} onOpenChange={(open) => { if (!open) resetChangePasswordDialog(); else setChangePasswordDialogOpen(true); }}>
-          <DialogContent className="sm:max-w-[440px]">
+        <Dialog open={changePasswordOpen} onOpenChange={(open) => { if (!open) resetChangePasswordDialog(); else setChangePasswordOpen(true); }}>
+          <DialogContent className="sm:max-w-[480px]">
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2">
-                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-amber-100 dark:bg-amber-900/30">
-                  <KeyRound className="h-4 w-4 text-amber-600 dark:text-amber-400" />
-                </div>
+                <KeyRound className="size-5" />
                 Change Password
               </DialogTitle>
               <DialogDescription>
-                Set a new password for <span className="font-medium text-foreground">{changingPasswordUser?.name}</span> ({changingPasswordUser?.email}). They will use this new password to log in next time.
+                Set a new password for <span className="font-medium text-foreground">{changingPasswordUser?.name}</span> ({changingPasswordUser?.email})
               </DialogDescription>
             </DialogHeader>
             <div className="grid gap-4 py-4">
-              <div className="rounded-lg border bg-muted/30 p-3 flex items-center gap-3">
-                <Avatar className="size-9">
-                  <AvatarFallback className="bg-primary/10 text-xs font-medium text-primary">
-                    {changingPasswordUser ? getInitials(changingPasswordUser.name) : ''}
-                  </AvatarFallback>
-                </Avatar>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium truncate">{changingPasswordUser?.name}</p>
-                  <p className="text-xs text-muted-foreground truncate">{changingPasswordUser?.email}</p>
-                </div>
-                <Badge variant="outline" className={cn('text-xs font-medium shrink-0', roleColors[changingPasswordUser?.role || ''] || '')}>
-                  {changingPasswordUser?.role}
-                </Badge>
-              </div>
+              {/* New Password */}
               <div className="grid gap-2">
-                <Label htmlFor="new-password">New Password <span className="text-destructive">*</span></Label>
+                <Label htmlFor="new-password">New Password</Label>
                 <div className="relative">
                   <Lock className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
                   <Input
                     id="new-password"
                     type={showNewPassword ? 'text' : 'password'}
-                    placeholder="Minimum 6 characters"
-                    value={newPassword}
-                    onChange={(e) => setNewPassword(e.target.value)}
-                    className="pl-9 pr-9"
+                    placeholder="Minimum 8 characters"
+                    value={passwordForm.newPassword}
+                    onChange={(e) => setPasswordForm((f) => ({ ...f, newPassword: e.target.value }))}
+                    className="pl-9 pr-10"
                   />
-                  <button
+                  <Button
                     type="button"
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                    onClick={() => setShowNewPassword(!showNewPassword)}
+                    variant="ghost"
+                    size="icon"
+                    className="absolute right-1 top-1/2 size-7 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                    onClick={() => setShowNewPassword((v) => !v)}
                   >
-                    {showNewPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
-                  </button>
+                    {showNewPassword ? <EyeOff className="size-3.5" /> : <Eye className="size-3.5" />}
+                  </Button>
                 </div>
-                {newPassword && newPassword.length < 6 && (
-                  <p className="text-xs text-destructive">Password must be at least 6 characters</p>
+                {/* Password strength indicator */}
+                {passwordForm.newPassword.length > 0 && (
+                  <div className="space-y-1.5">
+                    <div className="flex items-center justify-between">
+                      <div className="flex gap-1">
+                        {[1, 2, 3, 4, 5].map((level) => (
+                          <div
+                            key={level}
+                            className={cn(
+                              'h-1 w-8 rounded-full transition-colors',
+                              getPasswordStrength(passwordForm.newPassword) >= level
+                                ? getStrengthLabel(getPasswordStrength(passwordForm.newPassword)).color
+                                : 'bg-muted'
+                            )}
+                          />
+                        ))}
+                      </div>
+                      <span className={cn('text-xs font-medium', getStrengthTextColor(getPasswordStrength(passwordForm.newPassword)))}>
+                        {getStrengthLabel(getPasswordStrength(passwordForm.newPassword)).label}
+                      </span>
+                    </div>
+                    <div className="flex flex-wrap gap-x-4 gap-y-1">
+                      {[
+                        { test: /[A-Z]/, label: 'Uppercase' },
+                        { test: /[a-z]/, label: 'Lowercase' },
+                        { test: /[0-9]/, label: 'Number' },
+                        { test: /[^A-Za-z0-9]/, label: 'Special' },
+                        { test: (pw: string) => pw.length >= 8, label: '8+ chars' },
+                      ].map(({ test, label }) => (
+                        <span
+                          key={label}
+                          className={cn(
+                            'text-xs',
+                            (typeof test === 'function' ? test(passwordForm.newPassword) : test.test(passwordForm.newPassword))
+                              ? 'text-emerald-600'
+                              : 'text-muted-foreground'
+                          )}
+                        >
+                          {label}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
                 )}
               </div>
+
+              {/* Confirm Password */}
               <div className="grid gap-2">
-                <Label htmlFor="confirm-new-password">Confirm New Password <span className="text-destructive">*</span></Label>
+                <Label htmlFor="confirm-password">Confirm Password</Label>
                 <div className="relative">
                   <Lock className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
                   <Input
-                    id="confirm-new-password"
-                    type={showConfirmNewPassword ? 'text' : 'password'}
+                    id="confirm-password"
+                    type={showConfirmPassword ? 'text' : 'password'}
                     placeholder="Re-enter new password"
-                    value={confirmNewPassword}
-                    onChange={(e) => setConfirmNewPassword(e.target.value)}
-                    className="pl-9 pr-9"
+                    value={passwordForm.confirmPassword}
+                    onChange={(e) => setPasswordForm((f) => ({ ...f, confirmPassword: e.target.value }))}
+                    className={cn(
+                      'pl-9 pr-10',
+                      passwordForm.confirmPassword.length > 0 &&
+                        passwordForm.newPassword !== passwordForm.confirmPassword &&
+                        'border-red-500 focus-visible:ring-red-500'
+                    )}
                   />
-                  <button
+                  <Button
                     type="button"
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                    onClick={() => setShowConfirmNewPassword(!showConfirmNewPassword)}
+                    variant="ghost"
+                    size="icon"
+                    className="absolute right-1 top-1/2 size-7 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                    onClick={() => setShowConfirmPassword((v) => !v)}
                   >
-                    {showConfirmNewPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
-                  </button>
+                    {showConfirmPassword ? <EyeOff className="size-3.5" /> : <Eye className="size-3.5" />}
+                  </Button>
                 </div>
-                {confirmNewPassword && newPassword !== confirmNewPassword && (
-                  <p className="text-xs text-destructive">Passwords do not match</p>
+                {/* Match indicator */}
+                {passwordForm.confirmPassword.length > 0 && (
+                  <div className="flex items-center gap-1.5">
+                    {passwordForm.newPassword === passwordForm.confirmPassword ? (
+                      <>
+                        <CheckCircle2 className="size-3.5 text-emerald-500" />
+                        <span className="text-xs text-emerald-600 font-medium">Passwords match</span>
+                      </>
+                    ) : (
+                      <>
+                        <div className="size-3.5 rounded-full border-2 border-red-400" />
+                        <span className="text-xs text-red-500 font-medium">Passwords do not match</span>
+                      </>
+                    )}
+                  </div>
                 )}
-                {confirmNewPassword && newPassword === confirmNewPassword && newPassword.length >= 6 && (
-                  <p className="text-xs text-green-600 dark:text-green-400">Passwords match</p>
-                )}
+              </div>
+
+              {/* Requirements reminder */}
+              <div className="rounded-lg border border-muted bg-muted/30 p-3">
+                <p className="text-xs font-medium text-muted-foreground mb-1.5">Password requirements:</p>
+                <ul className="space-y-1 text-xs text-muted-foreground">
+                  <li className="flex items-center gap-1.5">
+                    <div className="h-1 w-1 rounded-full bg-muted-foreground/50" />
+                    Minimum 8 characters
+                  </li>
+                  <li className="flex items-center gap-1.5">
+                    <div className="h-1 w-1 rounded-full bg-muted-foreground/50" />
+                    At least one uppercase and one lowercase letter
+                  </li>
+                  <li className="flex items-center gap-1.5">
+                    <div className="h-1 w-1 rounded-full bg-muted-foreground/50" />
+                    At least one number and one special character
+                  </li>
+                </ul>
               </div>
             </div>
             <DialogFooter>
@@ -932,11 +1002,29 @@ export default function UsersPage() {
                 Cancel
               </Button>
               <Button
-                onClick={handleChangePassword}
-                disabled={!newPassword || newPassword.length < 6 || newPassword !== confirmNewPassword}
+                onClick={() => {
+                  if (!passwordForm.newPassword.trim()) {
+                    toast.error('Please enter a new password');
+                    return;
+                  }
+                  if (passwordForm.newPassword.length < 8) {
+                    toast.error('Password must be at least 8 characters');
+                    return;
+                  }
+                  if (getPasswordStrength(passwordForm.newPassword) < 3) {
+                    toast.error('Password is too weak. Include uppercase, lowercase, numbers, and special characters.');
+                    return;
+                  }
+                  if (passwordForm.newPassword !== passwordForm.confirmPassword) {
+                    toast.error('Passwords do not match');
+                    return;
+                  }
+                  toast.success(`Password changed for ${changingPasswordUser?.name}`);
+                  resetChangePasswordDialog();
+                }}
               >
                 <KeyRound className="mr-2 size-4" />
-                Change Password
+                Update Password
               </Button>
             </DialogFooter>
           </DialogContent>
@@ -1012,6 +1100,17 @@ export default function UsersPage() {
                   >
                     <Pencil className="h-4 w-4" />
                     Edit User
+                  </Button>
+                  <Button
+                    variant="outline"
+                    className="w-full gap-2"
+                    onClick={() => {
+                      setDetailOpen(false);
+                      openChangePasswordDialog(detailUser);
+                    }}
+                  >
+                    <KeyRound className="h-4 w-4" />
+                    Change Password
                   </Button>
                 </div>
               </>

@@ -9,61 +9,171 @@ import {
   MapPin,
   Clock,
   CheckCircle2,
-  Circle,
   Navigation,
   User,
   Phone,
   Hash,
   Route,
-  Gauge,
-  Plus,
-  Minus,
-  Warehouse,
   AlertCircle,
   ChevronDown,
   Star,
   MapPinned,
   StickyNote,
-  ArrowRight,
+  Warehouse,
+  MessageSquare,
+  XCircle,
+  CalendarClock,
+  AlertTriangle,
 } from 'lucide-react';
+import { toast } from 'sonner';
 
 import { useNavigationStore } from '@/stores/navigation';
 import { usePageContext } from '@/stores/page-context';
 import { deliveries, type DeliveryRoute, type DeliveryStop, orders, drivers } from '@/lib/mock-data';
-import { StatusBadge, PriorityBadge } from '@/components/shared/status-badge';
+import { StatusBadge } from '@/components/shared/status-badge';
 import { PageTransition, FadeIn } from '@/components/shared/animated-components';
-import { AnimatedCard } from '@/components/shared/animated-card';
-import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
-import { Command, CommandInput, CommandList, CommandEmpty, CommandGroup, CommandItem, CommandSeparator } from '@/components/ui/command';
-import { Input } from '@/components/ui/input';
+import { Command, CommandInput, CommandList, CommandEmpty, CommandGroup, CommandItem } from '@/components/ui/command';
 import { Separator } from '@/components/ui/separator';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { cn } from '@/lib/utils';
 
-/* ---------- Constants ---------- */
+/* ================================================================
+   CONSTANTS
+   ================================================================ */
 
 const MAP_POSITIONS: { x: number; y: number }[] = [
-  { x: 40, y: 200 },   // Warehouse
-  { x: 130, y: 155 },  // Stop 1
-  { x: 220, y: 100 },  // Stop 2
-  { x: 310, y: 140 },  // Stop 3
-  { x: 400, y: 60 },   // Stop 4
+  { x: 40, y: 200 },
+  { x: 130, y: 155 },
+  { x: 220, y: 100 },
+  { x: 310, y: 140 },
+  { x: 400, y: 60 },
 ];
 
-/* ---------- GPS Map with Multi-Stop Waypoints ---------- */
+/* ================================================================
+   JOURNEY STRIP — Horizontal dot-and-line progress
+   ================================================================ */
 
-function MultiStopGPSMap({ route, onSelectStop }: { route: DeliveryRoute; onSelectStop: (stop: DeliveryStop) => void }) {
+function JourneyStrip({
+  stops,
+  selectedStopId,
+  onSelectStop,
+}: {
+  stops: DeliveryStop[];
+  selectedStopId: string | null;
+  onSelectStop: (stop: DeliveryStop) => void;
+}) {
+  return (
+    <div className="overflow-x-auto pb-1 -mb-1">
+      <div className="flex items-center gap-0 min-w-max px-1">
+        {/* Warehouse origin */}
+        <button
+          className="flex flex-col items-center shrink-0 cursor-default"
+          tabIndex={-1}
+        >
+          <div className="flex h-7 w-7 items-center justify-center rounded-full bg-muted text-muted-foreground text-xs">
+            <Warehouse className="h-3.5 w-3.5" />
+          </div>
+          <span className="text-[10px] text-muted-foreground mt-1">Origin</span>
+        </button>
+
+        {stops.map((stop, idx) => {
+          const isDelivered = stop.status === 'delivered';
+          const isCurrent = stop.status === 'in_transit';
+          const isSelected = stop.id === selectedStopId;
+
+          return (
+            <div key={stop.id} className="flex items-center shrink-0">
+              {/* Connecting line */}
+              <div className="w-8 h-0.5 -ml-0.5 -mr-0.5">
+                <div
+                  className={cn(
+                    'w-full h-full rounded-full transition-colors',
+                    isDelivered
+                      ? 'bg-green-500'
+                      : isCurrent
+                        ? 'bg-blue-400'
+                        : 'bg-border'
+                  )}
+                />
+              </div>
+
+              {/* Stop dot */}
+              <button
+                onClick={() => onSelectStop(stop)}
+                className={cn(
+                  'flex flex-col items-center shrink-0 cursor-pointer group focus:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-full',
+                )}
+              >
+                <div
+                  className={cn(
+                    'flex h-7 w-7 items-center justify-center rounded-full text-xs font-bold transition-all border-2',
+                    isDelivered
+                      ? 'bg-green-500 border-green-500 text-white'
+                      : isCurrent
+                        ? 'bg-blue-500 border-blue-500 text-white animate-pulse'
+                        : isSelected
+                          ? 'bg-primary border-primary text-primary-foreground'
+                          : 'bg-background border-border text-muted-foreground group-hover:border-muted-foreground/40',
+                  )}
+                >
+                  {isDelivered ? (
+                    <CheckCircle2 className="h-3.5 w-3.5" />
+                  ) : (
+                    <span>{idx + 1}</span>
+                  )}
+                </div>
+                <span
+                  className={cn(
+                    'text-[10px] mt-1 max-w-[60px] truncate transition-colors',
+                    isSelected
+                      ? 'text-foreground font-medium'
+                      : isCurrent
+                        ? 'text-blue-600 dark:text-blue-400 font-medium'
+                        : isDelivered
+                          ? 'text-green-600 dark:text-green-400'
+                          : 'text-muted-foreground'
+                  )}
+                >
+                  {stop.customer.split(' ')[0]}
+                </span>
+              </button>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+/* ================================================================
+   SIMPLIFIED GPS MAP — Light, clean design
+   ================================================================ */
+
+function SimplifiedGPSMap({
+  route,
+  onSelectStop,
+}: {
+  route: DeliveryRoute;
+  onSelectStop: (stop: DeliveryStop) => void;
+}) {
   const isDelivered = route.status === 'delivered';
   const isPending = route.status === 'pending';
   const isInTransit = route.status === 'in_transit';
 
-  const deliveredCount = route.stops.filter(s => s.status === 'delivered').length;
-  const progressPct = Math.round((deliveredCount / route.stops.length) * 100);
-
-  // Build route line segments: completed portion is solid green, remaining is dashed blue
   const completedLinePoints = useMemo(() => {
     const pts: string[] = [];
     pts.push(`${MAP_POSITIONS[0].x},${MAP_POSITIONS[0].y}`);
@@ -76,76 +186,65 @@ function MultiStopGPSMap({ route, onSelectStop }: { route: DeliveryRoute; onSele
   }, [route.stops]);
 
   const remainingLinePoints = useMemo(() => {
-    const pts: string[] = [];
-    // Start from the current or last delivered stop
-    let startIdx = 0;
-    for (let i = 0; i < route.stops.length; i++) {
-      if (route.stops[i].status === 'in_transit') {
-        startIdx = i;
-        break;
-      }
-      if (route.stops[i].status === 'pending' && startIdx === 0) {
-        startIdx = i;
-        break;
-      }
-    }
-    // If all delivered, no remaining
     if (route.stops.every(s => s.status === 'delivered')) return '';
-    // Start from the stop before current index
+    const pts: string[] = [];
     const fromIdx = route.stops.findIndex(s => s.status === 'in_transit');
     if (fromIdx >= 0) {
       pts.push(`${MAP_POSITIONS[fromIdx].x},${MAP_POSITIONS[fromIdx].y}`);
     } else {
-      pts.push(`${MAP_POSITIONS[startIdx].x},${MAP_POSITIONS[startIdx].y}`);
+      const firstPending = route.stops.findIndex(s => s.status === 'pending');
+      if (firstPending >= 0) {
+        pts.push(`${MAP_POSITIONS[firstPending].x},${MAP_POSITIONS[firstPending].y}`);
+      }
     }
-    for (let i = startIdx + 1; i < route.stops.length; i++) {
+    const startIdx = route.stops.findIndex(s => s.status === 'in_transit');
+    for (let i = (startIdx >= 0 ? startIdx : 0) + 1; i < route.stops.length; i++) {
       pts.push(`${MAP_POSITIONS[i + 1].x},${MAP_POSITIONS[i + 1].y}`);
     }
     return pts.join(' ');
   }, [route.stops]);
 
   return (
-    <div className="relative overflow-hidden rounded-xl border border-white/10" style={{ height: 400 }}>
-      <div className="absolute inset-0 bg-gradient-to-br from-slate-800 to-slate-900 dark:from-slate-900 dark:to-slate-950" />
-
-      {/* Map watermark */}
-      <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-[5]">
-        <span className="text-[13px] font-bold uppercase tracking-[0.35em] text-white/[0.06] select-none">
-          Map Preview
-        </span>
-      </div>
-
-      {/* Simulated map blocks */}
-      <div className="absolute inset-0 overflow-hidden">
-        {[50, 100, 150, 200, 250].map((y) => (
-          <div key={`h-${y}`} className="absolute left-0 right-0 border-t border-white/[0.04]" style={{ top: `${y * 0.48}px` }} />
+    <div
+      className="relative overflow-hidden rounded-xl border border-border bg-slate-100 dark:bg-slate-800"
+      style={{ height: 320 }}
+    >
+      {/* Subtle grid pattern */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        {[40, 80, 120, 160, 200, 240, 280].map((y) => (
+          <div
+            key={`h-${y}`}
+            className="absolute left-0 right-0 border-t border-slate-200/60 dark:border-slate-700/40"
+            style={{ top: `${y * 0.46}px` }}
+          />
         ))}
         {[70, 140, 210, 280, 350, 420].map((x) => (
-          <div key={`v-${x}`} className="absolute top-0 bottom-0 border-l border-white/[0.04]" style={{ left: `${x}px` }} />
+          <div
+            key={`v-${x}`}
+            className="absolute top-0 bottom-0 border-l border-slate-200/60 dark:border-slate-700/40"
+            style={{ left: `${x}px` }}
+          />
         ))}
-        <div className="absolute top-[30px] left-[120px] w-[80px] h-[50px] rounded bg-white/[0.02] border border-white/[0.03]" />
-        <div className="absolute top-[100px] left-[240px] w-[60px] h-[70px] rounded bg-white/[0.02] border border-white/[0.03]" />
-        <div className="absolute top-[60px] left-[320px] w-[90px] h-[40px] rounded bg-white/[0.02] border border-white/[0.03]" />
-        <div className="absolute top-[140px] left-[160px] w-[70px] h-[50px] rounded bg-white/[0.02] border border-white/[0.03]" />
-        <div className="absolute top-[170px] left-[340px] w-[55px] h-[45px] rounded bg-white/[0.02] border border-white/[0.03]" />
+        {/* Subtle block shapes for map feel */}
+        <div className="absolute top-[20px] left-[100px] w-[70px] h-[40px] rounded-md bg-slate-200/50 dark:bg-slate-700/30" />
+        <div className="absolute top-[80px] left-[220px] w-[50px] h-[60px] rounded-md bg-slate-200/50 dark:bg-slate-700/30" />
+        <div className="absolute top-[50px] left-[300px] w-[80px] h-[35px] rounded-md bg-slate-200/50 dark:bg-slate-700/30" />
+        <div className="absolute top-[130px] left-[150px] w-[60px] h-[45px] rounded-md bg-slate-200/50 dark:bg-slate-700/30" />
+        <div className="absolute top-[160px] left-[330px] w-[50px] h-[40px] rounded-md bg-slate-200/50 dark:bg-slate-700/30" />
       </div>
 
-      <svg viewBox="0 0 500 240" className="absolute inset-0 w-full h-full" preserveAspectRatio="xMidYMid meet">
-        {/* Grid lines */}
-        <line x1="0" y1="60" x2="500" y2="60" stroke="rgba(255,255,255,0.03)" strokeWidth="1" />
-        <line x1="0" y1="120" x2="500" y2="120" stroke="rgba(255,255,255,0.03)" strokeWidth="1" />
-        <line x1="0" y1="180" x2="500" y2="180" stroke="rgba(255,255,255,0.03)" strokeWidth="1" />
-        <line x1="125" y1="0" x2="125" y2="240" stroke="rgba(255,255,255,0.03)" strokeWidth="1" />
-        <line x1="250" y1="0" x2="250" y2="240" stroke="rgba(255,255,255,0.03)" strokeWidth="1" />
-        <line x1="375" y1="0" x2="375" y2="240" stroke="rgba(255,255,255,0.03)" strokeWidth="1" />
-
+      <svg
+        viewBox="0 0 500 240"
+        className="absolute inset-0 w-full h-full"
+        preserveAspectRatio="xMidYMid meet"
+      >
         {/* Completed route line (solid green) */}
         {completedLinePoints && (
           <polyline
             points={completedLinePoints}
             fill="none"
-            stroke={isDelivered ? 'rgba(34,197,94,0.8)' : 'rgba(34,197,94,0.85)'}
-            strokeWidth="3"
+            stroke="rgba(34,197,94,0.7)"
+            strokeWidth="2.5"
             strokeLinecap="round"
             strokeLinejoin="round"
           />
@@ -156,13 +255,19 @@ function MultiStopGPSMap({ route, onSelectStop }: { route: DeliveryRoute; onSele
           <polyline
             points={remainingLinePoints}
             fill="none"
-            stroke="rgba(99,102,241,0.35)"
-            strokeWidth="3"
+            stroke="rgba(59,130,246,0.45)"
+            strokeWidth="2.5"
             strokeDasharray="8,5"
             strokeLinecap="round"
             strokeLinejoin="round"
           >
-            <animate attributeName="stroke-dashoffset" from="0" to="26" dur="1.5s" repeatCount="indefinite" />
+            <animate
+              attributeName="stroke-dashoffset"
+              from="0"
+              to="26"
+              dur="1.5s"
+              repeatCount="indefinite"
+            />
           </polyline>
         )}
 
@@ -171,8 +276,8 @@ function MultiStopGPSMap({ route, onSelectStop }: { route: DeliveryRoute; onSele
           <polyline
             points={MAP_POSITIONS.map(p => `${p.x},${p.y}`).join(' ')}
             fill="none"
-            stroke="rgba(148,163,184,0.3)"
-            strokeWidth="2.5"
+            stroke="rgba(148,163,184,0.35)"
+            strokeWidth="2"
             strokeDasharray="6,6"
             strokeLinecap="round"
             strokeLinejoin="round"
@@ -181,9 +286,18 @@ function MultiStopGPSMap({ route, onSelectStop }: { route: DeliveryRoute; onSele
 
         {/* Warehouse marker */}
         <g transform={`translate(${MAP_POSITIONS[0].x - 14}, ${MAP_POSITIONS[0].y - 12})`}>
-          <rect x="0" y="0" width="28" height="22" rx="3" fill="rgba(148,163,184,0.15)" stroke="rgba(148,163,184,0.4)" strokeWidth="1" />
-          <text x="14" y="15" textAnchor="middle" fill="rgba(148,163,184,0.7)" fontSize="9" fontWeight="600">W</text>
-          <text x="14" y="34" textAnchor="middle" fill="rgba(255,255,255,0.35)" fontSize="8">Start</text>
+          <rect
+            x="0" y="0" width="28" height="22" rx="3"
+            fill="rgba(148,163,184,0.2)"
+            stroke="rgba(148,163,184,0.5)"
+            strokeWidth="1"
+          />
+          <text x="14" y="15" textAnchor="middle" fill="rgba(100,116,139,0.8)" fontSize="9" fontWeight="600">
+            W
+          </text>
+          <text x="14" y="34" textAnchor="middle" fill="rgba(100,116,139,0.5)" fontSize="8">
+            Start
+          </text>
         </g>
 
         {/* Stop markers */}
@@ -195,21 +309,17 @@ function MultiStopGPSMap({ route, onSelectStop }: { route: DeliveryRoute; onSele
           const isThisPending = stop.status === 'pending';
 
           return (
-            <g
-              key={stop.id}
-              className="cursor-pointer"
-              onClick={() => onSelectStop(stop)}
-            >
+            <g key={stop.id} className="cursor-pointer" onClick={() => onSelectStop(stop)}>
               {/* Delivered: green filled */}
               {isThisDelivered && (
                 <>
-                  <circle cx={pos.x} cy={pos.y} r="14" fill="rgba(34,197,94,0.12)" />
-                  <circle cx={pos.x} cy={pos.y} r="12" fill="rgba(34,197,94,0.9)" />
+                  <circle cx={pos.x} cy={pos.y} r="13" fill="rgba(34,197,94,0.15)" />
+                  <circle cx={pos.x} cy={pos.y} r="11" fill="rgba(34,197,94,0.85)" />
                   <polyline
                     points={`${pos.x - 4},${pos.y} ${pos.x - 1},${pos.y + 3} ${pos.x + 4},${pos.y - 3}`}
                     fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
                   />
-                  <text x={pos.x} y={pos.y - 20} textAnchor="middle" fill="rgba(34,197,94,0.7)" fontSize="8" fontWeight="600">
+                  <text x={pos.x} y={pos.y - 18} textAnchor="middle" fill="rgba(34,197,94,0.7)" fontSize="8" fontWeight="600">
                     Stop {idx + 1}
                   </text>
                 </>
@@ -218,19 +328,15 @@ function MultiStopGPSMap({ route, onSelectStop }: { route: DeliveryRoute; onSele
               {/* In transit: pulsing blue */}
               {isThisCurrent && (
                 <>
-                  <circle cx={pos.x} cy={pos.y} r="10" fill="rgba(99,102,241,0.25)">
-                    <animate attributeName="r" values="10;20;10" dur="2s" repeatCount="indefinite" />
-                    <animate attributeName="opacity" values="0.6;0;0.6" dur="2s" repeatCount="indefinite" />
+                  <circle cx={pos.x} cy={pos.y} r="10" fill="rgba(59,130,246,0.2)">
+                    <animate attributeName="r" values="10;18;10" dur="2s" repeatCount="indefinite" />
+                    <animate attributeName="opacity" values="0.5;0;0.5" dur="2s" repeatCount="indefinite" />
                   </circle>
-                  <circle cx={pos.x} cy={pos.y} r="16" fill="none" stroke="rgba(99,102,241,0.2)" strokeWidth="1">
-                    <animate attributeName="r" values="16;24;16" dur="2s" repeatCount="indefinite" />
-                    <animate attributeName="opacity" values="0.4;0;0.4" dur="2s" repeatCount="indefinite" />
-                  </circle>
-                  <circle cx={pos.x} cy={pos.y} r="12" fill="rgba(99,102,241,0.9)" />
+                  <circle cx={pos.x} cy={pos.y} r="11" fill="rgba(59,130,246,0.85)" />
                   <text x={pos.x} y={pos.y + 4} textAnchor="middle" fill="white" fontSize="10" fontWeight="700">
                     {idx + 1}
                   </text>
-                  <text x={pos.x} y={pos.y - 20} textAnchor="middle" fill="rgba(99,102,241,0.8)" fontSize="8" fontWeight="600">
+                  <text x={pos.x} y={pos.y - 18} textAnchor="middle" fill="rgba(59,130,246,0.7)" fontSize="8" fontWeight="600">
                     Stop {idx + 1}
                   </text>
                 </>
@@ -239,11 +345,11 @@ function MultiStopGPSMap({ route, onSelectStop }: { route: DeliveryRoute; onSele
               {/* Pending: gray */}
               {isThisPending && (
                 <>
-                  <circle cx={pos.x} cy={pos.y} r="12" fill="rgba(148,163,184,0.15)" stroke="rgba(148,163,184,0.4)" strokeWidth="1.5" />
+                  <circle cx={pos.x} cy={pos.y} r="11" fill="rgba(148,163,184,0.15)" stroke="rgba(148,163,184,0.4)" strokeWidth="1.5" />
                   <text x={pos.x} y={pos.y + 4} textAnchor="middle" fill="rgba(148,163,184,0.6)" fontSize="10" fontWeight="600">
                     {idx + 1}
                   </text>
-                  <text x={pos.x} y={pos.y - 20} textAnchor="middle" fill="rgba(148,163,184,0.4)" fontSize="8" fontWeight="600">
+                  <text x={pos.x} y={pos.y - 18} textAnchor="middle" fill="rgba(148,163,184,0.4)" fontSize="8" fontWeight="600">
                     Stop {idx + 1}
                   </text>
                 </>
@@ -253,83 +359,43 @@ function MultiStopGPSMap({ route, onSelectStop }: { route: DeliveryRoute; onSele
         })}
       </svg>
 
-      {/* Route info overlay */}
+      {/* Route ID badge — top-left */}
       <div className="absolute top-3 left-3 z-10">
-        <div className="flex flex-col gap-1.5 rounded-lg bg-black/50 backdrop-blur-md border border-white/10 px-3 py-2 text-[11px] text-white/80 min-w-[130px]">
-          <div className="flex items-center gap-1.5">
-            <Route className="h-3 w-3 text-white/50" />
-            <span>{isPending ? `${route.totalDistance} km planned` : `${route.totalDistance} km total`}</span>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <Clock className="h-3 w-3 text-white/50" />
-            <span>{isDelivered ? 'Completed' : isPending ? 'Scheduled' : `${route.stops.length - deliveredCount} stops left`}</span>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <Gauge className="h-3 w-3 text-white/50" />
-            <span>{isPending ? '-- km/h' : `${(35 + Math.random() * 15).toFixed(0)} km/h`}</span>
-          </div>
+        <div className="rounded-md bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm border border-border px-2.5 py-1 text-xs font-mono font-semibold text-foreground">
+          {route.id}
         </div>
       </div>
 
-      {/* LIVE / Scheduled / Complete badge */}
+      {/* LIVE / Scheduled / Complete badge — top-right */}
       <div className="absolute top-3 right-3 z-10">
-        <div className={cn(
-          'flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider',
-          isInTransit ? 'border-red-500/30 bg-red-500/15 text-red-400'
-            : isDelivered ? 'border-green-500/30 bg-green-500/15 text-green-400'
-            : 'border-amber-500/30 bg-amber-500/15 text-amber-400'
-        )}>
+        <div
+          className={cn(
+            'flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider',
+            isInTransit
+              ? 'border-blue-500/30 bg-blue-500/10 text-blue-600 dark:text-blue-400'
+              : isDelivered
+                ? 'border-green-500/30 bg-green-500/10 text-green-600 dark:text-green-400'
+                : 'border-amber-500/30 bg-amber-500/10 text-amber-600 dark:text-amber-400'
+          )}
+        >
           {isInTransit && (
             <span className="relative flex h-1.5 w-1.5">
-              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-red-400 opacity-75" />
-              <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-red-500" />
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-blue-400 opacity-75" />
+              <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-blue-500" />
             </span>
           )}
           {isInTransit ? 'Live' : isDelivered ? 'Complete' : 'Scheduled'}
         </div>
       </div>
-
-      {/* Progress bar at bottom */}
-      <div className="absolute bottom-12 left-3 right-14 z-10">
-        <div className="rounded-lg bg-black/50 backdrop-blur-md border border-white/10 px-3 py-2">
-          <div className="flex items-center justify-between mb-1.5">
-            <span className="text-[10px] font-medium text-white/60 uppercase tracking-wider">Route Progress</span>
-            <span className="text-[11px] font-bold text-white/80 tabular-nums">{progressPct}%</span>
-          </div>
-          <Progress value={progressPct} className="h-1.5" />
-          <div className="flex justify-between mt-1.5 text-[9px] text-white/40">
-            <span>{deliveredCount}/{route.stops.length} stops</span>
-            <span>{isDelivered ? 'All delivered' : isPending ? 'Not started' : `${route.stops.length - deliveredCount} remaining`}</span>
-          </div>
-        </div>
-      </div>
-
-      {/* Zoom controls */}
-      <div className="absolute bottom-3 right-3 z-10 flex flex-col gap-0.5">
-        <button className="flex h-7 w-7 items-center justify-center rounded-md bg-black/50 border border-white/10 text-white/60 hover:text-white hover:bg-black/70 transition-colors backdrop-blur-sm" aria-label="Zoom in">
-          <Plus className="h-3.5 w-3.5" />
-        </button>
-        <button className="flex h-7 w-7 items-center justify-center rounded-md bg-black/50 border border-white/10 text-white/60 hover:text-white hover:bg-black/70 transition-colors backdrop-blur-sm" aria-label="Zoom out">
-          <Minus className="h-3.5 w-3.5" />
-        </button>
-      </div>
-
-      {/* Driver name */}
-      {isInTransit && (
-        <div className="absolute bottom-3 left-3 z-10">
-          <div className="flex items-center gap-1.5 rounded-full border border-white/10 bg-black/40 backdrop-blur-sm px-2.5 py-1 text-[11px] text-white/70">
-            <Truck className="h-3 w-3 text-blue-400" />
-            {route.driver}
-          </div>
-        </div>
-      )}
     </div>
   );
 }
 
-/* ---------- Sequential Stop Tracker ---------- */
+/* ================================================================
+   STOP CARDS GRID — 2-column on desktop, 1-column on mobile
+   ================================================================ */
 
-function StopTracker({
+function StopCardsGrid({
   stops,
   selectedStopId,
   onSelectStop,
@@ -339,93 +405,116 @@ function StopTracker({
   onSelectStop: (stop: DeliveryStop) => void;
 }) {
   return (
-    <div className="relative pl-7">
-      {/* Vertical line */}
-      <div className="absolute left-[13px] top-1 bottom-1 w-0.5 bg-border" />
-
+    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
       {stops.map((stop, idx) => {
         const isDelivered = stop.status === 'delivered';
         const isCurrent = stop.status === 'in_transit';
         const isSelected = stop.id === selectedStopId;
 
         return (
-          <motion.div
+          <motion.button
             key={stop.id}
-            initial={{ opacity: 0, x: -10 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.3, delay: idx * 0.06, ease: 'easeOut' }}
-            className={cn(
-              'relative pb-4 last:pb-0 group cursor-pointer',
-              isSelected && 'pb-5'
-            )}
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.25, delay: idx * 0.04, ease: 'easeOut' }}
             onClick={() => onSelectStop(stop)}
+            className={cn(
+              'relative text-left rounded-lg border bg-card p-3.5 transition-all hover:shadow-sm cursor-pointer',
+              'focus:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+              isDelivered && 'border-l-2 border-l-green-500',
+              isCurrent && 'border-l-2 border-l-blue-500',
+              isSelected
+                ? 'border-primary/40 shadow-sm ring-1 ring-primary/20'
+                : 'border-border hover:border-muted-foreground/30',
+            )}
           >
-            {/* Marker circle */}
-            <div className={cn(
-              'absolute -left-7 top-0 flex h-[26px] w-[26px] items-center justify-center rounded-full border-2 z-10 transition-all',
-              isDelivered
-                ? 'border-green-500 bg-green-500 text-white'
-                : isCurrent
-                  ? 'border-blue-500 bg-blue-500 text-white animate-pulse'
-                  : 'border-muted-foreground/30 bg-background text-muted-foreground/50',
-              isSelected && 'ring-2 ring-primary/30 ring-offset-1'
-            )}>
-              {isDelivered ? (
-                <CheckCircle2 className="h-3.5 w-3.5" />
-              ) : isCurrent ? (
-                <Navigation className="h-3.5 w-3.5" />
-              ) : (
-                <Circle className="h-3 w-3" />
+            {/* Pulse animation for in-transit */}
+            {isCurrent && (
+              <div className="absolute -left-[1px] top-3 bottom-3 w-0.5 bg-blue-400 rounded-full">
+                <div className="absolute inset-0 bg-blue-400 rounded-full animate-pulse opacity-60" />
+              </div>
+            )}
+
+            {/* Header row: number + name + status */}
+            <div className="flex items-center gap-2 mb-1.5">
+              <span
+                className={cn(
+                  'inline-flex h-6 w-6 items-center justify-center rounded-full text-[11px] font-bold shrink-0',
+                  isDelivered
+                    ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
+                    : isCurrent
+                      ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'
+                      : 'bg-muted text-muted-foreground'
+                )}
+              >
+                {isDelivered ? (
+                  <CheckCircle2 className="h-3.5 w-3.5" />
+                ) : (
+                  idx + 1
+                )}
+              </span>
+              <p
+                className={cn(
+                  'text-sm font-medium truncate flex-1',
+                  isCurrent ? 'text-foreground' : isDelivered ? 'text-foreground/80' : 'text-muted-foreground'
+                )}
+              >
+                {stop.customer}
+              </p>
+              {isCurrent && (
+                <Badge
+                  variant="outline"
+                  className="text-[9px] border-blue-200 text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/30 shrink-0 animate-pulse"
+                >
+                  Active
+                </Badge>
               )}
             </div>
 
-            {/* Stop card */}
-            <div className={cn(
-              'flex items-start justify-between rounded-lg border px-3 py-2.5 transition-all',
-              isSelected
-                ? 'border-primary/30 bg-primary/5 shadow-sm'
-                : 'border-transparent hover:border-border hover:bg-muted/30'
-            )}>
-              <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-2 mb-0.5">
-                  <span className={cn(
-                    'inline-flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-bold shrink-0',
-                    isDelivered ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
-                      : isCurrent ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'
-                      : 'bg-muted text-muted-foreground'
-                  )}>
-                    {idx + 1}
+            {/* Address */}
+            <p className="text-xs text-muted-foreground truncate mb-2 pl-8">
+              {stop.address}
+            </p>
+
+            {/* Meta row: items + value + time */}
+            <div className="flex items-center gap-3 pl-8 text-[11px] text-muted-foreground">
+              <span className="flex items-center gap-1">
+                <Package className="h-3 w-3" />
+                {stop.items}
+              </span>
+              <span className="font-medium tabular-nums">${stop.total.toFixed(0)}</span>
+
+              {/* Notes indicator */}
+              {stop.notes && (
+                <span className="flex items-center gap-0.5 text-amber-500">
+                  <MessageSquare className="h-3 w-3" />
+                </span>
+              )}
+
+              <span className="ml-auto shrink-0">
+                {isDelivered && stop.deliveredAt ? (
+                  <span className="flex items-center gap-1 text-green-600 dark:text-green-400">
+                    <CheckCircle2 className="h-3 w-3" />
+                    {stop.deliveredAt.split(' ')[1] || stop.deliveredAt}
                   </span>
-                  <p className={cn(
-                    'text-sm font-medium truncate',
-                    isDelivered ? 'text-foreground' : isCurrent ? 'text-foreground font-semibold' : 'text-muted-foreground'
-                  )}>
-                    {stop.customer}
-                  </p>
-                </div>
-                <p className="text-xs text-muted-foreground truncate pl-7">{stop.address}</p>
-              </div>
-              <div className="flex flex-col items-end gap-0.5 shrink-0 ml-3">
-                <StatusBadge
-                  status={isDelivered ? 'delivered' : isCurrent ? 'on_delivery' : 'pending'}
-                  pulse={isCurrent}
-                />
-                {stop.deliveredAt && (
-                  <span className="text-[10px] text-muted-foreground">{stop.deliveredAt.split(' ')[1]}</span>
+                ) : (
+                  <span className="flex items-center gap-1">
+                    <Clock className="h-3 w-3" />
+                    {stop.estimatedArrival}
+                  </span>
                 )}
-                {!isDelivered && (
-                  <span className="text-[10px] text-muted-foreground">ETA {stop.estimatedArrival}</span>
-                )}
-              </div>
+              </span>
             </div>
-          </motion.div>
+          </motion.button>
         );
       })}
     </div>
   );
 }
 
-/* ---------- Proximity Combobox ---------- */
+/* ================================================================
+   PROXIMITY COMBOBOX
+   ================================================================ */
 
 function ProximityCombobox({
   stops,
@@ -436,7 +525,6 @@ function ProximityCombobox({
 }) {
   const [open, setOpen] = useState(false);
 
-  // Filter to only pending stops and sort by distance (nearest first)
   const pendingStops = useMemo(() => {
     return stops
       .filter(s => s.status === 'pending' || s.status === 'in_transit')
@@ -447,12 +535,12 @@ function ProximityCombobox({
 
   return (
     <div className="space-y-2">
-      <h3 className="text-sm font-semibold flex items-center gap-2">
-        <Navigation className="h-4 w-4 text-muted-foreground" />
+      <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+        <Navigation className="h-3.5 w-3.5" />
         Next Destination
       </h3>
       {pendingStops.length === 0 && !inTransitStop ? (
-        <div className="flex items-center justify-center rounded-lg border border-dashed py-6 text-sm text-muted-foreground">
+        <div className="flex items-center justify-center rounded-lg border border-dashed py-5 text-sm text-muted-foreground">
           <CheckCircle2 className="h-4 w-4 mr-2 text-green-500" />
           All stops completed
         </div>
@@ -465,20 +553,19 @@ function ProximityCombobox({
               aria-expanded={open}
               className="w-full justify-between font-normal"
             >
-              {inTransitStop
-                ? (
-                  <span className="flex items-center gap-2 text-left truncate">
-                    <Navigation className="h-3.5 w-3.5 text-blue-500 shrink-0" />
-                    <span className="truncate">{inTransitStop.customer} — {inTransitStop.address.split(',')[0]}</span>
+              {inTransitStop ? (
+                <span className="flex items-center gap-2 text-left truncate">
+                  <Navigation className="h-3.5 w-3.5 text-blue-500 shrink-0" />
+                  <span className="truncate">
+                    {inTransitStop.customer} — {inTransitStop.address.split(',')[0]}
                   </span>
-                )
-                : (
-                  <span className="flex items-center gap-2 text-left truncate">
-                    <MapPinned className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-                    <span className="truncate">Select next destination...</span>
-                  </span>
-                )
-              }
+                </span>
+              ) : (
+                <span className="flex items-center gap-2 text-left truncate">
+                  <MapPinned className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                  <span className="truncate">Select next destination...</span>
+                </span>
+              )}
               <ChevronDown className="h-4 w-4 shrink-0 opacity-50" />
             </Button>
           </PopoverTrigger>
@@ -499,17 +586,24 @@ function ProximityCombobox({
                       className="flex-col items-start gap-1 py-2.5"
                     >
                       <div className="flex items-center gap-2 w-full">
-                        <span className={cn(
-                          'inline-flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-bold shrink-0',
-                          stop.status === 'in_transit'
-                            ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'
-                            : 'bg-muted text-muted-foreground'
-                        )}>
+                        <span
+                          className={cn(
+                            'inline-flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-bold shrink-0',
+                            stop.status === 'in_transit'
+                              ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'
+                              : 'bg-muted text-muted-foreground'
+                          )}
+                        >
                           {stops.indexOf(stop) + 1}
                         </span>
                         <span className="font-medium text-sm truncate flex-1">{stop.customer}</span>
                         {stop.status === 'in_transit' && (
-                          <Badge variant="outline" className="text-[10px] border-blue-200 text-blue-700 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/30 shrink-0">Current</Badge>
+                          <Badge
+                            variant="outline"
+                            className="text-[10px] border-blue-200 text-blue-700 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/30 shrink-0"
+                          >
+                            Current
+                          </Badge>
                         )}
                       </div>
                       <div className="flex items-center gap-3 pl-7 text-xs text-muted-foreground">
@@ -535,55 +629,45 @@ function ProximityCombobox({
   );
 }
 
-/* ---------- Stop Details Panel ---------- */
+/* ================================================================
+   STOP DETAIL PANEL — Simplified
+   ================================================================ */
 
 function StopDetailPanel({
   stop,
-  routeStatus,
   onMarkDelivered,
 }: {
   stop: DeliveryStop | null;
-  routeStatus: string;
   onMarkDelivered: () => void;
 }) {
-  // Find related order for items (hook-safe: before early return)
   const relatedOrder = stop ? orders.find(o => o.id === stop.orderId) : null;
 
-  // Generate mock order items (hook-safe: before early return)
   const orderItems = useMemo(() => {
     if (!stop) return [];
-    if (!relatedOrder) {
-      const productNames = [
-        'Widget Pro X200', 'Smart Sensor V3', 'Premium Widget XL',
-        'Basic Connector Kit', 'USB-C Hub Adapter', 'Wireless Charger Pad',
-        'Noise Cancelling Buds', 'Mechanical Keyboard',
-      ];
-      return productNames.slice(0, Math.min(stop.items, 6)).map((name, idx) => ({
-        name,
-        productId: `SKU-${String(idx + 1).padStart(3, '0')}`,
-        qty: Math.max(1, Math.floor(stop.items / 3)),
-        price: [149.99, 89.99, 249.99, 29.99, 44.99, 59.99, 129.99, 159.99][idx],
-      }));
-    }
     const productNames = [
       'Widget Pro X200', 'Smart Sensor V3', 'Premium Widget XL',
       'Basic Connector Kit', 'USB-C Hub Adapter', 'Wireless Charger Pad',
       'Noise Cancelling Buds', 'Mechanical Keyboard',
     ];
-    return productNames.slice(0, Math.min(relatedOrder.items, 6)).map((name, idx) => ({
+    const count = relatedOrder ? relatedOrder.items : stop.items;
+    return productNames.slice(0, Math.min(count, 6)).map((name, idx) => ({
       name,
       productId: `SKU-${String(idx + 1).padStart(3, '0')}`,
-      qty: Math.max(1, Math.floor(Math.random() * 5) + 1),
+      qty: relatedOrder
+        ? Math.max(1, Math.floor(Math.random() * 5) + 1)
+        : Math.max(1, Math.floor(stop.items / 3)),
       price: [149.99, 89.99, 249.99, 29.99, 44.99, 59.99, 129.99, 159.99][idx],
     }));
   }, [stop, relatedOrder]);
 
   if (!stop) {
     return (
-      <div className="flex flex-col items-center justify-center py-10 text-center">
-        <MapPin className="h-8 w-8 text-muted-foreground/30 mb-3" />
+      <div className="flex flex-col items-center justify-center py-8 text-center">
+        <MapPin className="h-7 w-7 text-muted-foreground/30 mb-2" />
         <p className="text-sm text-muted-foreground">Select a stop to view details</p>
-        <p className="text-xs text-muted-foreground/60 mt-1">Click on a marker or timeline item</p>
+        <p className="text-xs text-muted-foreground/60 mt-0.5">
+          Click on a map marker or card
+        </p>
       </div>
     );
   }
@@ -591,15 +675,13 @@ function StopDetailPanel({
   const isCurrent = stop.status === 'in_transit';
   const isDelivered = stop.status === 'delivered';
 
-  const itemsTotal = orderItems.reduce((sum, i) => sum + i.qty * i.price, 0);
-
   return (
-    <div className="space-y-4">
-      {/* Stop header */}
+    <div className="space-y-3">
+      {/* Header */}
       <div className="flex items-start justify-between gap-2">
-        <div>
+        <div className="min-w-0">
           <p className="text-sm font-semibold">{stop.customer}</p>
-          <p className="text-xs text-muted-foreground mt-0.5">{stop.orderId}</p>
+          <p className="text-xs text-muted-foreground mt-0.5 font-mono">{stop.orderId}</p>
         </div>
         <StatusBadge
           status={isDelivered ? 'delivered' : isCurrent ? 'on_delivery' : 'pending'}
@@ -607,76 +689,53 @@ function StopDetailPanel({
         />
       </div>
 
-      <Separator />
-
-      {/* Customer info */}
-      <div className="space-y-2.5">
-        <div className="flex items-start gap-2.5">
-          <MapPin className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
-          <div className="min-w-0">
-            <p className="text-xs text-muted-foreground">Address</p>
-            <p className="text-sm font-medium">{stop.address}</p>
-          </div>
+      {/* Info rows */}
+      <div className="space-y-2 text-sm">
+        <div className="flex items-start gap-2">
+          <MapPin className="h-3.5 w-3.5 text-muted-foreground mt-0.5 shrink-0" />
+          <span className="text-muted-foreground truncate">{stop.address}</span>
         </div>
-
-        <div className="flex items-start gap-2.5">
-          <Clock className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
-          <div>
-            <p className="text-xs text-muted-foreground">Estimated Arrival</p>
-            <p className="text-sm font-medium">{stop.estimatedArrival}</p>
-          </div>
+        <div className="flex items-center gap-2">
+          <Clock className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+          {isDelivered && stop.deliveredAt ? (
+            <span>
+              Delivered <span className="font-medium text-foreground">{stop.deliveredAt}</span>
+            </span>
+          ) : (
+            <span>
+              ETA <span className="font-medium text-foreground">{stop.estimatedArrival}</span>
+            </span>
+          )}
         </div>
-
-        {stop.deliveredAt && (
-          <div className="flex items-start gap-2.5">
-            <CheckCircle2 className="h-4 w-4 text-green-500 mt-0.5 shrink-0" />
-            <div>
-              <p className="text-xs text-muted-foreground">Delivered At</p>
-              <p className="text-sm font-medium">{stop.deliveredAt}</p>
-            </div>
-          </div>
-        )}
-
-        {stop.distanceFromPrev > 0 && (
-          <div className="flex items-start gap-2.5">
-            <Route className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
-            <div>
-              <p className="text-xs text-muted-foreground">Distance from Previous</p>
-              <p className="text-sm font-medium">{stop.distanceFromPrev} km</p>
-            </div>
-          </div>
-        )}
       </div>
 
       {/* Delivery notes */}
       {stop.notes && (
-        <>
-          <Separator />
-          <div className="flex items-start gap-2.5">
-            <StickyNote className="h-4 w-4 text-amber-500 mt-0.5 shrink-0" />
-            <div className="rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 px-3 py-2 flex-1">
-              <p className="text-xs font-medium text-amber-700 dark:text-amber-400 mb-0.5">Delivery Notes</p>
-              <p className="text-sm text-amber-900 dark:text-amber-200">{stop.notes}</p>
-            </div>
+        <div className="rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 px-3 py-2">
+          <div className="flex items-center gap-1.5 mb-0.5">
+            <StickyNote className="h-3.5 w-3.5 text-amber-500" />
+            <p className="text-[11px] font-medium text-amber-700 dark:text-amber-400 uppercase tracking-wider">
+              Notes
+            </p>
           </div>
-        </>
+          <p className="text-sm text-amber-900 dark:text-amber-200">{stop.notes}</p>
+        </div>
       )}
 
       {/* Order items */}
-      <Separator />
-      <div className="space-y-3">
-        <h4 className="text-sm font-semibold flex items-center gap-2">
-          <Package className="h-4 w-4 text-muted-foreground" />
-          Order Items
-          <Badge variant="secondary" className="text-[10px]">{stop.items} items</Badge>
-        </h4>
-
-        <div className="space-y-1.5">
+      <div className="space-y-2">
+        <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+          Order Items ({stop.items})
+        </p>
+        <div className="space-y-1">
           {orderItems.slice(0, 4).map((item, idx) => (
-            <div key={idx} className="flex items-center justify-between rounded-md border px-2.5 py-2">
+            <div
+              key={idx}
+              className="flex items-center justify-between rounded-md border px-2.5 py-1.5"
+            >
               <div className="flex items-center gap-2 min-w-0">
-                <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded bg-muted">
-                  <Package className="h-3.5 w-3.5 text-muted-foreground" />
+                <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded bg-muted">
+                  <Package className="h-3 w-3 text-muted-foreground" />
                 </div>
                 <div className="min-w-0">
                   <p className="text-xs font-medium truncate">{item.name}</p>
@@ -684,167 +743,409 @@ function StopDetailPanel({
                 </div>
               </div>
               <div className="text-right shrink-0 ml-2">
-                <p className="text-xs font-semibold tabular-nums">${(item.qty * item.price).toFixed(2)}</p>
+                <p className="text-xs font-semibold tabular-nums">
+                  ${(item.qty * item.price).toFixed(2)}
+                </p>
                 <p className="text-[10px] text-muted-foreground">x{item.qty}</p>
               </div>
             </div>
           ))}
         </div>
-
-        <div className="flex items-center justify-between rounded-md bg-muted/30 px-2.5 py-2">
-          <span className="text-xs font-medium text-muted-foreground">Stop Total</span>
+        <div className="flex items-center justify-between rounded-md bg-muted/40 px-2.5 py-1.5">
+          <span className="text-xs text-muted-foreground">Total</span>
           <span className="text-sm font-bold tabular-nums">${stop.total.toFixed(2)}</span>
         </div>
       </div>
 
-      {/* Mark as Delivered button */}
+      {/* Mark as Delivered */}
       {isCurrent && (
-        <>
-          <Separator />
-          <Button className="w-full gap-2" onClick={onMarkDelivered}>
-            <CheckCircle2 className="h-4 w-4" />
-            Mark as Delivered
-          </Button>
-        </>
+        <Button className="w-full gap-2" onClick={onMarkDelivered}>
+          <CheckCircle2 className="h-4 w-4" />
+          Mark as Delivered
+        </Button>
       )}
     </div>
   );
 }
 
-/* ---------- Driver Info Card ---------- */
+/* ================================================================
+   DRIVER INFO CARD — Simplified compact layout
+   ================================================================ */
 
 function DriverInfoCard({ route }: { route: DeliveryRoute }) {
   const driver = drivers.find(d => d.name === route.driver);
 
   if (!driver) return null;
 
-  const initials = route.driver.split(' ').map(n => n[0]).join('');
+  const initials = route.driver
+    .split(' ')
+    .map(n => n[0])
+    .join('');
 
   return (
-    <div className="space-y-4">
-      <h3 className="text-sm font-semibold flex items-center gap-2">
-        <User className="h-4 w-4 text-muted-foreground" />
+    <div className="space-y-3">
+      <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
         Driver
       </h3>
 
-      <div className="flex items-center gap-3">
-        <Avatar className="h-11 w-11">
-          <AvatarFallback className={cn(
-            route.status === 'in_transit'
-              ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400'
-              : 'bg-muted text-primary'
-          )}>
+      {/* Compact horizontal: avatar + name + badge */}
+      <div className="flex items-center gap-2.5">
+        <Avatar className="h-9 w-9">
+          <AvatarFallback
+            className={cn(
+              route.status === 'in_transit'
+                ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400'
+                : 'bg-muted text-foreground'
+            )}
+          >
             {initials}
           </AvatarFallback>
         </Avatar>
-        <div>
-          <p className="font-semibold text-sm">{route.driver}</p>
-          <Badge variant="outline" className={cn(
-            'text-[10px]',
-            driver.status === 'on_delivery' ? 'border-blue-200 text-blue-700 dark:text-blue-400'
-              : driver.status === 'available' ? 'border-green-200 text-green-700 dark:text-green-400'
-              : 'border-gray-200 text-gray-500 dark:text-gray-400'
-          )}>
-            {driver.status === 'on_delivery' ? 'On Delivery'
-              : driver.status === 'available' ? 'Available' : 'Offline'}
+        <div className="min-w-0 flex-1">
+          <p className="text-sm font-semibold truncate">{route.driver}</p>
+          <Badge
+            variant="outline"
+            className={cn(
+              'text-[10px]',
+              driver.status === 'on_delivery'
+                ? 'border-blue-200 text-blue-700 dark:text-blue-400'
+                : driver.status === 'available'
+                  ? 'border-green-200 text-green-700 dark:text-green-400'
+                  : 'border-gray-200 text-gray-500 dark:text-gray-400'
+            )}
+          >
+            {driver.status === 'on_delivery'
+              ? 'On Delivery'
+              : driver.status === 'available'
+                ? 'Available'
+                : 'Offline'}
           </Badge>
         </div>
       </div>
 
-      <div className="space-y-2 text-sm">
-        <div className="flex items-center gap-2 text-muted-foreground">
-          <Phone className="h-3.5 w-3.5" />
-          <span>{driver.phone}</span>
+      {/* Compact 2-column grid */}
+      <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-xs">
+        <div className="flex items-center gap-1.5 text-muted-foreground">
+          <Phone className="h-3 w-3 shrink-0" />
+          <span className="truncate">{driver.phone}</span>
         </div>
-        <div className="flex items-center gap-2 text-muted-foreground">
-          <Truck className="h-3.5 w-3.5" />
-          <span>{route.vehicle}</span>
+        <div className="flex items-center gap-1.5 text-muted-foreground">
+          <Truck className="h-3 w-3 shrink-0" />
+          <span className="truncate">{route.vehicle}</span>
         </div>
-        <Separator />
-        <div className="flex items-center justify-between">
-          <span className="text-muted-foreground">Rating</span>
-          <span className="font-semibold text-amber-600 dark:text-amber-400 flex items-center gap-1">
-            <Star className="h-3 w-3 fill-amber-400 text-amber-400" />
+        <div className="flex items-center gap-1.5">
+          <Star className="h-3 w-3 text-amber-400 fill-amber-400 shrink-0" />
+          <span className="font-medium text-amber-600 dark:text-amber-400">
             {driver.rating}
           </span>
         </div>
-        <div className="flex items-center justify-between">
-          <span className="text-muted-foreground">Today&apos;s Deliveries</span>
-          <span className="font-semibold">{driver.completedToday}</span>
-        </div>
-        <div className="flex items-center justify-between">
-          <span className="text-muted-foreground">Total Deliveries</span>
-          <span className="font-semibold">{driver.totalDeliveries.toLocaleString()}</span>
+        <div className="text-muted-foreground">
+          <span className="font-medium text-foreground">{driver.completedToday}</span> today
         </div>
       </div>
     </div>
   );
 }
 
-/* ---------- Route Summary ---------- */
+/* ================================================================
+   ROUTE SUMMARY — Compact key-value grid
+   ================================================================ */
 
 function RouteSummary({ route }: { route: DeliveryRoute }) {
+  const gridItems = useMemo(() => {
+    const items: { label: string; value: string; className?: string }[] = [
+      { label: 'Route ID', value: route.id, className: 'font-mono' },
+      { label: 'Stops', value: `${route.stops.length}` },
+      { label: 'Distance', value: `${route.totalDistance} km` },
+      {
+        label: 'Value',
+        value: `$${route.totalValue.toLocaleString('en-US', { minimumFractionDigits: 2 })}`,
+        className: 'font-semibold',
+      },
+    ];
+    if (route.startedAt) items.push({ label: 'Started', value: route.startedAt });
+    if (route.completedAt)
+      items.push({
+        label: 'Completed',
+        value: route.completedAt,
+        className: 'text-green-600 dark:text-green-400',
+      });
+    return items;
+  }, [route]);
+
   return (
-    <div className="space-y-4">
-      <h3 className="text-sm font-semibold flex items-center gap-2">
-        <Hash className="h-4 w-4 text-muted-foreground" />
+    <div className="space-y-3">
+      <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
         Route Summary
       </h3>
-      <div className="space-y-2.5">
-        <div className="flex items-start gap-2.5">
-          <Hash className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
-          <div>
-            <p className="text-xs text-muted-foreground">Route ID</p>
-            <p className="text-sm font-mono font-semibold">{route.id}</p>
+      <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-xs">
+        {gridItems.map((item) => (
+          <div key={item.label} className="min-w-0">
+            <p className="text-muted-foreground">{item.label}</p>
+            <p className={cn('font-medium truncate', item.className)}>{item.value}</p>
           </div>
-        </div>
-        <div className="flex items-start gap-2.5">
-          <MapPin className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
-          <div>
-            <p className="text-xs text-muted-foreground">Total Stops</p>
-            <p className="text-sm font-medium">{route.stops.length} stops</p>
-          </div>
-        </div>
-        <div className="flex items-start gap-2.5">
-          <Route className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
-          <div>
-            <p className="text-xs text-muted-foreground">Total Distance</p>
-            <p className="text-sm font-medium">{route.totalDistance} km</p>
-          </div>
-        </div>
-        <div className="flex items-start gap-2.5">
-          <Package className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
-          <div>
-            <p className="text-xs text-muted-foreground">Total Value</p>
-            <p className="text-sm font-semibold tabular-nums">${route.totalValue.toLocaleString('en-US', { minimumFractionDigits: 2 })}</p>
-          </div>
-        </div>
-
-        {route.startedAt && (
-          <div className="flex items-start gap-2.5">
-            <Clock className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
-            <div>
-              <p className="text-xs text-muted-foreground">Started At</p>
-              <p className="text-sm">{route.startedAt}</p>
-            </div>
-          </div>
-        )}
-
-        {route.completedAt && (
-          <div className="flex items-start gap-2.5">
-            <CheckCircle2 className="h-4 w-4 text-green-500 mt-0.5 shrink-0" />
-            <div>
-              <p className="text-xs text-muted-foreground">Completed At</p>
-              <p className="text-sm">{route.completedAt}</p>
-            </div>
-          </div>
-        )}
+        ))}
       </div>
     </div>
   );
 }
 
-/* ---------- Main Delivery Detail Page ---------- */
+/* ================================================================
+   CANCEL ORDER DIALOG
+   ================================================================ */
+
+const CANCEL_REASONS = [
+  { value: 'customer_request', label: 'Customer Request', icon: '👤' },
+  { value: 'weather', label: 'Weather Conditions', icon: '🌧️' },
+  { value: 'vehicle_issue', label: 'Vehicle Issue', icon: '🔧' },
+  { value: 'traffic', label: 'Severe Traffic / Road Closure', icon: '🚧' },
+  { value: 'stock_unavailable', label: 'Stock Unavailable', icon: '📦' },
+  { value: 'duplicate', label: 'Duplicate Order', icon: '📋' },
+  { value: 'other', label: 'Other', icon: '📝' },
+];
+
+function CancelOrderDialog({
+  routeId,
+  open,
+  onOpenChange,
+  onConfirm,
+}: {
+  routeId: string;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onConfirm: (reason: string, notes: string) => void;
+}) {
+  const [reason, setReason] = useState('');
+  const [notes, setNotes] = useState('');
+
+  const handleConfirm = () => {
+    if (!reason) return;
+    const reasonLabel = CANCEL_REASONS.find(r => r.value === reason)?.label || reason;
+    onConfirm(reasonLabel, notes);
+    setReason('');
+    setNotes('');
+    onOpenChange(false);
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2 text-destructive">
+            <XCircle className="h-5 w-5" />
+            Cancel Delivery
+          </DialogTitle>
+          <DialogDescription>
+            Are you sure you want to cancel route <span className="font-semibold text-foreground">{routeId}</span>? This action will notify the driver and all customers.
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="space-y-4 py-2">
+          {/* Reason Select */}
+          <div className="space-y-2">
+            <Label htmlFor="cancel-reason" className="text-sm font-medium">
+              Cancellation Reason <span className="text-destructive">*</span>
+            </Label>
+            <Select value={reason} onValueChange={setReason}>
+              <SelectTrigger id="cancel-reason">
+                <SelectValue placeholder="Select a reason..." />
+              </SelectTrigger>
+              <SelectContent>
+                {CANCEL_REASONS.map((r) => (
+                  <SelectItem key={r.value} value={r.value}>
+                    <span className="flex items-center gap-2">
+                      <span>{r.icon}</span>
+                      <span>{r.label}</span>
+                    </span>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Additional Notes */}
+          <div className="space-y-2">
+            <Label htmlFor="cancel-notes" className="text-sm font-medium">
+              Additional Notes (Optional)
+            </Label>
+            <Textarea
+              id="cancel-notes"
+              placeholder="Provide any additional details about the cancellation..."
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              rows={3}
+              className="resize-none"
+            />
+          </div>
+
+          {/* Warning Notice */}
+          <div className="rounded-lg border border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-900/20 px-3 py-2.5">
+            <div className="flex items-start gap-2">
+              <AlertTriangle className="h-4 w-4 text-amber-500 mt-0.5 shrink-0" />
+              <div className="text-xs text-amber-700 dark:text-amber-300">
+                <p className="font-medium">This action cannot be undone</p>
+                <p className="mt-0.5 text-amber-600 dark:text-amber-400">
+                  The driver and all customers on this route will be notified.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <DialogFooter className="flex-row gap-2 sm:justify-end">
+          <Button
+            variant="outline"
+            onClick={() => onOpenChange(false)}
+            className="flex-1 sm:flex-none"
+          >
+            Keep Route
+          </Button>
+          <Button
+            variant="destructive"
+            onClick={handleConfirm}
+            disabled={!reason}
+            className="flex-1 sm:flex-none gap-2"
+          >
+            <XCircle className="h-4 w-4" />
+            Confirm Cancellation
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+/* ================================================================
+   RESCHEDULE DIALOG
+   ================================================================ */
+
+function RescheduleDialog({
+  routeId,
+  currentSchedule,
+  open,
+  onOpenChange,
+  onConfirm,
+}: {
+  routeId: string;
+  currentSchedule: string;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onConfirm: (newDate: string, newTime: string, reason: string) => void;
+}) {
+  const [newDate, setNewDate] = useState('');
+  const [newTime, setNewTime] = useState('08:00');
+  const [reason, setReason] = useState('');
+
+  const handleConfirm = () => {
+    if (!newDate) return;
+    onConfirm(newDate, newTime, reason);
+    setNewDate('');
+    setNewTime('08:00');
+    setReason('');
+    onOpenChange(false);
+  };
+
+  // Default date to tomorrow
+  const tomorrow = new Date();
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  const minDate = tomorrow.toISOString().slice(0, 10);
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <CalendarClock className="h-5 w-5 text-blue-500" />
+            Reschedule Delivery
+          </DialogTitle>
+          <DialogDescription>
+            Reschedule route <span className="font-semibold text-foreground">{routeId}</span> to a new date and time.
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="space-y-4 py-2">
+          {/* Current Schedule Info */}
+          <div className="rounded-lg border bg-muted/40 px-3 py-2.5">
+            <p className="text-xs text-muted-foreground">Current Schedule</p>
+            <p className="text-sm font-medium mt-0.5">{currentSchedule || 'Not yet scheduled'}</p>
+          </div>
+
+          {/* New Date */}
+          <div className="space-y-2">
+            <Label htmlFor="reschedule-date" className="text-sm font-medium">
+              New Date <span className="text-destructive">*</span>
+            </Label>
+            <Input
+              id="reschedule-date"
+              type="date"
+              min={minDate}
+              value={newDate}
+              onChange={(e) => setNewDate(e.target.value)}
+              className="w-full"
+            />
+          </div>
+
+          {/* New Time */}
+          <div className="space-y-2">
+            <Label htmlFor="reschedule-time" className="text-sm font-medium">
+              Start Time
+            </Label>
+            <Input
+              id="reschedule-time"
+              type="time"
+              value={newTime}
+              onChange={(e) => setNewTime(e.target.value)}
+              className="w-full"
+            />
+          </div>
+
+          {/* Reason for Reschedule */}
+          <div className="space-y-2">
+            <Label htmlFor="reschedule-reason" className="text-sm font-medium">
+              Reason for Reschedule (Optional)
+            </Label>
+            <Select value={reason} onValueChange={setReason}>
+              <SelectTrigger id="reschedule-reason">
+                <SelectValue placeholder="Select a reason..." />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="customer_request">Customer Request</SelectItem>
+                <SelectItem value="weather">Weather Delay</SelectItem>
+                <SelectItem value="driver_unavailable">Driver Unavailable</SelectItem>
+                <SelectItem value="stock_not_ready">Stock Not Ready</SelectItem>
+                <SelectItem value="high_demand">High Order Volume</SelectItem>
+                <SelectItem value="other">Other</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+
+        <DialogFooter className="flex-row gap-2 sm:justify-end">
+          <Button
+            variant="outline"
+            onClick={() => onOpenChange(false)}
+            className="flex-1 sm:flex-none"
+          >
+            Cancel
+          </Button>
+          <Button
+            onClick={handleConfirm}
+            disabled={!newDate}
+            className="flex-1 sm:flex-none gap-2"
+          >
+            <CalendarClock className="h-4 w-4" />
+            Confirm Reschedule
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+// Stop count for the cancel dialog warning — set dynamically
+/* ================================================================
+   MAIN DELIVERY DETAIL PAGE
+   ================================================================ */
 
 export default function DeliveryDetailPage() {
   const setCurrentView = useNavigationStore((s) => s.setCurrentView);
@@ -853,11 +1154,32 @@ export default function DeliveryDetailPage() {
 
   const [selectedStop, setSelectedStop] = useState<DeliveryStop | null>(null);
   const [localStops, setLocalStops] = useState<DeliveryStop[] | null>(null);
+  const [localRouteStatus, setLocalRouteStatus] = useState<string | null>(null);
+  const [localCancelledAt, setLocalCancelledAt] = useState<string | null>(null);
+  const [localCancelReason, setLocalCancelReason] = useState<string | null>(null);
+  const [localRescheduledDate, setLocalRescheduledDate] = useState<string | null>(null);
+
+  // Dialog states
+  const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
+  const [rescheduleDialogOpen, setRescheduleDialogOpen] = useState(false);
 
   const delivery = useMemo(
     () => deliveries.find((d) => d.id === selectedDeliveryId),
     [selectedDeliveryId]
   );
+
+  // Current schedule info for reschedule dialog
+  const currentSchedule = useMemo(() => {
+    if (!delivery) return '';
+    if (delivery.startedAt) return delivery.startedAt;
+    return delivery.stops[0]?.estimatedArrival || '';
+  }, [delivery]);
+
+  // Effective route status (local override or original)
+  const routeStatus = localRouteStatus || delivery?.status || 'pending';
+  const routeCancelledAt = localCancelledAt || delivery?.cancelledAt || null;
+  const routeCancelReason = localCancelReason || delivery?.cancelReason || null;
+  const routeRescheduledDate = localRescheduledDate || null;
 
   // Use local stops for mark-as-delivered functionality
   const routeStops = localStops || delivery?.stops || [];
@@ -880,11 +1202,50 @@ export default function DeliveryDetailPage() {
         : s
     );
     setLocalStops(updatedStops);
-    // Also update the selected stop
     const updatedStop = updatedStops.find(s => s.id === selectedStop.id);
     setSelectedStop(updatedStop || null);
+    toast.success(`Stop delivered: ${selectedStop.customer}`);
   }, [delivery, selectedStop, routeStops]);
 
+  // Cancel Order handler
+  const handleCancelOrder = useCallback((reason: string, notes: string) => {
+    if (!delivery) return;
+    const now = new Date();
+    const cancelledAt = now.toISOString().slice(0, 16).replace('T', ' ');
+    const fullReason = notes ? `${reason}: ${notes}` : reason;
+    setLocalRouteStatus('cancelled');
+    setLocalCancelledAt(cancelledAt);
+    setLocalCancelReason(fullReason);
+    toast.success(`Route ${delivery.id} has been cancelled`, {
+      description: `Reason: ${reason}`,
+    });
+  }, [delivery]);
+
+  // Reschedule handler
+  const handleReschedule = useCallback((newDate: string, newTime: string, reason: string) => {
+    if (!delivery) return;
+    const formattedDate = new Date(newDate).toLocaleDateString('en-US', {
+      weekday: 'short', month: 'short', day: 'numeric', year: 'numeric',
+    });
+    const formattedTime = new Date(`2000-01-01T${newTime}`).toLocaleTimeString('en-US', {
+      hour: 'numeric', minute: '2-digit',
+    });
+    const scheduledDate = `${formattedDate} at ${formattedTime}`;
+    setLocalRescheduledDate(scheduledDate);
+    const reasonText = reason ? ` (${reason.replace(/_/g, ' ')})` : '';
+    toast.success(`Route ${delivery.id} rescheduled`, {
+      description: `New schedule: ${scheduledDate}${reasonText}`,
+    });
+  }, [delivery]);
+
+  // Determine if actions should be shown
+  const canCancelOrReschedule = routeStatus === 'pending' || routeStatus === 'in_transit';
+  const isCancelled = routeStatus === 'cancelled';
+  const isDeliveredRoute = routeStatus === 'delivered';
+  const isActive = routeStatus === 'in_transit';
+  const isPending = routeStatus === 'pending';
+
+  // ---------- Not Found State ----------
   if (!delivery) {
     return (
       <PageTransition>
@@ -905,117 +1266,257 @@ export default function DeliveryDetailPage() {
     );
   }
 
-  const isActive = delivery.status === 'in_transit';
-  const isDelivered = delivery.status === 'delivered';
   const deliveredCount = routeStops.filter(s => s.status === 'delivered').length;
 
   return (
     <PageTransition>
-      <div className="space-y-6">
-        {/* Back Button + Route Header */}
+      <div className="space-y-5">
+        {/* ====== TOP SECTION: Route Header Bar ====== */}
         <FadeIn>
-          <div className="flex items-center gap-4">
-            <Button variant="ghost" size="icon" className="h-9 w-9 shrink-0" onClick={handleGoBack}>
-              <ArrowLeft className="h-4 w-4" />
-            </Button>
-            <div className="flex items-center gap-3 flex-1">
-              <div className={cn(
-                'flex h-10 w-10 items-center justify-center rounded-lg',
-                isActive ? 'bg-blue-100 dark:bg-blue-900/30'
-                  : isDelivered ? 'bg-green-100 dark:bg-green-900/30'
-                  : 'bg-yellow-100 dark:bg-yellow-900/30'
-              )}>
-                <Truck className={cn(
-                  'h-5 w-5',
-                  isActive ? 'text-blue-600 dark:text-blue-400'
-                    : isDelivered ? 'text-green-600 dark:text-green-400'
-                    : 'text-yellow-600 dark:text-yellow-400'
-                )} />
-              </div>
-              <div className="min-w-0">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <h1 className="text-2xl font-bold tracking-tight">{delivery.id}</h1>
-                  <StatusBadge
-                    status={isActive ? 'on_delivery' : isDelivered ? 'delivered' : 'pending'}
-                    pulse={isActive}
-                  />
+          <div className="space-y-3">
+            {/* Line 1: Back + Route ID + Status + Driver + Vehicle */}
+            <div className="flex items-center gap-3">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 shrink-0"
+                onClick={handleGoBack}
+              >
+                <ArrowLeft className="h-4 w-4" />
+              </Button>
+
+              <h1 className="text-lg font-bold tracking-tight shrink-0">{delivery.id}</h1>
+
+              <StatusBadge
+                status={isCancelled ? 'cancelled' : isActive ? 'on_delivery' : isPending ? 'pending' : 'delivered'}
+                pulse={isActive}
+              />
+
+              {/* Action Buttons — Cancel / Reschedule */}
+              {canCancelOrReschedule && (
+                <div className="flex items-center gap-1.5 ml-auto">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="hidden sm:flex gap-1.5 text-xs h-8 border-blue-200 text-blue-700 hover:bg-blue-50 dark:border-blue-800 dark:text-blue-400 dark:hover:bg-blue-950/30"
+                    onClick={() => setRescheduleDialogOpen(true)}
+                  >
+                    <CalendarClock className="h-3.5 w-3.5" />
+                    Reschedule
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="hidden sm:flex gap-1.5 text-xs h-8 border-red-200 text-red-700 hover:bg-red-50 dark:border-red-800 dark:text-red-400 dark:hover:bg-red-950/30"
+                    onClick={() => setCancelDialogOpen(true)}
+                  >
+                    <XCircle className="h-3.5 w-3.5" />
+                    Cancel Order
+                  </Button>
                 </div>
-                <p className="text-sm text-muted-foreground mt-0.5 truncate">
-                  {delivery.driver} · {delivery.vehicle} · {deliveredCount}/{routeStops.length} stops delivered
-                </p>
+              )}
+
+              {/* Cancelled badge */}
+              {isCancelled && (
+                <div className="ml-auto">
+                  <Badge variant="outline" className="border-red-200 bg-red-50 text-red-700 dark:border-red-800 dark:bg-red-950/30 dark:text-red-400 gap-1">
+                    <XCircle className="h-3 w-3" />
+                    Cancelled
+                  </Badge>
+                </div>
+              )}
+
+              {/* Rescheduled badge */}
+              {routeRescheduledDate && canCancelOrReschedule && (
+                <div className="ml-auto">
+                  <Badge variant="outline" className="border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-800 dark:bg-blue-950/30 dark:text-blue-400 gap-1">
+                    <CalendarClock className="h-3 w-3" />
+                    Rescheduled
+                  </Badge>
+                </div>
+              )}
+
+              {/* Delivered badge */}
+              {isDeliveredRoute && (
+                <div className="ml-auto">
+                  <Badge variant="outline" className="border-green-200 bg-green-50 text-green-700 dark:border-green-800 dark:bg-green-950/30 dark:text-green-400 gap-1">
+                    <CheckCircle2 className="h-3 w-3" />
+                    Completed
+                  </Badge>
+                </div>
+              )}
+
+              <div className="hidden sm:flex items-center gap-1.5 ml-2 text-sm text-muted-foreground shrink-0">
+                <User className="h-3.5 w-3.5" />
+                <span>{delivery.driver}</span>
+                <Separator orientation="vertical" className="h-4 mx-1" />
+                <Truck className="h-3.5 w-3.5" />
+                <span>{delivery.vehicle}</span>
               </div>
             </div>
+
+            {/* Mobile driver/vehicle info + mobile action buttons */}
+            <div className="flex sm:hidden items-center justify-between pl-11 pr-1">
+              <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                <User className="h-3 w-3" />
+                <span>{delivery.driver}</span>
+                <span className="mx-1">·</span>
+                <Truck className="h-3 w-3" />
+                <span>{delivery.vehicle}</span>
+              </div>
+              {canCancelOrReschedule && (
+                <div className="flex items-center gap-1">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-7 w-7 text-blue-600 hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-blue-950/30"
+                    onClick={() => setRescheduleDialogOpen(true)}
+                  >
+                    <CalendarClock className="h-3.5 w-3.5" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-7 w-7 text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-950/30"
+                    onClick={() => setCancelDialogOpen(true)}
+                  >
+                    <XCircle className="h-3.5 w-3.5" />
+                  </Button>
+                </div>
+              )}
+            </div>
+
+            {/* Cancelled Info Banner */}
+            {isCancelled && (
+              <div className="rounded-lg border border-red-200 bg-red-50 dark:border-red-800 dark:bg-red-950/20 px-3.5 py-2.5">
+                <div className="flex items-start gap-2">
+                  <XCircle className="h-4 w-4 text-red-500 mt-0.5 shrink-0" />
+                  <div>
+                    <p className="text-sm font-medium text-red-700 dark:text-red-400">
+                      This delivery has been cancelled
+                    </p>
+                    {routeCancelReason && (
+                      <p className="text-xs text-red-600 dark:text-red-400/80 mt-0.5">
+                        Reason: {routeCancelReason}
+                      </p>
+                    )}
+                    {routeCancelledAt && (
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        Cancelled at: {routeCancelledAt}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Rescheduled Info Banner */}
+            {routeRescheduledDate && canCancelOrReschedule && (
+              <div className="rounded-lg border border-blue-200 bg-blue-50 dark:border-blue-800 dark:bg-blue-950/20 px-3.5 py-2.5">
+                <div className="flex items-start gap-2">
+                  <CalendarClock className="h-4 w-4 text-blue-500 mt-0.5 shrink-0" />
+                  <div>
+                    <p className="text-sm font-medium text-blue-700 dark:text-blue-400">
+                      Delivery rescheduled
+                    </p>
+                    <p className="text-xs text-blue-600 dark:text-blue-400/80 mt-0.5">
+                      New schedule: {routeRescheduledDate}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {!isCancelled && (
+              <JourneyStrip
+                stops={routeStops}
+                selectedStopId={selectedStop?.id || null}
+                onSelectStop={handleSelectStop}
+              />
+            )}
           </div>
         </FadeIn>
 
-        {/* 3-column layout */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Left Column (2 cols): GPS Map + Stop Tracker */}
-          <div className="lg:col-span-2 space-y-6">
-            {/* GPS Map */}
-            <FadeIn delay={0.1}>
-              <AnimatedCard contentClassName="p-0 overflow-hidden">
-                <div className="p-4 pb-3">
-                  <h2 className="text-base font-semibold flex items-center gap-2">
-                    <MapPin className="h-4 w-4 text-muted-foreground" />
-                    {isActive ? 'Live GPS Tracking' : isDelivered ? 'Completed Route' : 'Planned Route'}
-                  </h2>
-                </div>
-                <MultiStopGPSMap route={{ ...delivery, stops: routeStops }} onSelectStop={handleSelectStop} />
-              </AnimatedCard>
+        <Separator />
+
+        {/* ====== 2-COLUMN LAYOUT ====== */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+          {/* Left Column: Map + Stop Cards */}
+          <div className="lg:col-span-2 space-y-5">
+            {/* Simplified GPS Map */}
+            <FadeIn delay={0.05}>
+              <SimplifiedGPSMap
+                route={{ ...delivery, stops: routeStops }}
+                onSelectStop={handleSelectStop}
+              />
             </FadeIn>
 
-            {/* Stop Tracker */}
-            <FadeIn delay={0.15}>
-              <AnimatedCard>
-                <h2 className="text-base font-semibold flex items-center gap-2 mb-4">
-                  <Route className="h-4 w-4 text-muted-foreground" />
-                  Stop Tracker
-                  <Badge variant="secondary" className="ml-1 text-[10px]">
-                    {deliveredCount}/{routeStops.length}
+            {/* Stop Cards Grid */}
+            <FadeIn delay={0.1}>
+              <div>
+                <div className="flex items-center gap-2 mb-3">
+                  <h2 className="text-sm font-semibold">Stops</h2>
+                  <Badge variant="secondary" className="text-[10px]">
+                    {deliveredCount}/{routeStops.length} delivered
                   </Badge>
-                </h2>
-                <StopTracker
+                </div>
+                <StopCardsGrid
                   stops={routeStops}
                   selectedStopId={selectedStop?.id || null}
                   onSelectStop={handleSelectStop}
                 />
-              </AnimatedCard>
+              </div>
             </FadeIn>
           </div>
 
-          {/* Right Column (1 col, sticky): Details */}
-          <div className="space-y-6">
-            <FadeIn delay={0.12}>
-              <div className="lg:sticky lg:top-6 space-y-4">
+          {/* Right Column: Detail Panel (sticky) */}
+          <div className="lg:col-span-1">
+            <FadeIn delay={0.08}>
+              <div className="lg:sticky lg:top-6 space-y-4 max-h-[calc(100vh-12rem)] overflow-y-auto pr-1 custom-scrollbar">
                 {/* Proximity Combobox */}
-                <AnimatedCard>
+                <div className="rounded-xl border bg-card p-4">
                   <ProximityCombobox stops={routeStops} onSelectStop={handleSelectStop} />
-                </AnimatedCard>
+                </div>
 
-                {/* Selected Stop Details */}
-                <AnimatedCard delay={0.15}>
+                {/* Stop Detail Panel */}
+                <div className="rounded-xl border bg-card p-4">
                   <StopDetailPanel
                     stop={selectedStop}
-                    routeStatus={delivery.status}
                     onMarkDelivered={handleMarkDelivered}
                   />
-                </AnimatedCard>
+                </div>
 
                 {/* Driver Info */}
-                <AnimatedCard delay={0.18}>
+                <div className="rounded-xl border bg-card p-4">
                   <DriverInfoCard route={{ ...delivery, stops: routeStops }} />
-                </AnimatedCard>
+                </div>
 
                 {/* Route Summary */}
-                <AnimatedCard delay={0.22}>
+                <div className="rounded-xl border bg-card p-4">
                   <RouteSummary route={{ ...delivery, stops: routeStops }} />
-                </AnimatedCard>
+                </div>
               </div>
             </FadeIn>
           </div>
         </div>
       </div>
+
+      {/* Cancel Order Dialog */}
+      <CancelOrderDialog
+        routeId={delivery.id}
+        open={cancelDialogOpen}
+        onOpenChange={setCancelDialogOpen}
+        onConfirm={handleCancelOrder}
+      />
+
+      {/* Reschedule Dialog */}
+      <RescheduleDialog
+        routeId={delivery.id}
+        currentSchedule={currentSchedule}
+        open={rescheduleDialogOpen}
+        onOpenChange={setRescheduleDialogOpen}
+        onConfirm={handleReschedule}
+      />
     </PageTransition>
   );
 }

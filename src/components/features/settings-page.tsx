@@ -141,7 +141,7 @@ export default function SettingsPage() {
                   <AnimatedCard title="Company Settings" description="Basic company information">
                     <div className="space-y-1">
                       <SettingRow icon={Layout} label="Company Name" description="The name displayed across the application">
-                        <Input defaultValue="CloudInventory Pro" className="w-64" />
+                        <Input defaultValue="HyOps" className="w-64" />
                       </SettingRow>
                       <SectionDivider />
                       <SettingRow icon={Clock} label="Timezone" description="Set the default timezone for your account">

@@ -446,24 +446,6 @@ export default function ArchivedPage() {
     setDeleteTarget(null);
   }, [deleteTarget, permanentlyDelete]);
 
-  const handleRestoreAll = useCallback(() => {
-    const targetItems = typeFilter !== 'all'
-      ? items.filter((item) => item.type === typeFilter)
-      : items;
-    if (targetItems.length === 0) return;
-    for (const item of targetItems) {
-      const restored = restoreItem(item.type, item.id);
-      if (restored) {
-        window.dispatchEvent(
-          new CustomEvent('archive:restored', {
-            detail: { type: restored.type, id: restored.id, data: restored.data },
-          })
-        );
-      }
-    }
-    toast.success(`${targetItems.length} item(s) restored`);
-  }, [items, typeFilter, restoreItem]);
-
   const handleClearAll = useCallback(() => {
     if (typeFilter !== 'all') {
       clearAll(typeFilter as ArchivedEntityType);
@@ -496,26 +478,15 @@ export default function ArchivedPage() {
                 </p>
               </div>
             </div>
-            <div className="flex items-center gap-2">
-              <Button
-                variant="outline"
-                className="gap-2"
-                onClick={handleRestoreAll}
-                disabled={filteredItems.length === 0}
-              >
-                <RotateCcw className="h-4 w-4" />
-                Restore All
-              </Button>
-              <Button
-                variant="destructive"
-                className="gap-2"
-                onClick={() => setShowClearAllDialog(true)}
-                disabled={filteredItems.length === 0}
-              >
-                <Trash2 className="h-4 w-4" />
-                Clear All
-              </Button>
-            </div>
+            <Button
+              variant="destructive"
+              className="gap-2"
+              onClick={() => setShowClearAllDialog(true)}
+              disabled={items.length === 0}
+            >
+              <Trash2 className="h-4 w-4" />
+              Clear All
+            </Button>
           </div>
         </FadeIn>
 
@@ -576,7 +547,6 @@ export default function ArchivedPage() {
         {/* ---- Archived Items List ---- */}
         <FadeIn delay={0.3}>
           {filteredItems.length > 0 ? (
-            <div className="max-h-[600px] overflow-y-auto custom-scrollbar rounded-lg">
             <StaggerContainer className="grid gap-3">
               {filteredItems.map((item) => {
                 const config = typeConfig[item.type];
@@ -650,7 +620,6 @@ export default function ArchivedPage() {
                 );
               })}
             </StaggerContainer>
-            </div>
           ) : (
             <AnimatedCard>
               <div className="flex flex-col items-center justify-center py-16 text-center">

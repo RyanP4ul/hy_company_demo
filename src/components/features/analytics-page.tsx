@@ -264,13 +264,6 @@ export default function AnalyticsPage() {
                   radius={[4, 4, 0, 0]}
                   maxBarSize={40}
                 />
-                <Bar
-                  dataKey="broken"
-                  name="Broken Products"
-                  fill="oklch(0.577 0.245 27.325)"
-                  radius={[4, 4, 0, 0]}
-                  maxBarSize={40}
-                />
               </BarChart>
             </ResponsiveContainer>
           </div>

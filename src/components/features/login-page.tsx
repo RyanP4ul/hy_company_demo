@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Button } from '@/components/ui/button';
-import { Package, Loader2, Mail, Lock, AlertCircle, Eye, EyeOff } from 'lucide-react';
+import { Package, Loader2, Mail, Lock, AlertCircle } from 'lucide-react';
 
 const fadeInUp = {
   initial: { opacity: 0, y: 20 },
@@ -32,26 +32,21 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [remember, setRemember] = useState(false);
   const [error, setError] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
 
-    if (!email.trim()) {
-      setError('Please enter your email address.');
-      return;
-    }
-    if (!password.trim()) {
-      setError('Please enter your password.');
+    // Demo error: show error for "wrong" email format
+    if (!email.includes('@') || email.endsWith('@wrong.com')) {
+      setError('Invalid email address. Please check your credentials and try again.');
       return;
     }
 
     try {
       await login(email, password);
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'An unexpected error occurred. Please try again.';
-      setError(message);
+    } catch {
+      setError('An unexpected error occurred. Please try again.');
     }
   };
 
@@ -68,7 +63,7 @@ export default function LoginPage() {
           {/* Background image */}
           <Image
             src="/login-left-panel.webp"
-            alt="CloudInventory Pro warehouse"
+            alt="HyOps warehouse"
             fill
             className="object-cover"
             priority
@@ -86,7 +81,7 @@ export default function LoginPage() {
             className="absolute inset-x-0 bottom-0 px-10 pb-12 xl:px-16 xl:pb-16"
           >
             <p className="text-xs font-semibold uppercase tracking-widest text-white/60">
-              CloudInventory Pro
+              HyOps
             </p>
             <h2 className="mt-3 text-3xl font-bold leading-tight text-white xl:text-4xl">
               Smart Inventory<br />Management
@@ -137,7 +132,7 @@ export default function LoginPage() {
                 <Package className="size-5" />
               </div>
               <div>
-                <h1 className="text-xl font-bold tracking-tight">CloudInventory Pro</h1>
+                <h1 className="text-xl font-bold tracking-tight">HyOps</h1>
                 <p className="text-xs text-muted-foreground">Inventory & Warehouse Platform</p>
               </div>
             </motion.div>
@@ -146,7 +141,7 @@ export default function LoginPage() {
             <motion.div variants={fadeInUp} transition={{ duration: 0.4 }}>
               <h2 className="text-2xl font-bold tracking-tight">Welcome back</h2>
               <p className="mt-1 text-sm text-muted-foreground">
-                Internal system login — use your company credentials
+                Enter your credentials to access your account
               </p>
             </motion.div>
 
@@ -199,24 +194,17 @@ export default function LoginPage() {
                   <Lock className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
                   <Input
                     id="password"
-                    type={showPassword ? 'text' : 'password'}
+                    type="password"
                     placeholder="Enter your password"
                     value={password}
                     onChange={(e) => {
                       setPassword(e.target.value);
                       if (error) setError('');
                     }}
-                    className="pl-9 pr-9"
+                    className="pl-9"
                     disabled={isLoading}
                     autoComplete="current-password"
                   />
-                  <button
-                    type="button"
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                    onClick={() => setShowPassword(!showPassword)}
-                  >
-                    {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
-                  </button>
                 </div>
               </motion.div>
 
@@ -272,16 +260,41 @@ export default function LoginPage() {
               </motion.div>
             </motion.form>
 
-            {/* Internal system notice */}
+            {/* Divider */}
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.6, duration: 0.4 }}
-              className="mt-8 rounded-lg border bg-muted/30 px-4 py-3 text-center"
+              className="my-8 flex items-center gap-3"
             >
-              <p className="text-xs text-muted-foreground">
-                This is an internal system. Contact your administrator to request account access.
-              </p>
+              <div className="h-px flex-1 bg-border" />
+              <span className="text-xs text-muted-foreground">or continue with</span>
+              <div className="h-px flex-1 bg-border" />
+            </motion.div>
+
+            {/* Social login placeholders */}
+            <motion.div
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.7, duration: 0.4 }}
+              className="flex gap-3"
+            >
+              <Button
+                type="button"
+                variant="outline"
+                className="h-11 flex-1 text-sm font-medium"
+                disabled={isLoading}
+              >
+                Google
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                className="h-11 flex-1 text-sm font-medium"
+                disabled={isLoading}
+              >
+                Microsoft
+              </Button>
             </motion.div>
           </motion.div>
 
@@ -292,7 +305,7 @@ export default function LoginPage() {
             transition={{ delay: 0.9, duration: 0.4 }}
             className="mt-auto pb-6 pt-10 text-center text-xs text-muted-foreground/70"
           >
-            &copy; {new Date().getFullYear()} CloudInventory Pro. All rights reserved.
+            &copy; {new Date().getFullYear()} HyOps. All rights reserved.
           </motion.p>
         </div>
       </main>

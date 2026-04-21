@@ -27,7 +27,10 @@ import {
   Pencil,
   Archive,
   X as XIcon,
+  ListOrdered,
   Clock,
+  Activity,
+  CircleCheck,
   Route,
   CheckCircle2,
   Circle,
@@ -40,7 +43,7 @@ import { cn } from '@/lib/utils';
 
 import { orders as initialOrders, deliveries, type DeliveryRoute } from '@/lib/mock-data';
 import { StatusBadge, PriorityBadge } from '@/components/shared/status-badge';
-import { PageTransition, FadeIn, StaggerContainer, StaggerItem } from '@/components/shared/animated-components';
+import { PageTransition, FadeIn } from '@/components/shared/animated-components';
 import { AnimatedCard } from '@/components/shared/animated-card';
 import { OrderStatusStepper, type OrderStatus } from '@/components/shared/order-status-stepper';
 import { Input } from '@/components/ui/input';
@@ -202,7 +205,7 @@ export default function OrdersPage() {
       const customEvent = e as CustomEvent;
       const orderData = customEvent.detail;
       if (orderData) {
-        const newOrder: Record<string, unknown> = {
+        setData((prev) => [{
           id: orderData.id,
           customer: orderData.customer,
           items: orderData.items,
@@ -211,13 +214,7 @@ export default function OrdersPage() {
           date: orderData.date,
           priority: orderData.priority,
           deliveryType: orderData.deliveryType || 'truck',
-        };
-        if (orderData.lalamoveDetails) {
-          newOrder.lalamoveDetails = orderData.lalamoveDetails;
-        }
-        if (orderData.scheduleDate) newOrder.scheduleDate = orderData.scheduleDate;
-        if (orderData.scheduleTime) newOrder.scheduleTime = orderData.scheduleTime;
-        setData((prev) => [newOrder as Order, ...prev]);
+        }, ...prev]);
       }
     };
     window.addEventListener('order:created', handleOrderCreated);
@@ -636,7 +633,7 @@ export default function OrdersPage() {
         },
       },
     ],
-    [openEditDialog, openRescheduleDialog, openCancelDialog, openArchiveDialog]
+    [openEditDialog, openCancelDialog, openArchiveDialog]
   );
 
   const filteredData = useMemo(() => {
@@ -698,74 +695,74 @@ export default function OrdersPage() {
           </div>
         </FadeIn>
 
-        {/* Summary Cards */}
-        <StaggerContainer className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
-          <StaggerItem>
+        {/* Summary Stats */}
+        <FadeIn delay={0.1}>
+          <div className="grid grid-cols-2 gap-4 lg:grid-cols-5">
             <AnimatedCard delay={0}>
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-muted-foreground">Total Orders</p>
-                  <p className="mt-1 text-2xl font-bold">{data.length}</p>
+              <div className="flex flex-col items-center gap-2">
+                <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10">
+                  <ListOrdered className="h-5 w-5 text-primary" />
                 </div>
-                <div className="rounded-lg bg-primary/10 p-2.5">
-                  <ShoppingCart className="h-5 w-5 text-primary" />
+                <div className="text-center">
+                  <p className="text-sm text-muted-foreground">Total</p>
+                  <p className="mt-1 text-xl font-bold">{data.length}</p>
                 </div>
               </div>
             </AnimatedCard>
-          </StaggerItem>
-          <StaggerItem>
             <AnimatedCard delay={0.05}>
-              <div className="flex items-center justify-between">
-                <div>
+              <div className="flex flex-col items-center gap-2">
+                <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-amber-500/10">
+                  <Clock className="h-5 w-5 text-amber-600 dark:text-amber-400" />
+                </div>
+                <div className="text-center">
                   <p className="text-sm text-muted-foreground">Pending</p>
-                  <p className="mt-1 text-2xl font-bold text-yellow-600 dark:text-yellow-400">
+                  <p className="mt-1 text-xl font-bold text-amber-600 dark:text-amber-400">
                     {data.filter((o) => o.status === 'pending').length}
                   </p>
                 </div>
-                <StatusBadge status="pending" />
               </div>
             </AnimatedCard>
-          </StaggerItem>
-          <StaggerItem>
             <AnimatedCard delay={0.1}>
-              <div className="flex items-center justify-between">
-                <div>
+              <div className="flex flex-col items-center gap-2">
+                <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-blue-500/10">
+                  <Activity className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                </div>
+                <div className="text-center">
                   <p className="text-sm text-muted-foreground">Processing</p>
-                  <p className="mt-1 text-2xl font-bold text-blue-600 dark:text-blue-400">
+                  <p className="mt-1 text-xl font-bold text-blue-600 dark:text-blue-400">
                     {data.filter((o) => o.status === 'processing').length}
                   </p>
                 </div>
-                <StatusBadge status="processing" />
               </div>
             </AnimatedCard>
-          </StaggerItem>
-          <StaggerItem>
             <AnimatedCard delay={0.15}>
-              <div className="flex items-center justify-between">
-                <div>
+              <div className="flex flex-col items-center gap-2">
+                <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-violet-500/10">
+                  <Truck className="h-5 w-5 text-violet-600 dark:text-violet-400" />
+                </div>
+                <div className="text-center">
                   <p className="text-sm text-muted-foreground">Shipped</p>
-                  <p className="mt-1 text-2xl font-bold text-indigo-600 dark:text-indigo-400">
+                  <p className="mt-1 text-xl font-bold text-violet-600 dark:text-violet-400">
                     {data.filter((o) => o.status === 'shipped').length}
                   </p>
                 </div>
-                <StatusBadge status="shipped" />
               </div>
             </AnimatedCard>
-          </StaggerItem>
-          <StaggerItem>
             <AnimatedCard delay={0.2}>
-              <div className="flex items-center justify-between">
-                <div>
+              <div className="flex flex-col items-center gap-2">
+                <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-green-500/10">
+                  <CircleCheck className="h-5 w-5 text-green-600 dark:text-green-400" />
+                </div>
+                <div className="text-center">
                   <p className="text-sm text-muted-foreground">Delivered</p>
-                  <p className="mt-1 text-2xl font-bold text-green-600 dark:text-green-400">
+                  <p className="mt-1 text-xl font-bold text-green-600 dark:text-green-400">
                     {data.filter((o) => o.status === 'delivered').length}
                   </p>
                 </div>
-                <StatusBadge status="delivered" />
               </div>
             </AnimatedCard>
-          </StaggerItem>
-        </StaggerContainer>
+          </div>
+        </FadeIn>
 
         {/* Search & Filter Bar */}
         <FadeIn delay={0.2}>
@@ -780,7 +777,7 @@ export default function OrdersPage() {
                   className="pl-9"
                 />
               </div>
-              <div className="flex flex-wrap gap-3">
+              <div className="flex gap-3">
                 <Select value={statusFilter} onValueChange={setStatusFilter}>
                   <SelectTrigger className="w-[160px]">
                     <SelectValue placeholder="Status" />
@@ -815,17 +812,6 @@ export default function OrdersPage() {
                     <SelectItem value="lalamove">Lalamove</SelectItem>
                   </SelectContent>
                 </Select>
-                {(statusFilter !== 'all' || priorityFilter !== 'all' || deliveryTypeFilter !== 'all' || globalFilter) && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="gap-1.5 text-xs text-muted-foreground hover:text-foreground"
-                    onClick={() => { setStatusFilter('all'); setPriorityFilter('all'); setDeliveryTypeFilter('all'); setGlobalFilter(''); }}
-                  >
-                    <XIcon className="h-3.5 w-3.5" />
-                    Clear
-                  </Button>
-                )}
               </div>
             </div>
           </AnimatedCard>
@@ -1013,28 +999,12 @@ export default function OrdersPage() {
                         ${selectedOrder.total.toFixed(2)}
                       </span>
                     </div>
-                    {(() => {
-                      const dt = (selectedOrder as Record<string, unknown>).deliveryType as string | undefined;
-                      const lalaDetails = (selectedOrder as Record<string, unknown>).lalamoveDetails as { deliveryFee?: number } | undefined;
-                      if (dt === 'lalamove' && typeof lalaDetails?.deliveryFee === 'number') {
-                        return (
-                          <div className="flex justify-between text-sm">
-                            <span className="text-muted-foreground">Delivery Fee</span>
-                            <span className="tabular-nums text-rose-600 dark:text-rose-400">
-                              ${lalaDetails.deliveryFee.toFixed(2)}
-                            </span>
-                          </div>
-                        );
-                      }
-                      return (
-                        <div className="flex justify-between text-sm">
-                          <span className="text-muted-foreground">Shipping</span>
-                          <span className="tabular-nums text-green-600 dark:text-green-400">
-                            Free
-                          </span>
-                        </div>
-                      );
-                    })()}
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">Shipping</span>
+                      <span className="tabular-nums text-green-600 dark:text-green-400">
+                        Free
+                      </span>
+                    </div>
                     <div className="flex justify-between text-sm">
                       <span className="text-muted-foreground">Tax</span>
                       <span className="tabular-nums">
@@ -1045,12 +1015,7 @@ export default function OrdersPage() {
                     <div className="flex justify-between font-semibold">
                       <span>Total</span>
                       <span className="tabular-nums text-lg">
-                        {(() => {
-                          const dt = (selectedOrder as Record<string, unknown>).deliveryType as string | undefined;
-                          const lalaDetails = (selectedOrder as Record<string, unknown>).lalamoveDetails as { deliveryFee?: number } | undefined;
-                          const deliveryFee = (dt === 'lalamove' && typeof lalaDetails?.deliveryFee === 'number') ? lalaDetails.deliveryFee : 0;
-                          return `${(selectedOrder.total * 1.08 + deliveryFee).toFixed(2)}`;
-                        })()}
+                        ${(selectedOrder.total * 1.08).toFixed(2)}
                       </span>
                     </div>
                   </div>
@@ -1144,158 +1109,6 @@ export default function OrdersPage() {
                             View Delivery Route
                             <Route className="h-3.5 w-3.5" />
                           </Button>
-                        </div>
-                      </div>
-                    );
-                  })()}
-
-                  {/* Lalamove Delivery Details */}
-                  {(() => {
-                    const dt = (selectedOrder as Record<string, unknown>).deliveryType as string | undefined;
-                    const lalaDetails = (selectedOrder as Record<string, unknown>).lalamoveDetails as {
-                      vehicleType?: string;
-                      serviceType?: string;
-                      senderName?: string;
-                      senderPhone?: string;
-                      senderAddress?: string;
-                      dropoffName?: string;
-                      dropoffPhone?: string;
-                      dropoffAddress?: string;
-                      buyForMe?: boolean;
-                      extraWaiting?: boolean;
-                      deliveryFee?: number;
-                    } | undefined;
-                    if (dt !== 'lalamove' || !lalaDetails) return null;
-
-                    const vehicleLabels: Record<string, string> = {
-                      bike: '🛵 Bike',
-                      car: '🚗 Car',
-                      mpv: '🚐 MPV',
-                      van_1_7: '🚛 Van (1.7m)',
-                      van_2_4: '🚛 Van (2.4m)',
-                      lorry_10: '🚚 Lorry (10ft)',
-                      lorry_14: '🚚 Lorry (14ft)',
-                    };
-
-                    const serviceLabels: Record<string, { label: string; desc: string; color: string }> = {
-                      priority: { label: 'Priority', desc: 'Faster delivery', color: 'text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/30 border-red-200 dark:border-red-800' },
-                      regular: { label: 'Regular', desc: 'Standard delivery', color: 'text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/30 border-blue-200 dark:border-blue-800' },
-                      pooling: { label: 'Pooling', desc: 'Save costs, wait longer', color: 'text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/30 border-amber-200 dark:border-amber-800' },
-                    };
-
-                    const service = serviceLabels[lalaDetails.serviceType || 'regular'] || serviceLabels.regular;
-
-                    return (
-                      <div className="space-y-3">
-                        <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-2">
-                          <Bike className="h-3.5 w-3.5 text-rose-500" />
-                          Lalamove Delivery Details
-                        </h3>
-                        <div className="rounded-lg border bg-muted/30 p-4 space-y-4">
-                          {/* Vehicle Type & Service Type */}
-                          <div className="grid grid-cols-2 gap-3">
-                            <div className="rounded-md border bg-background/80 p-2.5 space-y-1">
-                              <p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">Vehicle</p>
-                              <p className="text-sm font-medium">{vehicleLabels[lalaDetails.vehicleType || ''] || lalaDetails.vehicleType}</p>
-                            </div>
-                            <div className="rounded-md border bg-background/80 p-2.5 space-y-1">
-                              <p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">Service</p>
-                              <Badge variant="outline" className={cn('text-[11px] px-1.5 py-0', service.color)}>
-                                {service.label}
-                              </Badge>
-                              <p className="text-[10px] text-muted-foreground">{service.desc}</p>
-                            </div>
-                          </div>
-
-                          {/* Additional Services */}
-                          {(lalaDetails.buyForMe || lalaDetails.extraWaiting) && (
-                            <div className="flex flex-wrap gap-1.5">
-                              {lalaDetails.buyForMe && (
-                                <Badge variant="secondary" className="gap-1 text-xs bg-purple-50 text-purple-700 dark:bg-purple-950/30 dark:text-purple-400 border-purple-200 dark:border-purple-800">
-                                  <Package className="h-3 w-3" />
-                                  Buy for me
-                                </Badge>
-                              )}
-                              {lalaDetails.extraWaiting && (
-                                <Badge variant="secondary" className="gap-1 text-xs bg-orange-50 text-orange-700 dark:bg-orange-950/30 dark:text-orange-400 border-orange-200 dark:border-orange-800">
-                                  <Clock className="h-3 w-3" />
-                                  Extra Waiting Time
-                                </Badge>
-                              )}
-                            </div>
-                          )}
-
-                          <Separator />
-
-                          {/* Pick Up Location */}
-                          <div className="space-y-2">
-                            <div className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
-                              <div className="flex h-4 w-4 items-center justify-center rounded-full bg-green-100 dark:bg-green-900/30">
-                                <div className="h-2 w-2 rounded-full bg-green-500" />
-                              </div>
-                              Pick Up Location
-                            </div>
-                            <div className="rounded-md border bg-background/80 p-2.5 space-y-1.5 ml-1">
-                              {lalaDetails.senderName && (
-                                <div className="flex items-center gap-2 text-sm">
-                                  <span className="font-medium">{lalaDetails.senderName}</span>
-                                  {lalaDetails.senderPhone && (
-                                    <span className="text-xs text-muted-foreground flex items-center gap-1">
-                                      <Phone className="h-3 w-3" />
-                                      {lalaDetails.senderPhone}
-                                    </span>
-                                  )}
-                                </div>
-                              )}
-                              {lalaDetails.senderAddress && (
-                                <div className="flex items-start gap-1.5 text-xs text-muted-foreground">
-                                  <MapPin className="h-3 w-3 mt-0.5 shrink-0 text-green-500" />
-                                  <span>{lalaDetails.senderAddress}</span>
-                                </div>
-                              )}
-                            </div>
-                          </div>
-
-                          {/* Drop Off Location */}
-                          <div className="space-y-2">
-                            <div className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
-                              <div className="flex h-4 w-4 items-center justify-center rounded-full bg-rose-100 dark:bg-rose-900/30">
-                                <div className="h-2 w-2 rounded-full bg-rose-500" />
-                              </div>
-                              Drop Off Location
-                            </div>
-                            <div className="rounded-md border bg-background/80 p-2.5 space-y-1.5 ml-1">
-                              {lalaDetails.dropoffName && (
-                                <div className="flex items-center gap-2 text-sm">
-                                  <span className="font-medium">{lalaDetails.dropoffName}</span>
-                                  {lalaDetails.dropoffPhone && (
-                                    <span className="text-xs text-muted-foreground flex items-center gap-1">
-                                      <Phone className="h-3 w-3" />
-                                      {lalaDetails.dropoffPhone}
-                                    </span>
-                                  )}
-                                </div>
-                              )}
-                              {lalaDetails.dropoffAddress && (
-                                <div className="flex items-start gap-1.5 text-xs text-muted-foreground">
-                                  <MapPin className="h-3 w-3 mt-0.5 shrink-0 text-rose-500" />
-                                  <span>{lalaDetails.dropoffAddress}</span>
-                                </div>
-                              )}
-                            </div>
-                          </div>
-
-                          <Separator />
-
-                          {/* Delivery Fee */}
-                          {typeof lalaDetails.deliveryFee === 'number' && (
-                            <div className="flex items-center justify-between rounded-md border bg-background/80 p-2.5">
-                              <span className="text-sm text-muted-foreground">Lalamove Delivery Fee</span>
-                              <span className="text-sm font-semibold tabular-nums">
-                                ${lalaDetails.deliveryFee.toFixed(2)}
-                              </span>
-                            </div>
-                          )}
                         </div>
                       </div>
                     );

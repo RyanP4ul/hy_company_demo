@@ -25,7 +25,6 @@ const NotificationsPage = lazy(() => import('@/components/features/notifications
 const SettingsPage = lazy(() => import('@/components/features/settings-page'));
 const CustomersPage = lazy(() => import('@/components/features/customers-page'));
 const ArchivedPage = lazy(() => import('@/components/features/archived-page'));
-const PaymentsPage = lazy(() => import('@/components/features/payments-page'));
 const CentralInboxPage = lazy(() => import('@/components/features/central-inbox-page'));
 const CreateOrderPage = lazy(() => import('@/components/features/create-order-page'));
 const DeliveryDetailPage = lazy(() => import('@/components/features/delivery-detail-page'));
@@ -47,7 +46,6 @@ const pageComponents: Record<string, React.LazyExoticComponent<React.ComponentTy
   notifications: NotificationsPage,
   settings: SettingsPage,
   archived: ArchivedPage,
-  payments: PaymentsPage,
   'central-inbox': CentralInboxPage,
 };
 

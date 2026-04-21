@@ -52,19 +52,15 @@ export const inventoryItems = [
 
 export const orders = [
   { id: 'ORD-2847', customer: 'Acme Corp', items: 12, total: 1847.99, status: 'pending' as const, date: '2024-01-15', priority: 'high' as const, deliveryType: 'truck' as const },
-  { id: 'ORD-2846', customer: 'TechStart Inc', items: 5, total: 749.95, status: 'processing' as const, date: '2024-01-15', priority: 'medium' as const, deliveryType: 'lalamove' as const,
-    lalamoveDetails: { vehicleType: 'car', serviceType: 'priority', senderName: 'Jen Reyes', senderPhone: '+63 917 234 5678', senderAddress: '2F Globe Telecom, Pioneer St, Mandaluyong City', dropoffName: 'Marco Santos', dropoffPhone: '+63 918 345 6789', dropoffAddress: '789 Innovation Dr, San Francisco, CA 94102', buyForMe: false, extraWaiting: true, deliveryFee: 152.50 } },
+  { id: 'ORD-2846', customer: 'TechStart Inc', items: 5, total: 749.95, status: 'processing' as const, date: '2024-01-15', priority: 'medium' as const, deliveryType: 'lalamove' as const },
   { id: 'ORD-2845', customer: 'Global Trade Ltd', items: 34, total: 5199.66, status: 'shipped' as const, date: '2024-01-14', priority: 'high' as const, deliveryType: 'truck' as const },
-  { id: 'ORD-2844', customer: 'Metro Supply Co', items: 8, total: 1199.92, status: 'delivered' as const, date: '2024-01-14', priority: 'low' as const, deliveryType: 'lalamove' as const,
-    lalamoveDetails: { vehicleType: 'van_1_7', serviceType: 'regular', senderName: 'Ana Cruz', senderPhone: '+63 915 456 7890', senderAddress: 'Unit 5, EDSA Central, Mandaluyong City', dropoffName: 'Luis Gomez', dropoffPhone: '+63 916 567 8901', dropoffAddress: '147 Pine Road, Philadelphia, PA 19101', buyForMe: true, extraWaiting: false, deliveryFee: 195.00 } },
+  { id: 'ORD-2844', customer: 'Metro Supply Co', items: 8, total: 1199.92, status: 'delivered' as const, date: '2024-01-14', priority: 'low' as const, deliveryType: 'lalamove' as const },
   { id: 'ORD-2843', customer: 'Swift Retail', items: 2, total: 299.98, status: 'cancelled' as const, date: '2024-01-13', priority: 'low' as const, deliveryType: 'truck' as const },
   { id: 'ORD-2842', customer: 'Digital Hub', items: 15, total: 2249.85, status: 'processing' as const, date: '2024-01-13', priority: 'medium' as const, deliveryType: 'truck' as const },
   { id: 'ORD-2841', customer: 'Prime Logistics', items: 22, total: 3299.78, status: 'shipped' as const, date: '2024-01-12', priority: 'high' as const, deliveryType: 'truck' as const },
-  { id: 'ORD-2840', customer: 'Nova Enterprises', items: 6, total: 899.94, status: 'delivered' as const, date: '2024-01-12', priority: 'low' as const, deliveryType: 'lalamove' as const,
-    lalamoveDetails: { vehicleType: 'bike', serviceType: 'pooling', senderName: 'Rico Tan', senderPhone: '+63 919 678 9012', senderAddress: '10 Exchange Rd, Ortigas Center, Pasig City', dropoffName: 'Grace Lim', dropoffPhone: '+63 920 789 0123', dropoffAddress: '550 Oak Avenue, Suite 200, Dallas, TX 75201', buyForMe: false, extraWaiting: false, deliveryFee: 33.75 } },
+  { id: 'ORD-2840', customer: 'Nova Enterprises', items: 6, total: 899.94, status: 'delivered' as const, date: '2024-01-12', priority: 'low' as const, deliveryType: 'lalamove' as const },
   { id: 'ORD-2839', customer: 'Atlas Trading', items: 18, total: 2699.82, status: 'pending' as const, date: '2024-01-11', priority: 'medium' as const, deliveryType: 'truck' as const },
-  { id: 'ORD-2838', customer: 'Pinnacle Goods', items: 9, total: 1349.91, status: 'processing' as const, date: '2024-01-11', priority: 'high' as const, deliveryType: 'lalamove' as const,
-    lalamoveDetails: { vehicleType: 'mpv', serviceType: 'regular', senderName: 'Dan Villanueva', senderPhone: '+63 921 890 1234', senderAddress: 'Warehouse B, BGC, Taguig City', dropoffName: 'Karen Reyes', dropoffPhone: '+63 922 901 2345', dropoffAddress: '480 Birch Blvd, Dallas, TX 75201', buyForMe: false, extraWaiting: true, deliveryFee: 145.00 } },
+  { id: 'ORD-2838', customer: 'Pinnacle Goods', items: 9, total: 1349.91, status: 'processing' as const, date: '2024-01-11', priority: 'high' as const, deliveryType: 'lalamove' as const },
 ];
 
 export type StopStatus = 'pending' | 'in_transit' | 'delivered';
@@ -87,14 +83,21 @@ export interface DeliveryRoute {
   id: string;
   driver: string;
   vehicle: string;
-  status: 'pending' | 'in_transit' | 'delivered';
+  status: 'pending' | 'in_transit' | 'delivered' | 'cancelled';
   stops: DeliveryStop[];
   totalDistance: number; // total route km
   totalOrders: number;
   totalValue: number;
   startedAt: string | null;
   completedAt: string | null;
+  cancelledAt: string | null;
+  cancelReason: string | null;
   currentStopIndex: number;
+  scheduledDate: string | null;
+  scheduledTime: string | null;
+  rescheduledDate: string | null;
+  rescheduledTime: string | null;
+  rescheduleReason: string | null;
 }
 
 // One truck = multiple customer orders, each with own address and delivery status
@@ -110,6 +113,8 @@ export const deliveries: DeliveryRoute[] = [
     totalValue: 6547.58,
     startedAt: '2024-01-14 08:00',
     completedAt: '2024-01-14 15:20',
+    cancelledAt: null,
+    cancelReason: null,
     stops: [
       { id: 'S-001', orderId: 'ORD-2844', customer: 'Metro Supply Co', address: '147 Pine Road, Philadelphia, PA 19101', status: 'delivered', items: 8, total: 1199.92, deliveredAt: '2024-01-14 09:15', distanceFromPrev: 12.3, estimatedArrival: '09:00 AM' },
       { id: 'S-002', orderId: 'ORD-2839', customer: 'Atlas Trading', address: '369 Elm Street, San Diego, CA 92101', status: 'delivered', items: 18, total: 2699.82, deliveredAt: '2024-01-14 11:30', distanceFromPrev: 15.2, estimatedArrival: '11:00 AM' },
@@ -128,6 +133,8 @@ export const deliveries: DeliveryRoute[] = [
     totalValue: 10097.29,
     startedAt: '2024-01-15 08:30',
     completedAt: null,
+    cancelledAt: null,
+    cancelReason: null,
     stops: [
       { id: 'S-005', orderId: 'ORD-2845', customer: 'Global Trade Ltd', address: '456 Commerce Blvd, Los Angeles, CA 90001', status: 'delivered', items: 34, total: 5199.66, deliveredAt: '2024-01-15 10:20', distanceFromPrev: 14.1, estimatedArrival: '10:00 AM' },
       { id: 'S-006', orderId: 'ORD-2846', customer: 'TechStart Inc', address: '789 Innovation Dr, San Francisco, CA 94102', status: 'in_transit', items: 5, total: 749.95, deliveredAt: null, distanceFromPrev: 8.5, estimatedArrival: '12:30 PM', notes: 'Gate code: 4521' },
@@ -146,6 +153,8 @@ export const deliveries: DeliveryRoute[] = [
     totalValue: 4949.67,
     startedAt: '2024-01-15 09:00',
     completedAt: null,
+    cancelledAt: null,
+    cancelReason: null,
     stops: [
       { id: 'S-009', orderId: 'ORD-2840', customer: 'Nova Enterprises', address: '712 Ash Court, Austin, TX 73301', status: 'in_transit', items: 6, total: 899.94, deliveredAt: null, distanceFromPrev: 11.2, estimatedArrival: '10:30 AM', notes: 'Back entrance, ring bell' },
       { id: 'S-010', orderId: 'ORD-2842', customer: 'Digital Hub', address: '258 Cedar Lane, San Antonio, TX 78201', status: 'pending', items: 15, total: 2249.85, deliveredAt: null, distanceFromPrev: 7.8, estimatedArrival: '12:00 PM' },
@@ -163,6 +172,8 @@ export const deliveries: DeliveryRoute[] = [
     totalValue: 6349.39,
     startedAt: null,
     completedAt: null,
+    cancelledAt: null,
+    cancelReason: null,
     stops: [
       { id: 'S-012', orderId: 'ORD-2849', customer: 'Pacific Supply', address: '888 Harbor Blvd, Seattle, WA 98101', status: 'pending', items: 20, total: 3299.50, deliveredAt: null, distanceFromPrev: 13.4, estimatedArrival: 'Tomorrow 09:30 AM' },
       { id: 'S-013', orderId: 'ORD-2850', customer: 'Redwood Distributors', address: '222 Pinecrest Ave, Portland, OR 97201', status: 'pending', items: 8, total: 1549.89, deliveredAt: null, distanceFromPrev: 10.2, estimatedArrival: 'Tomorrow 11:15 AM' },
@@ -180,6 +191,8 @@ export const deliveries: DeliveryRoute[] = [
     totalValue: 2199.86,
     startedAt: '2024-01-13 07:30',
     completedAt: '2024-01-13 12:45',
+    cancelledAt: null,
+    cancelReason: null,
     stops: [
       { id: 'S-015', orderId: 'ORD-2835', customer: 'Lakeview Industries', address: '333 Lakeshore Dr, Chicago, IL 60601', status: 'delivered', items: 7, total: 899.94, deliveredAt: '2024-01-13 09:00', distanceFromPrev: 10.5, estimatedArrival: '08:45 AM' },
       { id: 'S-016', orderId: 'ORD-2836', customer: 'Mountain Supply Co', address: '666 Peak Rd, Denver, CO 80201', status: 'delivered', items: 11, total: 1299.92, deliveredAt: '2024-01-13 11:30', distanceFromPrev: 9.3, estimatedArrival: '11:00 AM' },
@@ -199,18 +212,18 @@ export const deliveryTimeline = [
 ];
 
 export const activityTimeline = [
-  { id: '1', user: 'Ryan Paul Espinola', action: 'created order', target: 'ORD-2847', time: '2 min ago', type: 'order' as const },
+  { id: '1', user: 'Alex Johnson', action: 'created order', target: 'ORD-2847', time: '2 min ago', type: 'order' as const },
   { id: '2', user: 'System', action: 'alert: low stock', target: 'Widget Pro X200', time: '5 min ago', type: 'alert' as const },
   { id: '3', user: 'Maria Garcia', action: 'started delivery', target: 'DEL-1091', time: '30 min ago', type: 'delivery' as const },
   { id: '4', user: 'James Wilson', action: 'completed delivery', target: 'DEL-1092', time: '1 hour ago', type: 'delivery' as const },
-  { id: '5', user: 'Ryan Paul Espinola', action: 'updated inventory', target: 'Smart Sensor V3', time: '2 hours ago', type: 'inventory' as const },
+  { id: '5', user: 'Alex Johnson', action: 'updated inventory', target: 'Smart Sensor V3', time: '2 hours ago', type: 'inventory' as const },
   { id: '6', user: 'System', action: 'new user registered', target: 'Sarah Miller', time: '3 hours ago', type: 'user' as const },
   { id: '7', user: 'David Chen', action: 'accepted delivery', target: 'DEL-1090', time: '4 hours ago', type: 'delivery' as const },
   { id: '8', user: 'System', action: 'payment received', target: 'INV-4520 ($2,450)', time: '5 hours ago', type: 'payment' as const },
 ];
 
 export const users = [
-  { id: 'USR-001', name: 'Ryan Paul Espinola', email: 'espinola@company.com', role: 'Admin', status: 'active' as const, lastActive: 'Just now', avatar: '' },
+  { id: 'USR-001', name: 'Alex Johnson', email: 'alex@company.com', role: 'Admin', status: 'active' as const, lastActive: 'Just now', avatar: '' },
   { id: 'USR-002', name: 'Sarah Miller', email: 'sarah@company.com', role: 'Staff', status: 'active' as const, lastActive: '5 min ago', avatar: '' },
   { id: 'USR-003', name: 'James Wilson', email: 'james@company.com', role: 'Driver', status: 'active' as const, lastActive: '1 hour ago', avatar: '' },
   { id: 'USR-004', name: 'Maria Garcia', email: 'maria@company.com', role: 'Driver', status: 'active' as const, lastActive: '30 min ago', avatar: '' },
@@ -221,8 +234,8 @@ export const users = [
 ];
 
 export const auditLogs = [
-  { id: 'LOG-001', user: 'Ryan Paul Espinola', action: 'UPDATE', resource: 'Product', resourceId: 'SKU-002', details: { field: 'price', old: '79.99', new: '89.99' }, timestamp: '2024-01-15 10:30:22', ip: '192.168.1.100' },
-  { id: 'LOG-002', user: 'Ryan Paul Espinola', action: 'CREATE', resource: 'Order', resourceId: 'ORD-2847', details: { customer: 'Acme Corp', items: 12, total: '$1,847.99' }, timestamp: '2024-01-15 10:28:15', ip: '192.168.1.100' },
+  { id: 'LOG-001', user: 'Alex Johnson', action: 'UPDATE', resource: 'Product', resourceId: 'SKU-002', details: { field: 'price', old: '79.99', new: '89.99' }, timestamp: '2024-01-15 10:30:22', ip: '192.168.1.100' },
+  { id: 'LOG-002', user: 'Alex Johnson', action: 'CREATE', resource: 'Order', resourceId: 'ORD-2847', details: { customer: 'Acme Corp', items: 12, total: '$1,847.99' }, timestamp: '2024-01-15 10:28:15', ip: '192.168.1.100' },
   { id: 'LOG-003', user: 'System', action: 'ALERT', resource: 'Inventory', resourceId: 'SKU-001', details: { alert: 'Low Stock', current: 5, minimum: 10 }, timestamp: '2024-01-15 10:25:00', ip: 'system' },
   { id: 'LOG-004', user: 'Sarah Miller', action: 'UPDATE', resource: 'Delivery', resourceId: 'DEL-1091', details: { field: 'status', old: 'pending', new: 'in_transit' }, timestamp: '2024-01-15 10:00:00', ip: '192.168.1.105' },
   { id: 'LOG-005', user: 'Emily Taylor', action: 'DELETE', resource: 'User', resourceId: 'USR-010', details: { reason: 'Account terminated', user: 'John Doe' }, timestamp: '2024-01-15 09:45:30', ip: '192.168.1.108' },
@@ -238,13 +251,13 @@ export const drivers = [
 ];
 
 export const weeklyPerformanceData = [
-  { day: 'Mon', orders: 42, deliveries: 38, returns: 3, broken: 1 },
-  { day: 'Tue', orders: 38, deliveries: 35, returns: 2, broken: 2 },
-  { day: 'Wed', orders: 55, deliveries: 50, returns: 5, broken: 3 },
-  { day: 'Thu', orders: 48, deliveries: 45, returns: 1, broken: 1 },
-  { day: 'Fri', orders: 62, deliveries: 58, returns: 4, broken: 4 },
-  { day: 'Sat', orders: 35, deliveries: 32, returns: 2, broken: 2 },
-  { day: 'Sun', orders: 28, deliveries: 25, returns: 1, broken: 1 },
+  { day: 'Mon', orders: 42, deliveries: 38, returns: 3 },
+  { day: 'Tue', orders: 38, deliveries: 35, returns: 2 },
+  { day: 'Wed', orders: 55, deliveries: 50, returns: 5 },
+  { day: 'Thu', orders: 48, deliveries: 45, returns: 1 },
+  { day: 'Fri', orders: 62, deliveries: 58, returns: 4 },
+  { day: 'Sat', orders: 35, deliveries: 32, returns: 2 },
+  { day: 'Sun', orders: 28, deliveries: 25, returns: 1 },
 ];
 
 export const customers = [
@@ -368,7 +381,7 @@ export const inboxConversations: InboxConversation[] = [
     customerTotalSpent: 52300,
     customerSince: '2023-05-22',
     status: 'open',
-    assignedTo: 'Ryan Paul Espinola',
+    assignedTo: 'Alex Johnson',
     lastMessage: '我们的订单已经到港口了吗？',
     lastMessageTime: '15 min ago',
     unreadCount: 2,
@@ -559,45 +572,4 @@ export const inboxConversations: InboxConversation[] = [
       { id: 'MSG-051', conversationId: 'CONV-010', sender: 'customer', content: 'Can I visit your warehouse?', timestamp: '2024-01-15 06:35 AM', type: 'text' },
     ],
   },
-];
-
-// ========================
-// Payments Data
-// ========================
-
-export type PaymentMethod = 'visa' | 'gcash' | 'cash';
-export type PaymentStatus = 'completed' | 'pending' | 'failed' | 'refunded';
-
-export interface Payment {
-  id: string;
-  orderId: string;
-  customer: string;
-  amount: number;
-  method: PaymentMethod;
-  status: PaymentStatus;
-  date: string;
-  description: string;
-  last4?: string;       // last 4 digits for card
-  refId?: string;       // transaction reference ID
-  gcashNumber?: string; // GCash phone number
-  processedBy?: string; // who processed cash payment
-}
-
-export const payments: Payment[] = [
-  { id: 'PAY-1001', orderId: 'ORD-2847', customer: 'Acme Corp', amount: 1995.83, method: 'visa', status: 'completed', date: '2024-01-15 10:23 AM', description: 'Order ORD-2847 payment', last4: '4242', refId: 'ch_3Oj4kL2eZvKYlo2C0l6R3k2a' },
-  { id: 'PAY-1002', orderId: 'ORD-2846', customer: 'TechStart Inc', amount: 902.45, method: 'gcash', status: 'completed', date: '2024-01-15 09:15 AM', description: 'Order ORD-2846 payment (incl. Lalamove fee)', gcashNumber: '0917-234-5678', refId: 'pay_2kXm9aB3cD4eF5g' },
-  { id: 'PAY-1003', orderId: 'ORD-2845', customer: 'Global Trade Ltd', amount: 5615.63, method: 'visa', status: 'completed', date: '2024-01-14 02:45 PM', description: 'Order ORD-2845 payment', last4: '8910', refId: 'ch_3Oj4mN2eZvKYlo2C0l6R4m3b' },
-  { id: 'PAY-1004', orderId: 'ORD-2844', customer: 'Metro Supply Co', amount: 1394.91, method: 'cash', status: 'completed', date: '2024-01-14 11:00 AM', description: 'Order ORD-2844 cash payment (incl. Lalamove fee)', processedBy: 'Maria Garcia', refId: 'RCP-20240114-001' },
-  { id: 'PAY-1005', orderId: 'ORD-2843', customer: 'Swift Retail', amount: 323.98, method: 'gcash', status: 'refunded', date: '2024-01-13 04:30 PM', description: 'Order ORD-2843 payment (refunded - order cancelled)', gcashNumber: '0919-456-7890', refId: 'pay_2kXm9bC4dE5fG6h' },
-  { id: 'PAY-1006', orderId: 'ORD-2842', customer: 'Digital Hub', amount: 2429.84, method: 'visa', status: 'completed', date: '2024-01-13 01:10 PM', description: 'Order ORD-2842 payment', last4: '5567', refId: 'ch_3Oj4oP2eZvKYlo2C0l6R5n4c' },
-  { id: 'PAY-1007', orderId: 'ORD-2841', customer: 'Prime Logistics', amount: 3563.76, method: 'cash', status: 'completed', date: '2024-01-12 03:20 PM', description: 'Order ORD-2841 cash payment', processedBy: 'James Wilson', refId: 'RCP-20240112-002' },
-  { id: 'PAY-1008', orderId: 'ORD-2840', customer: 'Nova Enterprises', amount: 933.94, method: 'gcash', status: 'completed', date: '2024-01-12 09:45 AM', description: 'Order ORD-2840 payment (incl. Lalamove fee)', gcashNumber: '0920-789-0123', refId: 'pay_2kXm9cD5eF6gH7i' },
-  { id: 'PAY-1009', orderId: 'ORD-2839', customer: 'Atlas Trading', amount: 2915.81, method: 'visa', status: 'completed', date: '2024-01-11 10:55 AM', description: 'Order ORD-2839 payment', last4: '3311', refId: 'ch_3Oj4pQ2eZvKYlo2C0l6R6o5d' },
-  { id: 'PAY-1010', orderId: 'ORD-2838', customer: 'Pinnacle Goods', amount: 1494.91, method: 'visa', status: 'pending', date: '2024-01-11 08:30 AM', description: 'Order ORD-2838 payment (incl. Lalamove fee) - pending authorization', last4: '7788', refId: 'ch_3Oj4qR2eZvKYlo2C0l6R7p6e' },
-  { id: 'PAY-1011', orderId: 'ORD-2847', customer: 'Acme Corp', amount: 1847.99, method: 'visa', status: 'failed', date: '2024-01-15 09:50 AM', description: 'Order ORD-2847 - initial attempt (card declined)', last4: '4242', refId: 'ch_3Oj4kL2eZvKYlo2CFAIL' },
-  { id: 'PAY-1012', orderId: 'ORD-2846', customer: 'TechStart Inc', amount: 749.95, method: 'gcash', status: 'pending', date: '2024-01-15 08:55 AM', description: 'Order ORD-2846 - awaiting GCash confirmation', gcashNumber: '0917-234-5678', refId: 'pay_2kXm9aPEND1ng' },
-  { id: 'PAY-1013', orderId: 'ORD-2845', customer: 'Global Trade Ltd', amount: 2599.83, method: 'cash', status: 'completed', date: '2024-01-14 02:50 PM', description: 'Order ORD-2845 partial cash payment', processedBy: 'David Chen', refId: 'RCP-20240114-003' },
-  { id: 'PAY-1014', orderId: 'ORD-2840', customer: 'Nova Enterprises', amount: 899.94, method: 'cash', status: 'pending', date: '2024-01-12 11:00 AM', description: 'Order ORD-2840 - cash on delivery pending', refId: 'RCP-20240112-004' },
-  { id: 'PAY-1015', orderId: 'ORD-2838', customer: 'Pinnacle Goods', amount: 1349.91, method: 'gcash', status: 'failed', date: '2024-01-11 07:20 AM', description: 'Order ORD-2838 - GCash timeout', gcashNumber: '0922-901-2345', refId: 'pay_2kXm9cFAILed1' },
-  { id: 'PAY-1016', orderId: 'ORD-2841', customer: 'Prime Logistics', amount: 1649.89, method: 'visa', status: 'refunded', date: '2024-01-12 03:30 PM', description: 'Order ORD-2841 partial refund', last4: '5567', refId: 'ch_3Oj4oPREFUND2e' },
 ];

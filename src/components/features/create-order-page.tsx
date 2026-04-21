@@ -16,8 +16,6 @@ import {
   Truck,
   Bike,
   CalendarClock,
-  MapPin,
-  Check,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -70,25 +68,6 @@ interface OrderForm {
 
 const TAX_RATE = 0.08;
 
-const VEHICLE_TYPES = [
-  { value: 'bike', label: 'Bike', icon: '🛵', basePrice: 45 },
-  { value: 'car', label: 'Car', icon: '🚗', basePrice: 85 },
-  { value: 'mpv', label: 'MPV', icon: '🚐', basePrice: 120 },
-  { value: 'van_1_7', label: 'Van (1.7m)', icon: '🚛', basePrice: 160 },
-  { value: 'van_2_4', label: 'Van (2.4m)', icon: '🚛', basePrice: 200 },
-  { value: 'lorry_10', label: 'Lorry (10ft)', icon: '🚚', basePrice: 320 },
-  { value: 'lorry_14', label: 'Lorry (14ft)', icon: '🚚', basePrice: 420 },
-] as const;
-
-const SERVICE_TYPES = [
-  { value: 'priority', label: 'Priority', desc: 'Match faster for quick deliveries (higher prices)', multiplier: 1.5 },
-  { value: 'regular', label: 'Regular', desc: 'Standard delivery', multiplier: 1.0 },
-  { value: 'pooling', label: 'Pooling', desc: 'Save costs. Wait a little longer', multiplier: 0.75 },
-] as const;
-
-const BUY_FOR_ME_FEE = 35;
-const EXTRA_WAITING_FEE = 25;
-
 let itemIdCounter = 0;
 function generateItemId() {
   itemIdCounter++;
@@ -121,24 +100,6 @@ export default function CreateOrderPage() {
   const [itemPrice, setItemPrice] = useState('');
   const [productSearch, setProductSearch] = useState('');
   const [showProductDropdown, setShowProductDropdown] = useState(false);
-
-  // Lalamove state
-  const [lalaVehicleType, setLalaVehicleType] = useState('');
-  const [lalaServiceType, setLalaServiceType] = useState('regular');
-  const [lalaBuyForMe, setLalaBuyForMe] = useState(false);
-  const [lalaExtraWaiting, setLalaExtraWaiting] = useState(false);
-  const [lalaSenderAddress, setLalaSenderAddress] = useState('');
-  const [lalaSenderName, setLalaSenderName] = useState('');
-  const [lalaSenderPhone, setLalaSenderPhone] = useState('');
-  const [lalaDropoffAddress, setLalaDropoffAddress] = useState('');
-  const [lalaDropoffName, setLalaDropoffName] = useState('');
-  const [lalaDropoffPhone, setLalaDropoffPhone] = useState('');
-
-  // Lalamove combobox dropdown states
-  const [vehicleSearch, setVehicleSearch] = useState('');
-  const [showVehicleDropdown, setShowVehicleDropdown] = useState(false);
-  const [serviceSearch, setServiceSearch] = useState('');
-  const [showServiceDropdown, setShowServiceDropdown] = useState(false);
 
   // Filter customers by search
   const filteredCustomers = useMemo(() => {
@@ -180,12 +141,6 @@ export default function CreateOrderPage() {
       if (!target.closest('[data-product-combobox]')) {
         setShowProductDropdown(false);
       }
-      if (!target.closest('[data-vehicle-combobox]')) {
-        setShowVehicleDropdown(false);
-      }
-      if (!target.closest('[data-service-combobox]')) {
-        setShowServiceDropdown(false);
-      }
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
@@ -200,53 +155,13 @@ export default function CreateOrderPage() {
     );
   }, [productSearch]);
 
-  // Filter vehicles by search
-  const filteredVehicles = useMemo(() => {
-    if (!vehicleSearch.trim()) return VEHICLE_TYPES;
-    return VEHICLE_TYPES.filter((v) =>
-      v.label.toLowerCase().includes(vehicleSearch.toLowerCase()) ||
-      v.value.toLowerCase().includes(vehicleSearch.toLowerCase())
-    );
-  }, [vehicleSearch]);
-
-  const selectedVehicle = useMemo(() => {
-    if (!lalaVehicleType) return null;
-    return VEHICLE_TYPES.find((v) => v.value === lalaVehicleType) || null;
-  }, [lalaVehicleType]);
-
-  // Filter services by search
-  const filteredServices = useMemo(() => {
-    if (!serviceSearch.trim()) return SERVICE_TYPES;
-    return SERVICE_TYPES.filter((s) =>
-      s.label.toLowerCase().includes(serviceSearch.toLowerCase())
-    );
-  }, [serviceSearch]);
-
-  const selectedService = useMemo(() => {
-    return SERVICE_TYPES.find((s) => s.value === lalaServiceType) || null;
-  }, [lalaServiceType]);
-
-  // Lalamove delivery fee calculation
-  const lalamoveDeliveryFee = useMemo(() => {
-    if (form.deliveryType !== 'lalamove' || !lalaVehicleType) return 0;
-    const vehicle = VEHICLE_TYPES.find(v => v.value === lalaVehicleType);
-    if (!vehicle) return 0;
-    const service = SERVICE_TYPES.find(s => s.value === lalaServiceType);
-    const multiplier = service?.multiplier ?? 1;
-    let fee = vehicle.basePrice * multiplier;
-    if (lalaBuyForMe) fee += BUY_FOR_ME_FEE;
-    if (lalaExtraWaiting) fee += EXTRA_WAITING_FEE;
-    return parseFloat(fee.toFixed(2));
-  }, [form.deliveryType, lalaVehicleType, lalaServiceType, lalaBuyForMe, lalaExtraWaiting]);
-
   // Calculate totals
   const subtotal = useMemo(
     () => form.items.reduce((sum, item) => sum + item.quantity * item.unitPrice, 0),
     [form.items]
   );
   const tax = subtotal * TAX_RATE;
-  const deliveryFee = form.deliveryType === 'lalamove' ? lalamoveDeliveryFee : 0;
-  const total = subtotal + tax + deliveryFee;
+  const total = subtotal + tax;
 
   // Open add item dialog
   const openAddItemDialog = useCallback(() => {
@@ -335,8 +250,7 @@ export default function CreateOrderPage() {
     const totalItems = form.items.reduce((sum, i) => sum + i.quantity, 0);
     const subtotal = form.items.reduce((sum, i) => sum + i.quantity * i.unitPrice, 0);
     const tax = subtotal * TAX_RATE;
-    const orderDeliveryFee = form.deliveryType === 'lalamove' ? lalamoveDeliveryFee : 0;
-    const orderTotal = parseFloat((subtotal + tax + orderDeliveryFee).toFixed(2));
+    const orderTotal = parseFloat((subtotal + tax).toFixed(2));
 
     // Generate new order ID
     const maxNum = 2847; // from mock data
@@ -361,26 +275,13 @@ export default function CreateOrderPage() {
           qty: i.quantity,
           price: i.unitPrice,
         })),
-        lalamoveDetails: form.deliveryType === 'lalamove' ? {
-          vehicleType: lalaVehicleType,
-          serviceType: lalaServiceType,
-          senderAddress: lalaSenderAddress,
-          senderName: lalaSenderName,
-          senderPhone: lalaSenderPhone,
-          dropoffAddress: lalaDropoffAddress,
-          dropoffName: lalaDropoffName,
-          dropoffPhone: lalaDropoffPhone,
-          buyForMe: lalaBuyForMe,
-          extraWaiting: lalaExtraWaiting,
-          deliveryFee: lalamoveDeliveryFee,
-        } : undefined,
       },
     });
     window.dispatchEvent(orderEvent);
 
     toast.success(`Order ${newId} created successfully for ${form.customer.trim()}`);
     setCurrentView(returnTo === 'orders' ? 'orders' : 'orders');
-  }, [form, returnTo, setCurrentView, lalaVehicleType, lalaServiceType, lalaSenderAddress, lalaSenderName, lalaSenderPhone, lalaDropoffAddress, lalaDropoffName, lalaDropoffPhone, lalaBuyForMe, lalaExtraWaiting, lalamoveDeliveryFee]);
+  }, [form, returnTo, setCurrentView]);
 
   const handleGoBack = useCallback(() => {
     setCurrentView(returnTo === 'orders' ? 'orders' : 'orders');
@@ -675,320 +576,6 @@ export default function CreateOrderPage() {
               </AnimatedCard>
             </FadeIn>
 
-            {/* Lalamove Delivery Details */}
-            <AnimatePresence>
-              {form.deliveryType === 'lalamove' && (
-                <motion.div
-                  initial={{ opacity: 0, height: 0 }}
-                  animate={{ opacity: 1, height: 'auto' }}
-                  exit={{ opacity: 0, height: 0 }}
-                  transition={{ duration: 0.3 }}
-                >
-                  <AnimatedCard>
-                    <div className="space-y-6">
-                      {/* Section Header */}
-                      <h2 className="text-base font-semibold flex items-center gap-2">
-                        <Bike className="h-4 w-4 text-rose-500" />
-                        Lalamove Delivery Details
-                      </h2>
-
-                      {/* A. Sender Address Details (Pick Up Location) */}
-                      <div className="space-y-4">
-                        <h3 className="text-sm font-medium flex items-center gap-2 text-muted-foreground">
-                          <Bike className="h-3.5 w-3.5 text-rose-500" />
-                          Pick Up Location
-                        </h3>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                          <div className="space-y-2">
-                            <Label htmlFor="sender-name">Sender Name</Label>
-                            <Input
-                              id="sender-name"
-                              placeholder="Enter sender name..."
-                              value={lalaSenderName}
-                              onChange={(e) => setLalaSenderName(e.target.value)}
-                            />
-                          </div>
-                          <div className="space-y-2">
-                            <Label htmlFor="sender-phone">Sender Phone</Label>
-                            <Input
-                              id="sender-phone"
-                              placeholder="Enter sender phone..."
-                              value={lalaSenderPhone}
-                              onChange={(e) => setLalaSenderPhone(e.target.value)}
-                            />
-                          </div>
-                          <div className="space-y-2 sm:col-span-2">
-                            <Label htmlFor="sender-address">Pick Up Address</Label>
-                            <Input
-                              id="sender-address"
-                              placeholder="Enter pick-up address..."
-                              value={lalaSenderAddress}
-                              onChange={(e) => setLalaSenderAddress(e.target.value)}
-                            />
-                          </div>
-                        </div>
-                      </div>
-
-                      <Separator />
-
-                      {/* B. Drop Off Location */}
-                      <div className="space-y-4">
-                        <h3 className="text-sm font-medium flex items-center gap-2 text-muted-foreground">
-                          <MapPin className="h-3.5 w-3.5 text-rose-500" />
-                          Drop Off Location
-                        </h3>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                          <div className="space-y-2">
-                            <Label htmlFor="dropoff-name">Recipient Name</Label>
-                            <Input
-                              id="dropoff-name"
-                              placeholder="Enter recipient name..."
-                              value={lalaDropoffName}
-                              onChange={(e) => setLalaDropoffName(e.target.value)}
-                            />
-                          </div>
-                          <div className="space-y-2">
-                            <Label htmlFor="dropoff-phone">Recipient Phone</Label>
-                            <Input
-                              id="dropoff-phone"
-                              placeholder="Enter recipient phone..."
-                              value={lalaDropoffPhone}
-                              onChange={(e) => setLalaDropoffPhone(e.target.value)}
-                            />
-                          </div>
-                          <div className="space-y-2 sm:col-span-2">
-                            <Label htmlFor="dropoff-address">Drop-off Address</Label>
-                            <Input
-                              id="dropoff-address"
-                              placeholder="Enter drop-off address..."
-                              value={lalaDropoffAddress}
-                              onChange={(e) => setLalaDropoffAddress(e.target.value)}
-                            />
-                          </div>
-                        </div>
-                      </div>
-
-                      <Separator />
-
-                      {/* C. Vehicle Type (Combobox) */}
-                      <div className="space-y-2">
-                        <Label>Vehicle Type</Label>
-                        <div className="relative" data-vehicle-combobox>
-                          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                          <Input
-                            placeholder="Search vehicle type..."
-                            className="pl-9 pr-8"
-                            value={selectedVehicle ? `${selectedVehicle.icon} ${selectedVehicle.label}` : vehicleSearch}
-                            onChange={(e) => {
-                              setVehicleSearch(e.target.value);
-                              setLalaVehicleType('');
-                              setShowVehicleDropdown(true);
-                            }}
-                            onFocus={() => setShowVehicleDropdown(true)}
-                          />
-                          {lalaVehicleType && (
-                            <button
-                              className="absolute right-2 top-1/2 -translate-y-1/2 flex h-6 w-6 items-center justify-center rounded-full hover:bg-muted transition-colors"
-                              onClick={() => {
-                                setLalaVehicleType('');
-                                setVehicleSearch('');
-                              }}
-                            >
-                              <span className="text-muted-foreground text-xs">✕</span>
-                            </button>
-                          )}
-
-                          {/* Vehicle dropdown */}
-                          {showVehicleDropdown && !lalaVehicleType && (
-                            <div className="absolute z-50 top-full mt-1 left-0 right-0 max-h-64 overflow-y-auto rounded-lg border bg-popover shadow-lg">
-                              {filteredVehicles.length === 0 ? (
-                                <div className="p-4 text-center text-sm text-muted-foreground">
-                                  No vehicles found
-                                </div>
-                              ) : (
-                                filteredVehicles.map((vehicle) => (
-                                  <button
-                                    key={vehicle.value}
-                                    className="flex w-full items-center gap-3 px-3 py-2.5 text-left hover:bg-muted/50 transition-colors border-b border-border/50 last:border-0"
-                                    onClick={() => {
-                                      setLalaVehicleType(vehicle.value);
-                                      setVehicleSearch(vehicle.label);
-                                      setShowVehicleDropdown(false);
-                                    }}
-                                  >
-                                    <span className="text-lg">{vehicle.icon}</span>
-                                    <div className="flex-1 min-w-0">
-                                      <p className="text-sm font-medium">{vehicle.label}</p>
-                                    </div>
-                                    <div className="text-right shrink-0">
-                                      <p className="text-sm font-semibold tabular-nums">${vehicle.basePrice}</p>
-                                      <p className="text-xs text-muted-foreground">base</p>
-                                    </div>
-                                  </button>
-                                ))
-                              )}
-                            </div>
-                          )}
-                        </div>
-                      </div>
-
-                      {/* D. Service Type (Combobox) */}
-                      <div className="space-y-2">
-                        <Label>Service Type</Label>
-                        <div className="relative" data-service-combobox>
-                          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                          <Input
-                            placeholder="Search service type..."
-                            className="pl-9 pr-8"
-                            value={selectedService ? selectedService.label : serviceSearch}
-                            onChange={(e) => {
-                              setServiceSearch(e.target.value);
-                              setShowServiceDropdown(true);
-                            }}
-                            onFocus={() => setShowServiceDropdown(true)}
-                          />
-
-                          {/* Service dropdown */}
-                          {showServiceDropdown && (
-                            <div className="absolute z-50 top-full mt-1 left-0 right-0 max-h-64 overflow-y-auto rounded-lg border bg-popover shadow-lg">
-                              {filteredServices.length === 0 ? (
-                                <div className="p-4 text-center text-sm text-muted-foreground">
-                                  No services found
-                                </div>
-                              ) : (
-                                filteredServices.map((service) => (
-                                  <button
-                                    key={service.value}
-                                    className={`flex w-full items-center gap-3 px-3 py-2.5 text-left hover:bg-muted/50 transition-colors border-b border-border/50 last:border-0 ${lalaServiceType === service.value ? 'bg-muted/30' : ''}`}
-                                    onClick={() => {
-                                      setLalaServiceType(service.value);
-                                      setServiceSearch(service.label);
-                                      setShowServiceDropdown(false);
-                                    }}
-                                  >
-                                    <div className="flex-1 min-w-0">
-                                      <p className="text-sm font-medium">{service.label}</p>
-                                      <p className="text-xs text-muted-foreground">{service.desc}</p>
-                                    </div>
-                                    <div className="flex items-center gap-2 shrink-0">
-                                      <Badge variant="outline" className="text-xs tabular-nums">
-                                        ×{service.multiplier}
-                                      </Badge>
-                                      {lalaServiceType === service.value && (
-                                        <Check className="h-4 w-4 text-rose-500" />
-                                      )}
-                                    </div>
-                                  </button>
-                                ))
-                              )}
-                            </div>
-                          )}
-                        </div>
-                      </div>
-
-                      {/* E. Additional Services (Checkbox cards) */}
-                      <div className="space-y-3">
-                        <Label>Additional Services</Label>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                          {/* Buy for me */}
-                          <button
-                            type="button"
-                            onClick={() => setLalaBuyForMe(!lalaBuyForMe)}
-                            className={`flex items-start gap-3 rounded-lg border p-3 text-left transition-colors ${
-                              lalaBuyForMe
-                                ? 'border-rose-300 bg-rose-50 dark:border-rose-800 dark:bg-rose-950/30'
-                                : 'border-border hover:border-muted-foreground/30'
-                            }`}
-                          >
-                            <div className={`flex h-5 w-5 shrink-0 items-center justify-center rounded border mt-0.5 transition-colors ${
-                              lalaBuyForMe
-                                ? 'border-rose-500 bg-rose-500 text-white'
-                                : 'border-muted-foreground/30'
-                            }`}>
-                              {lalaBuyForMe && <Check className="h-3 w-3" />}
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-center justify-between gap-2">
-                                <p className="text-sm font-medium">Buy for me</p>
-                                <Badge variant="outline" className="text-xs tabular-nums shrink-0">+${BUY_FOR_ME_FEE}</Badge>
-                              </div>
-                              <p className="text-xs text-muted-foreground mt-0.5">
-                                Driver will purchase and pick up items for you
-                              </p>
-                            </div>
-                          </button>
-
-                          {/* Extra waiting time */}
-                          <button
-                            type="button"
-                            onClick={() => setLalaExtraWaiting(!lalaExtraWaiting)}
-                            className={`flex items-start gap-3 rounded-lg border p-3 text-left transition-colors ${
-                              lalaExtraWaiting
-                                ? 'border-rose-300 bg-rose-50 dark:border-rose-800 dark:bg-rose-950/30'
-                                : 'border-border hover:border-muted-foreground/30'
-                            }`}
-                          >
-                            <div className={`flex h-5 w-5 shrink-0 items-center justify-center rounded border mt-0.5 transition-colors ${
-                              lalaExtraWaiting
-                                ? 'border-rose-500 bg-rose-500 text-white'
-                                : 'border-muted-foreground/30'
-                            }`}>
-                              {lalaExtraWaiting && <Check className="h-3 w-3" />}
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-center justify-between gap-2">
-                                <p className="text-sm font-medium">Extra waiting time</p>
-                                <Badge variant="outline" className="text-xs tabular-nums shrink-0">+${EXTRA_WAITING_FEE}</Badge>
-                              </div>
-                              <p className="text-xs text-muted-foreground mt-0.5">
-                                Queuing service — driver will wait for you at the location
-                              </p>
-                            </div>
-                          </button>
-                        </div>
-                      </div>
-
-                      {/* F. Delivery Fee Preview */}
-                      {lalaVehicleType && (
-                        <div className="rounded-lg border bg-muted/30 p-3 space-y-2">
-                          <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Delivery Fee Breakdown</p>
-                          <div className="space-y-1.5">
-                            <div className="flex justify-between text-sm">
-                              <span className="text-muted-foreground">Base ({selectedVehicle?.icon} {selectedVehicle?.label})</span>
-                              <span className="tabular-nums">${selectedVehicle?.basePrice}</span>
-                            </div>
-                            <div className="flex justify-between text-sm">
-                              <span className="text-muted-foreground">Service ({selectedService?.label})</span>
-                              <Badge variant="outline" className="text-xs tabular-nums">
-                                ×{selectedService?.multiplier ?? 1}
-                              </Badge>
-                            </div>
-                            {(lalaBuyForMe || lalaExtraWaiting) && (
-                              <div className="flex justify-between text-sm">
-                                <span className="text-muted-foreground">Add-ons</span>
-                                <span className="tabular-nums text-xs">
-                                  {lalaBuyForMe && 'Buy for me'}
-                                  {lalaBuyForMe && lalaExtraWaiting && ' + '}
-                                  {lalaExtraWaiting && 'Extra waiting'}
-                                </span>
-                              </div>
-                            )}
-                          </div>
-                          <Separator />
-                          <div className="flex justify-between font-semibold">
-                            <span>Delivery Fee</span>
-                            <span className="tabular-nums text-rose-600 dark:text-rose-400">
-                              ${lalamoveDeliveryFee.toFixed(2)}
-                            </span>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  </AnimatedCard>
-                </motion.div>
-              )}
-            </AnimatePresence>
-
             {/* Order Items */}
             <FadeIn delay={0.1}>
               <AnimatedCard>
@@ -1233,21 +820,12 @@ export default function CreateOrderPage() {
                         </span>
                         <span className="tabular-nums">${tax.toFixed(2)}</span>
                       </div>
-                      {form.deliveryType === 'truck' ? (
-                        <div className="flex justify-between text-sm">
-                          <span className="text-muted-foreground">Shipping</span>
-                          <span className="tabular-nums text-green-600 dark:text-green-400 font-medium">
-                            Free
-                          </span>
-                        </div>
-                      ) : (
-                        <div className="flex justify-between text-sm">
-                          <span className="text-muted-foreground">Lalamove Delivery</span>
-                          <span className="tabular-nums text-rose-600 dark:text-rose-400 font-medium">
-                            ${lalamoveDeliveryFee.toFixed(2)}
-                          </span>
-                        </div>
-                      )}
+                      <div className="flex justify-between text-sm">
+                        <span className="text-muted-foreground">Shipping</span>
+                        <span className="tabular-nums text-green-600 dark:text-green-400 font-medium">
+                          Free
+                        </span>
+                      </div>
                       <Separator />
                       <div className="flex justify-between font-semibold text-lg">
                         <span>Total</span>
