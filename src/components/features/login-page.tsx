@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Button } from '@/components/ui/button';
-import { Package, Loader2, Mail, Lock, AlertCircle } from 'lucide-react';
+import { Package, Loader2, Mail, Lock, AlertCircle, Phone } from 'lucide-react';
 
 const fadeInUp = {
   initial: { opacity: 0, y: 20 },
@@ -208,11 +208,11 @@ export default function LoginPage() {
                 </div>
               </motion.div>
 
-              {/* Remember me + Forgot password */}
+              {/* Remember me */}
               <motion.div
                 variants={fadeInUp}
                 transition={{ duration: 0.35 }}
-                className="flex items-center justify-between"
+                className="flex items-center"
               >
                 <div className="flex items-center gap-2">
                   <Checkbox
@@ -228,13 +228,6 @@ export default function LoginPage() {
                     Remember me
                   </Label>
                 </div>
-                <button
-                  type="button"
-                  className="text-sm font-medium text-primary transition-colors hover:text-primary/80"
-                  disabled={isLoading}
-                >
-                  Forgot password?
-                </button>
               </motion.div>
 
               {/* Login button */}
@@ -259,54 +252,29 @@ export default function LoginPage() {
                 </Button>
               </motion.div>
             </motion.form>
-
-            {/* Divider */}
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.6, duration: 0.4 }}
-              className="my-8 flex items-center gap-3"
-            >
-              <div className="h-px flex-1 bg-border" />
-              <span className="text-xs text-muted-foreground">or continue with</span>
-              <div className="h-px flex-1 bg-border" />
-            </motion.div>
-
-            {/* Social login placeholders */}
-            <motion.div
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.7, duration: 0.4 }}
-              className="flex gap-3"
-            >
-              <Button
-                type="button"
-                variant="outline"
-                className="h-11 flex-1 text-sm font-medium"
-                disabled={isLoading}
-              >
-                Google
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                className="h-11 flex-1 text-sm font-medium"
-                disabled={isLoading}
-              >
-                Microsoft
-              </Button>
-            </motion.div>
           </motion.div>
 
-          {/* Copyright footer */}
-          <motion.p
+          {/* Contact & Copyright footer */}
+          <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.9, duration: 0.4 }}
-            className="mt-auto pb-6 pt-10 text-center text-xs text-muted-foreground/70"
+            className="mt-auto pb-6 pt-10 space-y-3 text-center"
           >
-            &copy; {new Date().getFullYear()} HyOps. All rights reserved.
-          </motion.p>
+            <div className="flex items-center justify-center gap-6 text-xs text-muted-foreground">
+              <div className="flex items-center gap-1.5">
+                <Mail className="size-3" />
+                <span>support@hyops.com</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <Phone className="size-3" />
+                <span>+1 (555) 123-4567</span>
+              </div>
+            </div>
+            <p className="text-xs text-muted-foreground/70">
+              &copy; {new Date().getFullYear()} HyOps. All rights reserved.
+            </p>
+          </motion.div>
         </div>
       </main>
     </div>

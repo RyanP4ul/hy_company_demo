@@ -676,3 +676,151 @@ Stage Summary:
 - All "CloudInventory" / "CloudInventory Pro" references renamed to "HyOps" across 10 files
 - Zero compilation errors (0 errors, 5 pre-existing TanStack Table warnings)
 - No remaining "cloudinventory" references in src/ directory
+
+---
+Task ID: SALES-PAGE
+Agent: Main Agent
+Task: Add Sales page with auto-recording transactions, track sales report features
+
+Work Log:
+- Audited entire codebase for existing sales/reporting/inventory features
+- Found: Inventory Recording = fully complete, Sales Report = partial (Reports tab + Dashboard), Auto Sales Recording = missing
+- Added sales transaction mock data to `/src/lib/mock-data.ts`:
+  - Types: PaymentMethod (cash/gcash/visa), SaleStatus (completed/refunded/pending), SalesTransaction interface
+  - 12 mock sales transactions linked to delivered orders with subtotal, tax, total, payment method, timestamps
+- Created `/src/components/features/sales-page.tsx`:
+  - 4 summary cards: Total Revenue, Net Revenue, Total Sales, Avg Order Value
+  - 3 payment breakdown cards: Visa/Stripe, GCash, Cash with revenue share percentages
+  - "Auto-Recording Active" badge in header
+  - TanStack Table with sortable columns: Sale ID, Order, Customer, Items, Total, Payment, Status, Date, Actions
+  - Search (by sale ID, order ID, customer), status filter, payment method filter
+  - Sale detail Sheet (drawer): order info, customer, items, payment method, price breakdown (subtotal + tax + total)
+  - Issue Refund action with confirmation AlertDialog
+  - Refunded sales show strikethrough total in table
+- Registered in navigation:
+  - `/src/stores/navigation.ts`: Added 'sales' to NavItem union and NAV_ITEMS (Main group, CircleDollarSign icon)
+  - `/src/app/page.tsx`: Added lazy import and pageComponents entry
+
+
+Stage Summary:
+- New Sales page in Main sidebar section between Central Inbox and the System group
+- 12 mock sales transactions auto-linked to delivered orders with realistic payment methods
+- Auto-recording feature with payment method breakdown and refund capability
+
+---
+Task ID: 4
+Agent: categories-page-builder
+Task: Build Categories page
+
+Work Log:
+- Created /src/components/features/categories-page.tsx
+- Full CRUD with Combobox for parent category and status
+- Grid/table toggle, search, filter, detail sheet, archive dialog
+- Status summary cards: Total Categories, Active, Inactive, With Parent
+- Grid view: Category cards with colored left border by status, hover actions dropdown
+- Table view: TanStack Table with sortable columns (ID, Name, Parent, Products, Status, Actions)
+- Add/Edit Dialog: name, description, parent category (Combobox), status (Combobox)
+- Archive Dialog: confirmation dialog using AlertDialog
+- Detail Sheet: slide-out drawer with category info, subcategories list, product count, quick actions
+- Empty state when no categories match
+- Listens for 'search:navigate' and 'archive:restored' events
+- Mobile-first responsive design
+
+Stage Summary:
+- Categories page with responsive grid/table views
+- Combobox used for parent category and status fields in forms
+- Zero lint errors (only pre-existing TanStack Table warnings)
+
+---
+Task ID: FLOWCHART-PAGE
+Agent: Main Agent
+Task: Create System Flowchart page with interactive diagrams
+
+Work Log:
+- Created `/src/components/features/flowchart-page.tsx` with 4 tabbed views:
+  1. **Order Lifecycle** — Horizontal step-by-step flow (desktop) / vertical timeline (mobile) showing 7 stages from Order Created → Sale Recorded, with status badges, cancellation branch
+  2. **System Architecture** — 4 grouped module cards (Core, Management, Insights, System) with clickable nodes that navigate to the corresponding page, plus 12 data flow connections displayed as cards
+  3. **Delivery Process Flow** — 5-step vertical timeline (Order triggers delivery → Driver assignment → In-transit tracking → Proof of Delivery → Analytics), plus status cascade diagram showing how delivery changes update orders
+  4. **Tech Stack** — Grid of technology categories (Framework, UI, State, Data, Forms, i18n, Integrations) with badge chips
+- All diagrams use Framer Motion animations (staggered entrance, hover effects)
+- Responsive: horizontal flow on desktop, vertical timeline on mobile
+- Architecture module nodes are clickable — clicking navigates to the corresponding page
+- Registered in navigation system:
+  - `/src/stores/navigation.ts`: Added 'flowchart' to NavItem union and NAV_ITEMS (System group, GitBranch icon)
+  - `/src/app/page.tsx`: Added lazy import and pageComponents entry
+  - `/src/components/dashboard/dashboard-sidebar.tsx`: Added GitBranch icon import and iconMap entry
+  - `/src/lib/i18n/translations.ts`: Added translations (EN: "Flowchart", TL: "Flowchart", ZH: "流程图")
+
+Stage Summary:
+- New Flowchart page in System section of sidebar with GitBranch icon
+- 4 interactive diagram tabs covering the complete HyOps system
+- Clickable architecture nodes for direct navigation to any module
+- Zero compilation errors (0 errors, 9 pre-existing TanStack Table warnings)
+- Dev server compiles successfully
+
+---
+Task ID: FLOWCHART-REWRITE
+Agent: Main Agent
+Task: Replace tabbed flowchart page with real SVG-based flowchart diagrams
+
+Work Log:
+- Completely rewrote `/src/components/features/flowchart-page.tsx` with proper SVG-based flowcharts
+- Created reusable SVG components: ProcessNode, DecisionNode, PillNode, SideNode, ArrowLabel, Annotation
+- Created arrow utility components: VerticalArrow, HorizontalArrow, LArrow, CurvedArrow
+- All arrows use proper SVG `<marker>` arrowheads with multiple colors (gray, red, green, blue)
+- Drop shadow filters on all nodes for depth
+- **Tab 1: Order & Delivery Lifecycle** — Full flowchart with:
+  - START pill → Customer Places Order → Stock Available? (diamond) → Process → Pick & Pack → Create Route → Assign Driver → In Transit → All Stops Done? (diamond) → POD → Record Sale → Update Analytics → END
+  - Right branch: Stock No → Notify & Backorder; Not Delivered → Continue Delivery (loops back)
+  - Left branch: Dashed cancel line accessible from multiple points → Cancel? (diamond) → Move to Archived
+  - Legend showing Process, Decision, Cancel, Clickable symbols
+- **Tab 2: Delivery Dispatch Flow** — Detailed delivery process with:
+  - Order Ready → Create Route → Assign Driver → Driver Picks Up? (diamond) → Navigate to Stop → Stop Delivered? (diamond) → loop or continue → Route Complete? (diamond) → POD → Record Sale → Notify Customer → END
+  - Side panel showing stop sequence (Done/Current/Pending indicators)
+  - Reschedule branch with curved loop-back arrow
+- **Tab 3: System Data Flow** — Module connection diagram with:
+  - 14 module nodes arranged in 6 rows (Inputs → Intake → Core → Dispatch → Outcomes → System)
+  - 14 labeled connection arrows showing data flow direction
+  - Color-coded by module category, clickable to navigate
+
+Stage Summary:
+- Real SVG flowcharts with proper arrows, diamonds, pills, and connecting paths
+- 3 interactive diagram tabs covering the complete HyOps system
+- Clickable nodes navigate to their respective pages
+- Zero compilation errors (0 errors, 9 pre-existing TanStack Table warnings)
+- Dev server compiles successfully
+
+---
+Task ID: TEXT-FLOWCHART
+Agent: Main Agent
+Task: Create comprehensive text-based flowchart covering all pages and actions
+
+Work Log:
+- Completely rewrote flowchart-page.tsx with 3 comprehensive text-based tabs:
+  1. **Process Flow** — 10-section step-by-step flowchart covering the entire HyOps system:
+     - Authentication (Login)
+     - Order Intake (Viber/WeChat/Manual → Central Inbox → Create Order)
+     - Order Management (all filters, dropdown actions, detail sheet, reschedule, cancel, archive)
+     - Inventory Management (products, categories, warehouses — all CRUD actions)
+     - Delivery System (create delivery, route cards, delivery detail sub-page, all stop actions, driver management)
+     - Proof of Delivery & Sale Recording (auto-record, sales page actions)
+     - Insights & Reporting (dashboard KPIs, analytics charts, report tabs)
+     - Cancellation & Archive Branch (7 reasons, archive page actions)
+     - System & Cross-Cutting (users, roles, customers, notifications, audit logs, settings)
+     - Global Features (⌘K search, sidebar, navbar)
+     - Status Cascade Reference (visual step progression)
+  2. **Action Matrix** — All 19 pages listed with every user action:
+     - Each page shows: name, icon, color, complete list of user actions
+     - Action count badge per page
+     - Covers: Dashboard, Central Inbox, Orders, Inventory, Categories, Warehouses, Deliveries, Delivery Detail, Sales, Customers, Drivers, Users, Roles, Analytics, Reports, Notifications, Audit Logs, Archived, Settings
+  3. **Data Map** — All 14 data entities documented:
+     - Entity name, ID pattern, all fields, which pages manage it, valid statuses
+     - Entities: Order, Inventory Product, Delivery Route, Delivery Stop, Sales Transaction, Customer, Driver, User, Role, Category, Warehouse, Inbox Conversation, Notification, Audit Log
+- Uses styled node components, flow arrows, action rows, branch indicators, notes, dividers
+- Color-coded by category (core, process, action, success, danger, info, purple, neutral)
+- Zero compilation errors (0 errors, 9 pre-existing TanStack Table warnings)
+
+Stage Summary:
+- Complete text-based documentation of the entire HyOps system
+- Every page, every action, every data entity documented in one place
+- 3 tabs: Process Flow (narrative), Action Matrix (reference), Data Map (technical)

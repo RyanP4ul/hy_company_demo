@@ -25,6 +25,9 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
   MessageSquare,
+  CircleDollarSign,
+  Tags,
+  Warehouse,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -47,6 +50,9 @@ const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
   Settings,
   Archive,
   MessageSquare,
+  CircleDollarSign,
+  Tags,
+  Warehouse,
 };
 
 interface SidebarProps {

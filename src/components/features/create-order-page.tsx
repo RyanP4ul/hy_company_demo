@@ -30,7 +30,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { OrderStatusStepper, type OrderStatus } from '@/components/shared/order-status-stepper';
+
 import {
   Select,
   SelectContent,
@@ -458,15 +458,7 @@ export default function CreateOrderPage() {
                         </motion.div>
                       )}
                     </div>
-                    <div className="space-y-2 sm:col-span-2">
-                      <Label>Order Status</Label>
-                      <OrderStatusStepper
-                        currentStatus={form.status as OrderStatus}
-                        onChangeStatus={(v) => setForm((f) => ({ ...f, status: v as OrderForm['status'] }))}
-                        interactive={true}
-                        size="sm"
-                      />
-                    </div>
+
                     <div className="space-y-2">
                       <Label htmlFor="order-priority">Priority</Label>
                       <Select

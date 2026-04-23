@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 
-export type ArchivedEntityType = 'inventory' | 'order' | 'delivery' | 'user' | 'driver' | 'customer';
+export type ArchivedEntityType = 'inventory' | 'order' | 'delivery' | 'user' | 'driver' | 'customer' | 'category' | 'warehouse';
 
 export interface ArchivedItem {
   id: string;            // entity id (e.g. SKU-001, ORD-2847)

@@ -918,6 +918,21 @@ export default function OrdersPage() {
                 </SheetHeader>
 
                 <div className="space-y-6 px-4 pb-6">
+                  {/* Order Status - Read Only at Top */}
+                  <div className="space-y-3">
+                    <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
+                      Order Status
+                    </h3>
+                    <OrderStatusStepper
+                      currentStatus={selectedOrder.status as OrderStatus}
+                      onChangeStatus={() => {}}
+                      interactive={false}
+                      size="sm"
+                    />
+                  </div>
+
+                  <Separator />
+
                   {/* Customer Info */}
                   <div className="space-y-3">
                     <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
@@ -1158,21 +1173,6 @@ export default function OrdersPage() {
                   </div>
 
                   <Separator />
-
-                  {/* Order Status Stepper */}
-                  <div className="space-y-3">
-                    <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
-                      Order Status
-                    </h3>
-                    <OrderStatusStepper
-                      currentStatus={selectedOrder.status as OrderStatus}
-                      onChangeStatus={(newStatus) =>
-                        handleStatusChangeFromStepper(newStatus, selectedOrder.id, setData, setSelectedOrder)
-                      }
-                      interactive={true}
-                      size="sm"
-                    />
-                  </div>
                 </div>
               </>
             )}

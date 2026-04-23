@@ -212,18 +212,18 @@ export const deliveryTimeline = [
 ];
 
 export const activityTimeline = [
-  { id: '1', user: 'Alex Johnson', action: 'created order', target: 'ORD-2847', time: '2 min ago', type: 'order' as const },
+  { id: '1', user: 'Ryan Paul Espinola', action: 'created order', target: 'ORD-2847', time: '2 min ago', type: 'order' as const },
   { id: '2', user: 'System', action: 'alert: low stock', target: 'Widget Pro X200', time: '5 min ago', type: 'alert' as const },
   { id: '3', user: 'Maria Garcia', action: 'started delivery', target: 'DEL-1091', time: '30 min ago', type: 'delivery' as const },
   { id: '4', user: 'James Wilson', action: 'completed delivery', target: 'DEL-1092', time: '1 hour ago', type: 'delivery' as const },
-  { id: '5', user: 'Alex Johnson', action: 'updated inventory', target: 'Smart Sensor V3', time: '2 hours ago', type: 'inventory' as const },
+  { id: '5', user: 'Ryan Paul Espinola', action: 'updated inventory', target: 'Smart Sensor V3', time: '2 hours ago', type: 'inventory' as const },
   { id: '6', user: 'System', action: 'new user registered', target: 'Sarah Miller', time: '3 hours ago', type: 'user' as const },
   { id: '7', user: 'David Chen', action: 'accepted delivery', target: 'DEL-1090', time: '4 hours ago', type: 'delivery' as const },
   { id: '8', user: 'System', action: 'payment received', target: 'INV-4520 ($2,450)', time: '5 hours ago', type: 'payment' as const },
 ];
 
 export const users = [
-  { id: 'USR-001', name: 'Alex Johnson', email: 'alex@company.com', role: 'Admin', status: 'active' as const, lastActive: 'Just now', avatar: '' },
+  { id: 'USR-001', name: 'Ryan Paul Espinola', email: 'espinola@company.com', role: 'Admin', status: 'active' as const, lastActive: 'Just now', avatar: '' },
   { id: 'USR-002', name: 'Sarah Miller', email: 'sarah@company.com', role: 'Staff', status: 'active' as const, lastActive: '5 min ago', avatar: '' },
   { id: 'USR-003', name: 'James Wilson', email: 'james@company.com', role: 'Driver', status: 'active' as const, lastActive: '1 hour ago', avatar: '' },
   { id: 'USR-004', name: 'Maria Garcia', email: 'maria@company.com', role: 'Driver', status: 'active' as const, lastActive: '30 min ago', avatar: '' },
@@ -234,8 +234,8 @@ export const users = [
 ];
 
 export const auditLogs = [
-  { id: 'LOG-001', user: 'Alex Johnson', action: 'UPDATE', resource: 'Product', resourceId: 'SKU-002', details: { field: 'price', old: '79.99', new: '89.99' }, timestamp: '2024-01-15 10:30:22', ip: '192.168.1.100' },
-  { id: 'LOG-002', user: 'Alex Johnson', action: 'CREATE', resource: 'Order', resourceId: 'ORD-2847', details: { customer: 'Acme Corp', items: 12, total: '$1,847.99' }, timestamp: '2024-01-15 10:28:15', ip: '192.168.1.100' },
+  { id: 'LOG-001', user: 'Ryan Paul Espinola', action: 'UPDATE', resource: 'Product', resourceId: 'SKU-002', details: { field: 'price', old: '79.99', new: '89.99' }, timestamp: '2024-01-15 10:30:22', ip: '192.168.1.100' },
+  { id: 'LOG-002', user: 'Ryan Paul Espinola', action: 'CREATE', resource: 'Order', resourceId: 'ORD-2847', details: { customer: 'Acme Corp', items: 12, total: '$1,847.99' }, timestamp: '2024-01-15 10:28:15', ip: '192.168.1.100' },
   { id: 'LOG-003', user: 'System', action: 'ALERT', resource: 'Inventory', resourceId: 'SKU-001', details: { alert: 'Low Stock', current: 5, minimum: 10 }, timestamp: '2024-01-15 10:25:00', ip: 'system' },
   { id: 'LOG-004', user: 'Sarah Miller', action: 'UPDATE', resource: 'Delivery', resourceId: 'DEL-1091', details: { field: 'status', old: 'pending', new: 'in_transit' }, timestamp: '2024-01-15 10:00:00', ip: '192.168.1.105' },
   { id: 'LOG-005', user: 'Emily Taylor', action: 'DELETE', resource: 'User', resourceId: 'USR-010', details: { reason: 'Account terminated', user: 'John Doe' }, timestamp: '2024-01-15 09:45:30', ip: '192.168.1.108' },
@@ -305,6 +305,186 @@ export const inventoryStatus = [
   { name: 'In Stock', value: 8, fill: 'var(--color-chart-1)' },
   { name: 'Low Stock', value: 3, fill: 'var(--color-chart-3)' },
   { name: 'Out of Stock', value: 2, fill: 'var(--color-chart-5)' },
+];
+
+// ========================
+// Sales Transactions (auto-recorded from delivered orders)
+// ========================
+
+export type PaymentMethod = 'cash' | 'gcash' | 'visa';
+export type SaleStatus = 'completed' | 'refunded' | 'pending';
+
+export interface SalesTransaction {
+  id: string;
+  orderId: string;
+  customer: string;
+  items: number;
+  subtotal: number;
+  tax: number;
+  total: number;
+  paymentMethod: PaymentMethod;
+  status: SaleStatus;
+  soldAt: string;     // date of sale (when order delivered)
+  recordedAt: string; // when the sale was auto-recorded
+}
+
+export const salesTransactions: SalesTransaction[] = [
+  {
+    id: 'SAL-1001',
+    orderId: 'ORD-2844',
+    customer: 'Metro Supply Co',
+    items: 8,
+    subtotal: 1199.92,
+    tax: 95.99,
+    total: 1295.91,
+    paymentMethod: 'gcash',
+    status: 'completed',
+    soldAt: '2024-01-14',
+    recordedAt: '2024-01-14 16:32',
+  },
+  {
+    id: 'SAL-1000',
+    orderId: 'ORD-2840',
+    customer: 'Nova Enterprises',
+    items: 6,
+    subtotal: 899.94,
+    tax: 71.99,
+    total: 971.93,
+    paymentMethod: 'visa',
+    status: 'completed',
+    soldAt: '2024-01-12',
+    recordedAt: '2024-01-12 11:05',
+  },
+  {
+    id: 'SAL-0999',
+    orderId: 'ORD-2837',
+    customer: 'Zenith Supplies',
+    items: 10,
+    subtotal: 1499.90,
+    tax: 119.99,
+    total: 1619.89,
+    paymentMethod: 'cash',
+    status: 'completed',
+    soldAt: '2024-01-11',
+    recordedAt: '2024-01-11 14:48',
+  },
+  {
+    id: 'SAL-0998',
+    orderId: 'ORD-2835',
+    customer: 'Blue Ocean Ltd',
+    items: 3,
+    subtotal: 449.97,
+    tax: 36.00,
+    total: 485.97,
+    paymentMethod: 'gcash',
+    status: 'refunded',
+    soldAt: '2024-01-10',
+    recordedAt: '2024-01-10 09:22',
+  },
+  {
+    id: 'SAL-0997',
+    orderId: 'ORD-2833',
+    customer: 'Redwood Trading',
+    items: 20,
+    subtotal: 2999.80,
+    tax: 239.98,
+    total: 3239.78,
+    paymentMethod: 'visa',
+    status: 'completed',
+    soldAt: '2024-01-09',
+    recordedAt: '2024-01-09 17:15',
+  },
+  {
+    id: 'SAL-0996',
+    orderId: 'ORD-2830',
+    customer: 'Summit Goods',
+    items: 7,
+    subtotal: 1049.93,
+    tax: 83.99,
+    total: 1133.92,
+    paymentMethod: 'cash',
+    status: 'completed',
+    soldAt: '2024-01-08',
+    recordedAt: '2024-01-08 13:40',
+  },
+  {
+    id: 'SAL-0995',
+    orderId: 'ORD-2828',
+    customer: 'Acme Corp',
+    items: 15,
+    subtotal: 2249.85,
+    tax: 179.99,
+    total: 2429.84,
+    paymentMethod: 'visa',
+    status: 'completed',
+    soldAt: '2024-01-07',
+    recordedAt: '2024-01-07 10:55',
+  },
+  {
+    id: 'SAL-0994',
+    orderId: 'ORD-2826',
+    customer: 'Prime Logistics',
+    items: 4,
+    subtotal: 599.96,
+    tax: 48.00,
+    total: 647.96,
+    paymentMethod: 'gcash',
+    status: 'completed',
+    soldAt: '2024-01-06',
+    recordedAt: '2024-01-06 15:30',
+  },
+  {
+    id: 'SAL-0993',
+    orderId: 'ORD-2824',
+    customer: 'TechStart Inc',
+    items: 11,
+    subtotal: 1649.89,
+    tax: 131.99,
+    total: 1781.88,
+    paymentMethod: 'cash',
+    status: 'completed',
+    soldAt: '2024-01-05',
+    recordedAt: '2024-01-05 12:10',
+  },
+  {
+    id: 'SAL-0992',
+    orderId: 'ORD-2822',
+    customer: 'Global Trade Ltd',
+    items: 25,
+    subtotal: 3749.75,
+    tax: 299.98,
+    total: 4049.73,
+    paymentMethod: 'visa',
+    status: 'completed',
+    soldAt: '2024-01-04',
+    recordedAt: '2024-01-04 09:45',
+  },
+  {
+    id: 'SAL-0991',
+    orderId: 'ORD-2820',
+    customer: 'Metro Supply Co',
+    items: 2,
+    subtotal: 299.98,
+    tax: 24.00,
+    total: 323.98,
+    paymentMethod: 'gcash',
+    status: 'pending',
+    soldAt: '2024-01-03',
+    recordedAt: '2024-01-03 16:20',
+  },
+  {
+    id: 'SAL-0990',
+    orderId: 'ORD-2818',
+    customer: 'Swift Retail',
+    items: 9,
+    subtotal: 1349.91,
+    tax: 107.99,
+    total: 1457.90,
+    paymentMethod: 'cash',
+    status: 'completed',
+    soldAt: '2024-01-02',
+    recordedAt: '2024-01-02 11:35',
+  },
 ];
 
 // ========================
@@ -381,7 +561,7 @@ export const inboxConversations: InboxConversation[] = [
     customerTotalSpent: 52300,
     customerSince: '2023-05-22',
     status: 'open',
-    assignedTo: 'Alex Johnson',
+    assignedTo: 'Ryan Paul Espinola',
     lastMessage: '我们的订单已经到港口了吗？',
     lastMessageTime: '15 min ago',
     unreadCount: 2,
@@ -572,4 +752,63 @@ export const inboxConversations: InboxConversation[] = [
       { id: 'MSG-051', conversationId: 'CONV-010', sender: 'customer', content: 'Can I visit your warehouse?', timestamp: '2024-01-15 06:35 AM', type: 'text' },
     ],
   },
+];
+
+// ========================
+// Categories (for inventory classification)
+// ========================
+
+export type CategoryStatus = 'active' | 'inactive';
+
+export interface Category {
+  id: string;
+  name: string;
+  description: string;
+  parentCategory: string | null;
+  productCount: number;
+  status: CategoryStatus;
+  createdAt: string;
+}
+
+export const categories: Category[] = [
+  { id: 'CAT-001', name: 'Electronics', description: 'Electronic devices, gadgets, and components', parentCategory: null, productCount: 11, status: 'active', createdAt: '2023-01-15' },
+  { id: 'CAT-002', name: 'Accessories', description: 'Phone cases, chargers, adapters, and peripherals', parentCategory: 'Electronics', productCount: 3, status: 'active', createdAt: '2023-02-10' },
+  { id: 'CAT-003', name: 'Home', description: 'Home appliances, furniture, and decor', parentCategory: null, productCount: 1, status: 'active', createdAt: '2023-03-05' },
+  { id: 'CAT-004', name: 'Food & Beverage', description: 'Consumable goods, snacks, and drinks', parentCategory: null, productCount: 0, status: 'active', createdAt: '2023-04-20' },
+  { id: 'CAT-005', name: 'Clothing', description: 'Apparel, footwear, and fashion items', parentCategory: null, productCount: 0, status: 'active', createdAt: '2023-05-12' },
+  { id: 'CAT-006', name: 'Audio', description: 'Headphones, speakers, and microphones', parentCategory: 'Electronics', productCount: 4, status: 'active', createdAt: '2023-06-08' },
+  { id: 'CAT-007', name: 'Computer Parts', description: 'Keyboards, mice, monitors, and internal components', parentCategory: 'Electronics', productCount: 5, status: 'active', createdAt: '2023-07-22' },
+  { id: 'CAT-008', name: 'Mobile', description: 'Smartphones, tablets, and mobile accessories', parentCategory: 'Electronics', productCount: 2, status: 'active', createdAt: '2023-08-15' },
+  { id: 'CAT-009', name: 'Sports & Outdoors', description: 'Exercise equipment and outdoor gear', parentCategory: null, productCount: 0, status: 'inactive', createdAt: '2023-09-01' },
+  { id: 'CAT-010', name: 'Office Supplies', description: 'Stationery, paper, and desk accessories', parentCategory: null, productCount: 0, status: 'active', createdAt: '2023-10-18' },
+];
+
+// ========================
+// Warehouses (storage locations)
+// ========================
+
+export type WarehouseStatus = 'active' | 'inactive' | 'maintenance';
+export type WarehouseType = 'main' | 'regional' | 'fulfillment' | 'cold_storage';
+
+export interface Warehouse {
+  id: string;
+  name: string;
+  address: string;
+  city: string;
+  type: WarehouseType;
+  status: WarehouseStatus;
+  capacity: number;
+  utilized: number;
+  manager: string;
+  contactPhone: string;
+  createdAt: string;
+}
+
+export const warehouses: Warehouse[] = [
+  { id: 'WH-001', name: 'Warehouse A', address: '123 Commerce Blvd, Suite 100', city: 'New York', type: 'main', status: 'active', capacity: 5000, utilized: 3450, manager: 'James Wilson', contactPhone: '+1 (555) 123-4567', createdAt: '2022-06-15' },
+  { id: 'WH-002', name: 'Warehouse B', address: '456 Industrial Park Dr', city: 'Los Angeles', type: 'regional', status: 'active', capacity: 3500, utilized: 2180, manager: 'Maria Garcia', contactPhone: '+1 (555) 234-5678', createdAt: '2022-09-20' },
+  { id: 'WH-003', name: 'Warehouse C', address: '789 Logistics Way', city: 'Chicago', type: 'fulfillment', status: 'active', capacity: 2500, utilized: 1450, manager: 'David Chen', contactPhone: '+1 (555) 345-6789', createdAt: '2023-01-10' },
+  { id: 'WH-004', name: 'Cold Storage Unit D', address: '321 Freeze Point Rd', city: 'Houston', type: 'cold_storage', status: 'active', capacity: 1200, utilized: 890, manager: 'Sarah Kim', contactPhone: '+1 (555) 456-7890', createdAt: '2023-04-05' },
+  { id: 'WH-005', name: 'Warehouse E', address: '654 Harbor View Ln', city: 'San Francisco', type: 'regional', status: 'maintenance', capacity: 2000, utilized: 0, manager: 'Robert Martinez', contactPhone: '+1 (555) 567-8901', createdAt: '2023-07-18' },
+  { id: 'WH-006', name: 'Warehouse F', address: '987 Distribution Ave', city: 'Seattle', type: 'fulfillment', status: 'inactive', capacity: 1800, utilized: 0, manager: 'Emily Taylor', contactPhone: '+1 (555) 678-9012', createdAt: '2023-11-01' },
 ];

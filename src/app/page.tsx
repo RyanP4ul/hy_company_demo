@@ -26,6 +26,9 @@ const SettingsPage = lazy(() => import('@/components/features/settings-page'));
 const CustomersPage = lazy(() => import('@/components/features/customers-page'));
 const ArchivedPage = lazy(() => import('@/components/features/archived-page'));
 const CentralInboxPage = lazy(() => import('@/components/features/central-inbox-page'));
+const SalesPage = lazy(() => import('@/components/features/sales-page'));
+const CategoriesPage = lazy(() => import('@/components/features/categories-page'));
+const WarehousesPage = lazy(() => import('@/components/features/warehouses-page'));
 const CreateOrderPage = lazy(() => import('@/components/features/create-order-page'));
 const DeliveryDetailPage = lazy(() => import('@/components/features/delivery-detail-page'));
 const CreateDeliveryPage = lazy(() => import('@/components/features/create-delivery-page'));
@@ -47,6 +50,9 @@ const pageComponents: Record<string, React.LazyExoticComponent<React.ComponentTy
   settings: SettingsPage,
   archived: ArchivedPage,
   'central-inbox': CentralInboxPage,
+  sales: SalesPage,
+  categories: CategoriesPage,
+  warehouses: WarehousesPage,
 };
 
 // Sub-page components (no sidebar highlight)

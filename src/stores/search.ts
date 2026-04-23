@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 
-export type SearchEntityType = 'inventory' | 'order' | 'delivery' | 'user' | 'driver' | 'customer';
+export type SearchEntityType = 'inventory' | 'order' | 'delivery' | 'user' | 'driver' | 'customer' | 'category' | 'warehouse';
 
 interface SearchTarget {
   type: SearchEntityType;
