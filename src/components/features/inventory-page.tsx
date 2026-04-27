@@ -23,13 +23,13 @@ import {
   Archive,
   ChevronLeft,
   ChevronRight,
-  DollarSign,
   Warehouse,
   Layers,
   Tag,
   Calendar,
   BarChart3,
 } from 'lucide-react';
+import { PesoSign } from '@/components/icons/peso-sign';
 import { toast } from 'sonner';
 
 import { inventoryItems as initialInventory } from '@/lib/mock-data';
@@ -351,7 +351,7 @@ export default function InventoryPage() {
         ),
         cell: ({ getValue }) => (
           <span className="tabular-nums">
-            ${(getValue() as number).toFixed(2)}
+            ₱${(getValue() as number).toFixed(2)}
           </span>
         ),
       },
@@ -788,7 +788,7 @@ export default function InventoryPage() {
               </div>
               <div className="grid grid-cols-3 gap-4">
                 <div className="grid gap-2">
-                  <Label htmlFor="product-price">Price ($)</Label>
+                  <Label htmlFor="product-price">Price (₱)</Label>
                   <Input
                     id="product-price"
                     type="number"
@@ -882,10 +882,10 @@ export default function InventoryPage() {
                   <div className="grid grid-cols-2 gap-4">
                     <div className="rounded-lg border bg-muted/30 p-4">
                       <div className="flex items-center gap-2 text-muted-foreground mb-1">
-                        <DollarSign className="h-3.5 w-3.5" />
+                        <PesoSign className="h-3.5 w-3.5" />
                         <span className="text-xs font-medium">Price</span>
                       </div>
-                      <p className="text-xl font-bold">${detailItem.price.toFixed(2)}</p>
+                      <p className="text-xl font-bold">₱${detailItem.price.toFixed(2)}</p>
                     </div>
                     <div className="rounded-lg border bg-muted/30 p-4">
                       <div className="flex items-center gap-2 text-muted-foreground mb-1">

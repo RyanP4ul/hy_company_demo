@@ -17,7 +17,6 @@ import {
   Legend,
 } from 'recharts';
 import {
-  DollarSign,
   ShoppingCart,
   Package,
   Truck,
@@ -27,6 +26,7 @@ import {
   UserPlus,
   CreditCard,
 } from 'lucide-react';
+import { PesoSign } from '@/components/icons/peso-sign';
 import {
   Card,
   CardContent,
@@ -114,7 +114,7 @@ function RevenueTooltip({
       {payload.map((entry) => (
         <p key={entry.name} className="text-sm font-semibold" style={{ color: entry.color }}>
           {entry.name === 'revenue'
-            ? `$${entry.value.toLocaleString()}`
+            ? `₱${entry.value.toLocaleString()}`
             : `${entry.value} orders`}
         </p>
       ))}
@@ -146,7 +146,7 @@ export default function DashboardPage() {
               value={kpiData.totalRevenue.value}
               change={kpiData.totalRevenue.change}
               trend={kpiData.totalRevenue.trend}
-              icon={<DollarSign className="size-5" />}
+              icon={<PesoSign className="size-5" />}
               delay={0}
             />
           </StaggerItem>
@@ -217,7 +217,7 @@ export default function DashboardPage() {
                     className="text-muted-foreground"
                     axisLine={false}
                     tickLine={false}
-                    tickFormatter={(v: number) => `$${(v / 1000).toFixed(0)}k`}
+                    tickFormatter={(v: number) => `₱${(v / 1000).toFixed(0)}k`}
                   />
                   <Tooltip content={<RevenueTooltip />} />
                   <Area
@@ -299,7 +299,7 @@ export default function DashboardPage() {
                 <BarChart data={dailySales} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" className="stroke-border" vertical={false} />
                   <XAxis dataKey="day" tick={{ fontSize: 12 }} className="text-muted-foreground" axisLine={false} tickLine={false} />
-                  <YAxis tick={{ fontSize: 12 }} className="text-muted-foreground" axisLine={false} tickLine={false} tickFormatter={(v: number) => `$${(v / 1000).toFixed(0)}k`} />
+                  <YAxis tick={{ fontSize: 12 }} className="text-muted-foreground" axisLine={false} tickLine={false} tickFormatter={(v: number) => `₱${(v / 1000).toFixed(0)}k`} />
                   <Tooltip 
                     contentStyle={{
                       borderRadius: '8px',
@@ -308,7 +308,7 @@ export default function DashboardPage() {
                       fontSize: '13px',
                       boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
                     }}
-                    formatter={(value: number) => [`$${value.toLocaleString()}`, 'Sales']}
+                    formatter={(value: number) => [`₱${value.toLocaleString()}`, 'Sales']}
                   />
                   <Bar dataKey="sales" fill="var(--color-chart-1)" radius={[4, 4, 0, 0]} animationDuration={1000} />
                 </BarChart>

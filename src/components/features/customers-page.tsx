@@ -90,11 +90,11 @@ import {
   Building2,
   MapPin,
   ShoppingCart,
-  DollarSign,
   Calendar,
   UserX,
   UserCheck,
 } from 'lucide-react';
+import { PesoSign } from '@/components/icons/peso-sign';
 
 type Customer = (typeof initialCustomers)[number];
 
@@ -122,7 +122,7 @@ function getInitials(name: string): string {
 }
 
 function formatCurrency(value: number): string {
-  return `$${value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  return `₱${value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
 export default function CustomersPage() {
@@ -596,7 +596,7 @@ export default function CustomersPage() {
                   <p className="mt-1 text-2xl font-bold tabular-nums">{formatCurrency(totalRevenue)}</p>
                 </div>
                 <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-amber-500/10">
-                  <DollarSign className="size-5 text-amber-600 dark:text-amber-400" />
+                  <PesoSign className="size-5 text-amber-600 dark:text-amber-400" />
                 </div>
               </div>
             </motion.div>

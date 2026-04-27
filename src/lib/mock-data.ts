@@ -3,7 +3,7 @@
 // ========================
 
 export const kpiData = {
-  totalRevenue: { value: '$284,520', change: '+12.5%', trend: 'up' as const },
+  totalRevenue: { value: '₱284,520', change: '+12.5%', trend: 'up' as const },
   totalOrders: { value: '1,847', change: '+8.2%', trend: 'up' as const },
   totalProducts: { value: '3,429', change: '-2.1%', trend: 'down' as const },
   deliveryRate: { value: '97.8%', change: '+1.3%', trend: 'up' as const },
@@ -51,16 +51,16 @@ export const inventoryItems = [
 ];
 
 export const orders = [
-  { id: 'ORD-2847', customer: 'Acme Corp', items: 12, total: 1847.99, status: 'pending' as const, date: '2024-01-15', priority: 'high' as const, deliveryType: 'truck' as const },
-  { id: 'ORD-2846', customer: 'TechStart Inc', items: 5, total: 749.95, status: 'processing' as const, date: '2024-01-15', priority: 'medium' as const, deliveryType: 'lalamove' as const },
-  { id: 'ORD-2845', customer: 'Global Trade Ltd', items: 34, total: 5199.66, status: 'shipped' as const, date: '2024-01-14', priority: 'high' as const, deliveryType: 'truck' as const },
-  { id: 'ORD-2844', customer: 'Metro Supply Co', items: 8, total: 1199.92, status: 'delivered' as const, date: '2024-01-14', priority: 'low' as const, deliveryType: 'lalamove' as const },
-  { id: 'ORD-2843', customer: 'Swift Retail', items: 2, total: 299.98, status: 'cancelled' as const, date: '2024-01-13', priority: 'low' as const, deliveryType: 'truck' as const },
-  { id: 'ORD-2842', customer: 'Digital Hub', items: 15, total: 2249.85, status: 'processing' as const, date: '2024-01-13', priority: 'medium' as const, deliveryType: 'truck' as const },
-  { id: 'ORD-2841', customer: 'Prime Logistics', items: 22, total: 3299.78, status: 'shipped' as const, date: '2024-01-12', priority: 'high' as const, deliveryType: 'truck' as const },
-  { id: 'ORD-2840', customer: 'Nova Enterprises', items: 6, total: 899.94, status: 'delivered' as const, date: '2024-01-12', priority: 'low' as const, deliveryType: 'lalamove' as const },
-  { id: 'ORD-2839', customer: 'Atlas Trading', items: 18, total: 2699.82, status: 'pending' as const, date: '2024-01-11', priority: 'medium' as const, deliveryType: 'truck' as const },
-  { id: 'ORD-2838', customer: 'Pinnacle Goods', items: 9, total: 1349.91, status: 'processing' as const, date: '2024-01-11', priority: 'high' as const, deliveryType: 'lalamove' as const },
+  { id: 'ORD-2847', customer: 'Acme Corp', items: 12, total: 1847.99, status: 'pending' as const, date: '2024-01-15', priority: 'high' as const, deliveryType: 'truck' as const, paymentStatus: 'unpaid' as const },
+  { id: 'ORD-2846', customer: 'TechStart Inc', items: 5, total: 749.95, status: 'processing' as const, date: '2024-01-15', priority: 'medium' as const, deliveryType: 'lalamove' as const, paymentStatus: 'unpaid' as const },
+  { id: 'ORD-2845', customer: 'Global Trade Ltd', items: 34, total: 5199.66, status: 'shipped' as const, date: '2024-01-14', priority: 'high' as const, deliveryType: 'truck' as const, paymentStatus: 'paid' as const },
+  { id: 'ORD-2844', customer: 'Metro Supply Co', items: 8, total: 1199.92, status: 'delivered' as const, date: '2024-01-14', priority: 'low' as const, deliveryType: 'lalamove' as const, paymentStatus: 'paid' as const },
+  { id: 'ORD-2843', customer: 'Swift Retail', items: 2, total: 299.98, status: 'cancelled' as const, date: '2024-01-13', priority: 'low' as const, deliveryType: 'truck' as const, paymentStatus: 'unpaid' as const },
+  { id: 'ORD-2842', customer: 'Digital Hub', items: 15, total: 2249.85, status: 'processing' as const, date: '2024-01-13', priority: 'medium' as const, deliveryType: 'truck' as const, paymentStatus: 'paid' as const },
+  { id: 'ORD-2841', customer: 'Prime Logistics', items: 22, total: 3299.78, status: 'shipped' as const, date: '2024-01-12', priority: 'high' as const, deliveryType: 'truck' as const, paymentStatus: 'paid' as const },
+  { id: 'ORD-2840', customer: 'Nova Enterprises', items: 6, total: 899.94, status: 'delivered' as const, date: '2024-01-12', priority: 'low' as const, deliveryType: 'lalamove' as const, paymentStatus: 'paid' as const },
+  { id: 'ORD-2839', customer: 'Atlas Trading', items: 18, total: 2699.82, status: 'pending' as const, date: '2024-01-11', priority: 'medium' as const, deliveryType: 'truck' as const, paymentStatus: 'unpaid' as const },
+  { id: 'ORD-2838', customer: 'Pinnacle Goods', items: 9, total: 1349.91, status: 'processing' as const, date: '2024-01-11', priority: 'high' as const, deliveryType: 'lalamove' as const, paymentStatus: 'unpaid' as const },
 ];
 
 export type StopStatus = 'pending' | 'in_transit' | 'delivered';
@@ -219,7 +219,7 @@ export const activityTimeline = [
   { id: '5', user: 'Ryan Paul Espinola', action: 'updated inventory', target: 'Smart Sensor V3', time: '2 hours ago', type: 'inventory' as const },
   { id: '6', user: 'System', action: 'new user registered', target: 'Sarah Miller', time: '3 hours ago', type: 'user' as const },
   { id: '7', user: 'David Chen', action: 'accepted delivery', target: 'DEL-1090', time: '4 hours ago', type: 'delivery' as const },
-  { id: '8', user: 'System', action: 'payment received', target: 'INV-4520 ($2,450)', time: '5 hours ago', type: 'payment' as const },
+  { id: '8', user: 'System', action: 'payment received', target: 'INV-4520 (₱2,450)', time: '5 hours ago', type: 'payment' as const },
 ];
 
 export const users = [
@@ -235,7 +235,7 @@ export const users = [
 
 export const auditLogs = [
   { id: 'LOG-001', user: 'Ryan Paul Espinola', action: 'UPDATE', resource: 'Product', resourceId: 'SKU-002', details: { field: 'price', old: '79.99', new: '89.99' }, timestamp: '2024-01-15 10:30:22', ip: '192.168.1.100' },
-  { id: 'LOG-002', user: 'Ryan Paul Espinola', action: 'CREATE', resource: 'Order', resourceId: 'ORD-2847', details: { customer: 'Acme Corp', items: 12, total: '$1,847.99' }, timestamp: '2024-01-15 10:28:15', ip: '192.168.1.100' },
+  { id: 'LOG-002', user: 'Ryan Paul Espinola', action: 'CREATE', resource: 'Order', resourceId: 'ORD-2847', details: { customer: 'Acme Corp', items: 12, total: '₱1,847.99' }, timestamp: '2024-01-15 10:28:15', ip: '192.168.1.100' },
   { id: 'LOG-003', user: 'System', action: 'ALERT', resource: 'Inventory', resourceId: 'SKU-001', details: { alert: 'Low Stock', current: 5, minimum: 10 }, timestamp: '2024-01-15 10:25:00', ip: 'system' },
   { id: 'LOG-004', user: 'Sarah Miller', action: 'UPDATE', resource: 'Delivery', resourceId: 'DEL-1091', details: { field: 'status', old: 'pending', new: 'in_transit' }, timestamp: '2024-01-15 10:00:00', ip: '192.168.1.105' },
   { id: 'LOG-005', user: 'Emily Taylor', action: 'DELETE', resource: 'User', resourceId: 'USR-010', details: { reason: 'Account terminated', user: 'John Doe' }, timestamp: '2024-01-15 09:45:30', ip: '192.168.1.108' },
@@ -276,19 +276,19 @@ export const customers = [
 ];
 
 export const topCustomers = [
-  { name: 'Acme Corp', orders: 47, spent: '$68,450' },
-  { name: 'Global Trade Ltd', orders: 38, spent: '$52,300' },
-  { name: 'TechStart Inc', orders: 32, spent: '$45,100' },
-  { name: 'John Mitchell', orders: 28, spent: '$38,700' },
-  { name: 'Prime Logistics', orders: 24, spent: '$33,200' },
+  { name: 'Acme Corp', orders: 47, spent: '₱68,450' },
+  { name: 'Global Trade Ltd', orders: 38, spent: '₱52,300' },
+  { name: 'TechStart Inc', orders: 32, spent: '₱45,100' },
+  { name: 'John Mitchell', orders: 28, spent: '₱38,700' },
+  { name: 'Prime Logistics', orders: 24, spent: '₱33,200' },
 ];
 
 export const topSellingProducts = [
-  { name: 'Smart Sensor V3', sold: 342, revenue: '$30,776' },
-  { name: 'Wireless Charger Pad', sold: 289, revenue: '$17,334' },
-  { name: 'USB-C Hub Adapter', sold: 256, revenue: '$11,518' },
-  { name: 'Mechanical Keyboard', sold: 198, revenue: '$31,678' },
-  { name: 'Noise Cancelling Buds', sold: 176, revenue: '$22,878' },
+  { name: 'Smart Sensor V3', sold: 342, revenue: '₱30,776' },
+  { name: 'Wireless Charger Pad', sold: 289, revenue: '₱17,334' },
+  { name: 'USB-C Hub Adapter', sold: 256, revenue: '₱11,518' },
+  { name: 'Mechanical Keyboard', sold: 198, revenue: '₱31,678' },
+  { name: 'Noise Cancelling Buds', sold: 176, revenue: '₱22,878' },
 ];
 
 export const dailySales = [
@@ -594,7 +594,7 @@ export const inboxConversations: InboxConversation[] = [
       { id: 'MSG-014', conversationId: 'CONV-003', sender: 'customer', content: 'We need to place a bulk order for Smart Sensor V3. How many do you have in stock?', timestamp: '2024-01-15 08:30 AM', type: 'text' },
       { id: 'MSG-015', conversationId: 'CONV-003', sender: 'agent', content: 'We currently have 234 units of Smart Sensor V3 in stock at Warehouse A. How many do you need?', timestamp: '2024-01-15 08:35 AM', type: 'text' },
       { id: 'MSG-016', conversationId: 'CONV-003', sender: 'customer', content: 'We need 100 units. Can we get a discount for bulk orders?', timestamp: '2024-01-15 08:40 AM', type: 'text' },
-      { id: 'MSG-017', conversationId: 'CONV-003', sender: 'agent', content: 'Absolutely! For 100+ units, we offer a 15% bulk discount. That brings the price from $89.99 to $76.49 per unit.', timestamp: '2024-01-15 08:45 AM', type: 'text' },
+      { id: 'MSG-017', conversationId: 'CONV-003', sender: 'agent', content: 'Absolutely! For 100+ units, we offer a 15% bulk discount. That brings the price from ₱89.99 to ₱76.49 per unit.', timestamp: '2024-01-15 08:45 AM', type: 'text' },
       { id: 'MSG-018', conversationId: 'CONV-003', sender: 'customer', content: 'Great, that works! Thanks for your help.', timestamp: '2024-01-15 09:00 AM', type: 'text' },
     ],
   },

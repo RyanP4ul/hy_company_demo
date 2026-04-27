@@ -7,7 +7,6 @@ import {
   Package,
   MapPin,
   Clock,
-  DollarSign,
   BoxIcon,
   Search,
   Check,
@@ -426,7 +425,7 @@ export default function CreateDeliveryPage() {
                                     {order.items} items
                                   </span>
                                   <span className="flex items-center gap-1 font-semibold text-foreground">
-                                    <DollarSign className="h-3 w-3" />
+                                    <span className="text-xs">₱</span>
                                     {order.total.toLocaleString('en-US', {
                                       minimumFractionDigits: 2,
                                     })}
@@ -592,7 +591,7 @@ export default function CreateDeliveryPage() {
                             Total Value
                           </span>
                           <span className="font-semibold tabular-nums">
-                            ${totalValue.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                            ₱${totalValue.toLocaleString('en-US', { minimumFractionDigits: 2 })}
                           </span>
                         </div>
 
@@ -657,7 +656,7 @@ export default function CreateDeliveryPage() {
                                         {order.items} items
                                       </span>
                                       <span className="flex items-center gap-1 font-medium text-foreground">
-                                        <DollarSign className="h-3 w-3" />
+                                        <span className="text-xs">₱</span>
                                         {order.total.toLocaleString('en-US', { minimumFractionDigits: 2 })}
                                       </span>
                                     </div>

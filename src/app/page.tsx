@@ -29,6 +29,7 @@ const CentralInboxPage = lazy(() => import('@/components/features/central-inbox-
 const SalesPage = lazy(() => import('@/components/features/sales-page'));
 const CategoriesPage = lazy(() => import('@/components/features/categories-page'));
 const WarehousesPage = lazy(() => import('@/components/features/warehouses-page'));
+const ShippingTrackerPage = lazy(() => import('@/components/features/shipping-tracker-page'));
 const CreateOrderPage = lazy(() => import('@/components/features/create-order-page'));
 const DeliveryDetailPage = lazy(() => import('@/components/features/delivery-detail-page'));
 const CreateDeliveryPage = lazy(() => import('@/components/features/create-delivery-page'));
@@ -53,6 +54,7 @@ const pageComponents: Record<string, React.LazyExoticComponent<React.ComponentTy
   sales: SalesPage,
   categories: CategoriesPage,
   warehouses: WarehousesPage,
+  'shipping-tracker': ShippingTrackerPage,
 };
 
 // Sub-page components (no sidebar highlight)

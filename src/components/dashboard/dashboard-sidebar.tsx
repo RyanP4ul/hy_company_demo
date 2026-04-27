@@ -25,10 +25,11 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
   MessageSquare,
-  CircleDollarSign,
   Tags,
   Warehouse,
+  Ship,
 } from 'lucide-react';
+import { CirclePesoSign } from '@/components/icons/peso-sign';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
@@ -50,9 +51,10 @@ const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
   Settings,
   Archive,
   MessageSquare,
-  CircleDollarSign,
+  CirclePesoSign,
   Tags,
   Warehouse,
+  Ship,
 };
 
 interface SidebarProps {

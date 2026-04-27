@@ -16,7 +16,6 @@ import {
   ArrowUpDown,
   ArrowUp,
   ArrowDown,
-  DollarSign,
   Wallet,
   Banknote,
   Clock,
@@ -32,6 +31,7 @@ import {
   Download,
   X as XIcon,
 } from 'lucide-react';
+import { PesoSign } from '@/components/icons/peso-sign';
 import { motion } from 'framer-motion';
 import { toast } from 'sonner';
 
@@ -410,7 +410,7 @@ export default function PaymentsPage() {
         ),
         cell: ({ getValue }) => (
           <span className="font-bold tabular-nums">
-            ${(getValue() as number).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+            ₱${(getValue() as number).toLocaleString('en-US', { minimumFractionDigits: 2 })}
           </span>
         ),
       },
@@ -528,7 +528,7 @@ export default function PaymentsPage() {
                     <p className="mt-1 text-2xl font-bold">{totalCount}</p>
                   </div>
                   <div className="rounded-lg bg-primary/10 p-2.5">
-                    <DollarSign className="h-5 w-5 text-primary" />
+                    <PesoSign className="h-5 w-5 text-primary" />
                   </div>
                 </div>
               </AnimatedCard>
@@ -727,7 +727,7 @@ export default function PaymentsPage() {
         <footer className="mt-auto border-t py-4">
           <p className="text-center text-sm text-muted-foreground">
             Showing {filteredData.length} of {data.length} transactions · Total
-            Volume: $
+            Volume: ₱
             {totalVolume.toLocaleString('en-US', { minimumFractionDigits: 2 })}
           </p>
         </footer>
@@ -760,9 +760,9 @@ export default function PaymentsPage() {
                   </h3>
                   <div className="rounded-lg border bg-muted/30 p-4 space-y-3">
                     <div className="flex items-center gap-2">
-                      <DollarSign className="h-5 w-5 text-muted-foreground" />
+                      <PesoSign className="h-5 w-5 text-muted-foreground" />
                       <span className="text-3xl font-bold tabular-nums">
-                        $
+                        ₱
                         {selectedPayment.amount.toLocaleString('en-US', {
                           minimumFractionDigits: 2,
                         })}

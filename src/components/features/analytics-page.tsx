@@ -5,12 +5,12 @@ import { motion } from 'framer-motion';
 import {
   TrendingUp,
   TrendingDown,
-  DollarSign,
   ShoppingCart,
   CheckCircle2,
   RotateCcw,
   BarChart3,
 } from 'lucide-react';
+import { PesoSign } from '@/components/icons/peso-sign';
 import { cn } from '@/lib/utils';
 import {
   revenueChartData,
@@ -58,16 +58,16 @@ const pieData = [
 const metrics = [
   {
     title: 'Total Revenue',
-    value: '$284,520',
+    value: '₱284,520',
     change: '+12.5%',
     trend: 'up' as const,
-    icon: DollarSign,
+    icon: PesoSign,
     color: 'text-primary',
     bgColor: 'bg-primary/10',
   },
   {
     title: 'Avg Order Value',
-    value: '$153.99',
+    value: '₱153.99',
     change: '+3.2%',
     trend: 'up' as const,
     icon: ShoppingCart,
@@ -204,7 +204,7 @@ export default function AnalyticsPage() {
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
                 <XAxis dataKey="month" className="text-xs" tick={{ fill: 'var(--muted-foreground)', fontSize: 12 }} />
-                <YAxis className="text-xs" tick={{ fill: 'var(--muted-foreground)', fontSize: 12 }} tickFormatter={(v) => `$${(v / 1000).toFixed(0)}k`} />
+                <YAxis className="text-xs" tick={{ fill: 'var(--muted-foreground)', fontSize: 12 }} tickFormatter={(v) => `₱${(v / 1000).toFixed(0)}k`} />
                 <Tooltip content={<CustomTooltip />} />
                 <Legend
                   wrapperStyle={{ fontSize: '12px' }}

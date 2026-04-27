@@ -65,7 +65,7 @@ export function SearchDialog({ open, onClose }: { open: boolean; onClose: () => 
     ...inventoryItems.map((item) => ({
       id: item.id,
       title: item.name,
-      subtitle: `${item.id} · ${item.category} · $${item.price.toFixed(2)}`,
+      subtitle: `${item.id} · ${item.category} · ₱${item.price.toFixed(2)}`,
       entityType: 'inventory' as SearchEntityType,
       navView: 'inventory' as NavItem,
       icon: <Package className="h-4 w-4" />,
@@ -73,7 +73,7 @@ export function SearchDialog({ open, onClose }: { open: boolean; onClose: () => 
     ...orders.map((order) => ({
       id: order.id,
       title: `${order.id} — ${order.customer}`,
-      subtitle: `${order.items} items · $${order.total.toFixed(2)} · ${order.status}`,
+      subtitle: `${order.items} items · ₱${order.total.toFixed(2)} · ${order.status}`,
       entityType: 'order' as SearchEntityType,
       navView: 'orders' as NavItem,
       icon: <ShoppingCart className="h-4 w-4" />,

@@ -35,6 +35,7 @@ import {
   CheckCircle2,
   Circle,
   CalendarClock,
+  XCircle,
 } from 'lucide-react';
 import { useNavigationStore } from '@/stores/navigation';
 import { usePageContext } from '@/stores/page-context';
@@ -109,6 +110,7 @@ interface OrderFormState {
   total: string;
   priority: string;
   deliveryType: string;
+  paymentStatus: string;
 }
 
 const emptyOrderForm: OrderFormState = {
@@ -117,6 +119,7 @@ const emptyOrderForm: OrderFormState = {
   total: '',
   priority: 'medium',
   deliveryType: 'truck',
+  paymentStatus: 'unpaid',
 };
 
 // Handle status change from the stepper
@@ -154,6 +157,7 @@ export default function OrdersPage() {
   const [statusFilter, setStatusFilter] = useState('all');
   const [priorityFilter, setPriorityFilter] = useState('all');
   const [deliveryTypeFilter, setDeliveryTypeFilter] = useState('all');
+  const [paymentStatusFilter, setPaymentStatusFilter] = useState('all');
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
 
@@ -214,6 +218,7 @@ export default function OrdersPage() {
           date: orderData.date,
           priority: orderData.priority,
           deliveryType: orderData.deliveryType || 'truck',
+          paymentStatus: orderData.paymentStatus || 'unpaid',
         }, ...prev]);
       }
     };
@@ -300,6 +305,7 @@ export default function OrdersPage() {
       total: String(order.total),
       priority: order.priority,
       deliveryType: 'deliveryType' in order ? (order as Record<string, unknown>).deliveryType as string : 'truck',
+      paymentStatus: 'paymentStatus' in order ? (order as Record<string, unknown>).paymentStatus as string : 'unpaid',
     });
     setFormDialogOpen(true);
   }, []);
@@ -394,7 +400,7 @@ export default function OrdersPage() {
       setData((prev) =>
         prev.map((order) =>
           order.id === editingOrder.id
-            ? { ...order, customer: form.customer.trim(), items, total, priority: form.priority as 'high' | 'medium' | 'low' }
+            ? { ...order, customer: form.customer.trim(), items, total, priority: form.priority as 'high' | 'medium' | 'low', paymentStatus: form.paymentStatus as 'paid' | 'unpaid' }
             : order
         )
       );
@@ -402,7 +408,7 @@ export default function OrdersPage() {
       // Also update the selectedOrder in drawer if it matches
       setSelectedOrder((prev) =>
         prev && prev.id === editingOrder.id
-          ? { ...prev, customer: form.customer.trim(), items, total, priority: form.priority as 'high' | 'medium' | 'low' }
+          ? { ...prev, customer: form.customer.trim(), items, total, priority: form.priority as 'high' | 'medium' | 'low', paymentStatus: form.paymentStatus as 'paid' | 'unpaid' }
           : prev
       );
     } else {
@@ -419,6 +425,7 @@ export default function OrdersPage() {
         status: 'pending',
         date: today,
         priority: form.priority as 'high' | 'medium' | 'low',
+        paymentStatus: form.paymentStatus as 'paid' | 'unpaid',
       };
       setData((prev) => [newOrder, ...prev]);
       toast.success('Order created successfully');
@@ -532,9 +539,28 @@ export default function OrdersPage() {
         ),
         cell: ({ getValue }) => (
           <span className="tabular-nums font-semibold">
-            ${(getValue() as number).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+            ₱${(getValue() as number).toLocaleString('en-US', { minimumFractionDigits: 2 })}
           </span>
         ),
+      },
+      {
+        accessorKey: 'paymentStatus',
+        header: 'Payment',
+        cell: ({ row }) => {
+          const ps = (row.original as Record<string, unknown>).paymentStatus as string | undefined;
+          if (ps === 'paid') {
+            return (
+              <Badge className="gap-1 border-0 bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300 text-xs font-medium px-2">
+                <CheckCircle2 className="size-3" />Paid
+              </Badge>
+            );
+          }
+          return (
+            <Badge className="gap-1 border-0 bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300 text-xs font-medium px-2">
+              <XCircle className="size-3" />Unpaid
+            </Badge>
+          );
+        },
       },
       {
         accessorKey: 'status',
@@ -654,8 +680,15 @@ export default function OrdersPage() {
       });
     }
 
+    if (paymentStatusFilter !== 'all') {
+      result = result.filter((order) => {
+        const ps = (order as Record<string, unknown>).paymentStatus as string | undefined;
+        return ps === paymentStatusFilter;
+      });
+    }
+
     return result;
-  }, [data, statusFilter, priorityFilter, deliveryTypeFilter]);
+  }, [data, statusFilter, priorityFilter, deliveryTypeFilter, paymentStatusFilter]);
 
   const table = useReactTable({
     data: filteredData,
@@ -812,6 +845,16 @@ export default function OrdersPage() {
                     <SelectItem value="lalamove">Lalamove</SelectItem>
                   </SelectContent>
                 </Select>
+                <Select value={paymentStatusFilter} onValueChange={setPaymentStatusFilter}>
+                  <SelectTrigger className="w-[140px]">
+                    <SelectValue placeholder="Payment" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Payment</SelectItem>
+                    <SelectItem value="paid">Paid</SelectItem>
+                    <SelectItem value="unpaid">Unpaid</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
             </div>
           </AnimatedCard>
@@ -911,6 +954,21 @@ export default function OrdersPage() {
                         </Badge>
                       );
                     })()}
+                    {(() => {
+                      const ps = (selectedOrder as Record<string, unknown>).paymentStatus as string | undefined;
+                      if (ps === 'paid') {
+                        return (
+                          <Badge className="gap-1 border-0 bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300 text-xs font-medium px-2">
+                            <CheckCircle2 className="size-3" />Paid
+                          </Badge>
+                        );
+                      }
+                      return (
+                        <Badge className="gap-1 border-0 bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300 text-xs font-medium px-2">
+                          <XCircle className="size-3" />Unpaid
+                        </Badge>
+                      );
+                    })()}
                   </div>
                   <SheetDescription>
                     Order placed on {selectedOrder.date}
@@ -992,12 +1050,12 @@ export default function OrdersPage() {
                             <div>
                               <p className="font-medium">{item.name}</p>
                               <p className="text-xs text-muted-foreground">
-                                Qty: {item.qty} × ${item.price.toFixed(2)}
+                                Qty: {item.qty} × ₱${item.price.toFixed(2)}
                               </p>
                             </div>
                           </div>
                           <span className="font-semibold tabular-nums">
-                            ${(item.qty * item.price).toFixed(2)}
+                            ₱${(item.qty * item.price).toFixed(2)}
                           </span>
                         </div>
                       ))}
@@ -1011,7 +1069,7 @@ export default function OrdersPage() {
                     <div className="flex justify-between text-sm">
                       <span className="text-muted-foreground">Subtotal</span>
                       <span className="tabular-nums">
-                        ${selectedOrder.total.toFixed(2)}
+                        ₱${selectedOrder.total.toFixed(2)}
                       </span>
                     </div>
                     <div className="flex justify-between text-sm">
@@ -1023,15 +1081,62 @@ export default function OrdersPage() {
                     <div className="flex justify-between text-sm">
                       <span className="text-muted-foreground">Tax</span>
                       <span className="tabular-nums">
-                        ${(selectedOrder.total * 0.08).toFixed(2)}
+                        ₱${(selectedOrder.total * 0.08).toFixed(2)}
                       </span>
                     </div>
                     <Separator />
                     <div className="flex justify-between font-semibold">
                       <span>Total</span>
                       <span className="tabular-nums text-lg">
-                        ${(selectedOrder.total * 1.08).toFixed(2)}
+                        ₱${(selectedOrder.total * 1.08).toFixed(2)}
                       </span>
+                    </div>
+                    <Separator />
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-medium">Payment</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        {(() => {
+                          const ps = (selectedOrder as Record<string, unknown>).paymentStatus as string | undefined;
+                          if (ps === 'paid') {
+                            return (
+                              <Badge className="gap-1 border-0 bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300 text-xs font-medium px-2">
+                                <CheckCircle2 className="size-3" />Paid
+                              </Badge>
+                            );
+                          }
+                          return (
+                            <Badge className="gap-1 border-0 bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300 text-xs font-medium px-2">
+                              <XCircle className="size-3" />Unpaid
+                            </Badge>
+                          );
+                        })()}
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="h-7 text-xs"
+                          onClick={() => {
+                            const currentPs = (selectedOrder as Record<string, unknown>).paymentStatus as string | undefined;
+                            const newPs = currentPs === 'paid' ? 'unpaid' : 'paid';
+                            setData((prev) =>
+                              prev.map((order) =>
+                                order.id === selectedOrder.id
+                                  ? { ...order, paymentStatus: newPs as 'paid' | 'unpaid' }
+                                  : order
+                              )
+                            );
+                            setSelectedOrder((prev) =>
+                              prev && prev.id === selectedOrder.id
+                                ? { ...prev, paymentStatus: newPs as 'paid' | 'unpaid' }
+                                : prev
+                            );
+                            toast.success(`Payment status updated to ${newPs === 'paid' ? 'Paid' : 'Unpaid'}`);
+                          }}
+                        >
+                          Toggle
+                        </Button>
+                      </div>
                     </div>
                   </div>
 
@@ -1216,7 +1321,7 @@ export default function OrdersPage() {
                   />
                 </div>
                 <div className="grid gap-2">
-                  <Label htmlFor="order-total">Total Amount ($)</Label>
+                  <Label htmlFor="order-total">Total Amount (₱)</Label>
                   <Input
                     id="order-total"
                     type="number"
@@ -1266,6 +1371,21 @@ export default function OrdersPage() {
                         Lalamove
                       </span>
                     </SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="order-payment-status">Payment Status</Label>
+                <Select
+                  value={form.paymentStatus}
+                  onValueChange={(v) => setForm((f) => ({ ...f, paymentStatus: v }))}
+                >
+                  <SelectTrigger id="order-payment-status">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="unpaid">Unpaid</SelectItem>
+                    <SelectItem value="paid">Paid</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

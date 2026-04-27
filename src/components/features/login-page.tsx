@@ -91,43 +91,18 @@ export default function LoginPage() {
               intelligent analytics, and seamless team collaboration.
             </p>
           </motion.div>
-
-          {/* Decorative floating stat cards */}
-          <motion.div
-            initial={{ opacity: 0, x: -20, y: -10 }}
-            animate={{ opacity: 1, x: 0, y: 0 }}
-            transition={{ delay: 0.9, duration: 0.5 }}
-            className="absolute right-10 top-10 hidden xl:block"
-          >
-            <div className="rounded-xl border border-white/10 bg-white/10 px-5 py-4 backdrop-blur-md">
-              <p className="text-xs text-white/60">Inventory Accuracy</p>
-              <p className="mt-1 text-2xl font-bold text-white">99.8%</p>
-            </div>
-          </motion.div>
-
-          <motion.div
-            initial={{ opacity: 0, x: 20, y: 10 }}
-            animate={{ opacity: 1, x: 0, y: 0 }}
-            transition={{ delay: 1.05, duration: 0.5 }}
-            className="absolute bottom-32 right-10 hidden xl:block"
-          >
-            <div className="rounded-xl border border-white/10 bg-white/10 px-5 py-4 backdrop-blur-md">
-              <p className="text-xs text-white/60">Orders Processed</p>
-              <p className="mt-1 text-2xl font-bold text-white">12,847</p>
-            </div>
-          </motion.div>
         </motion.div>
 
         {/* ─── RIGHT PANEL: Login Form ─── */}
-        <div className="flex w-full flex-col items-center justify-center px-6 py-12 lg:w-1/2 xl:w-[45%]">
+        <div className="flex w-full flex-1 flex-col items-center justify-center px-6 py-12 lg:w-1/2 xl:w-[45%]">
           <motion.div
             variants={staggerContainer}
             initial="initial"
             animate="animate"
-            className="w-full max-w-sm"
+            className="flex w-full max-w-sm flex-col items-center"
           >
             {/* Logo */}
-            <motion.div variants={fadeInUp} transition={{ duration: 0.5 }} className="mb-8 flex items-center gap-3">
+            <motion.div variants={fadeInUp} transition={{ duration: 0.5 }} className="mb-8 flex items-center gap-3 self-start">
               <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-lg shadow-primary/25">
                 <Package className="size-5" />
               </div>
@@ -138,7 +113,7 @@ export default function LoginPage() {
             </motion.div>
 
             {/* Welcome text */}
-            <motion.div variants={fadeInUp} transition={{ duration: 0.4 }}>
+            <motion.div variants={fadeInUp} transition={{ duration: 0.4 }} className="w-full">
               <h2 className="text-2xl font-bold tracking-tight">Welcome back</h2>
               <p className="mt-1 text-sm text-muted-foreground">
                 Enter your credentials to access your account
@@ -151,7 +126,7 @@ export default function LoginPage() {
               initial="initial"
               animate="animate"
               onSubmit={handleSubmit}
-              className="mt-8 space-y-5"
+              className="mt-8 w-full space-y-5"
             >
               {/* Error message */}
               {error && (
@@ -252,28 +227,28 @@ export default function LoginPage() {
                 </Button>
               </motion.div>
             </motion.form>
-          </motion.div>
 
-          {/* Contact & Copyright footer */}
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.9, duration: 0.4 }}
-            className="mt-auto pb-6 pt-10 space-y-3 text-center"
-          >
-            <div className="flex items-center justify-center gap-6 text-xs text-muted-foreground">
-              <div className="flex items-center gap-1.5">
-                <Mail className="size-3" />
-                <span>support@hyops.com</span>
+            {/* Contact & Copyright */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.9, duration: 0.4 }}
+              className="mt-10 space-y-3 text-center"
+            >
+              <div className="flex items-center justify-center gap-6 text-xs text-muted-foreground">
+                <div className="flex items-center gap-1.5">
+                  <Mail className="size-3" />
+                  <span>support@hyops.com</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <Phone className="size-3" />
+                  <span>+1 (555) 123-4567</span>
+                </div>
               </div>
-              <div className="flex items-center gap-1.5">
-                <Phone className="size-3" />
-                <span>+1 (555) 123-4567</span>
-              </div>
-            </div>
-            <p className="text-xs text-muted-foreground/70">
-              &copy; {new Date().getFullYear()} HyOps. All rights reserved.
-            </p>
+              <p className="text-xs text-muted-foreground/70">
+                &copy; {new Date().getFullYear()} HyOps. All rights reserved.
+              </p>
+            </motion.div>
           </motion.div>
         </div>
       </main>

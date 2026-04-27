@@ -67,7 +67,6 @@ import {
   ArrowUpDown,
   ArrowUp,
   ArrowDown,
-  DollarSign,
   TrendingUp,
   ShoppingCart,
   CreditCard,
@@ -77,7 +76,6 @@ import {
   Eye,
   RotateCcw,
   Receipt,
-  CircleDollarSign,
   ArrowUpRight,
   ArrowDownRight,
   Clock,
@@ -89,6 +87,7 @@ import {
   Package,
   User,
 } from 'lucide-react';
+import { PesoSign, CirclePesoSign } from '@/components/icons/peso-sign';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { useSearchStore } from '@/stores/search';
@@ -291,7 +290,7 @@ export default function SalesPage() {
             'font-semibold tabular-nums',
             row.original.status === 'refunded' ? 'line-through text-muted-foreground' : ''
           )}>
-            ${(row.original.total).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+            ₱${(row.original.total).toLocaleString('en-US', { minimumFractionDigits: 2 })}
           </span>
         ),
       },
@@ -380,7 +379,7 @@ export default function SalesPage() {
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-center gap-3">
               <div className="flex size-10 items-center justify-center rounded-lg bg-primary/10">
-                <CircleDollarSign className="h-5 w-5 text-primary" />
+                <CirclePesoSign className="h-5 w-5 text-primary" />
               </div>
               <div>
                 <h1 className="text-2xl font-bold tracking-tight">Sales</h1>
@@ -404,12 +403,12 @@ export default function SalesPage() {
             <AnimatedCard delay={0}>
               <div className="flex items-center gap-4">
                 <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-primary/10">
-                  <DollarSign className="size-5 text-primary" />
+                  <PesoSign className="size-5 text-primary" />
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Total Revenue</p>
                   <p className="mt-0.5 text-xl font-bold tabular-nums">
-                    ${stats.totalRevenue.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+                    ₱${stats.totalRevenue.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
                   </p>
                 </div>
               </div>
@@ -422,7 +421,7 @@ export default function SalesPage() {
                 <div>
                   <p className="text-sm text-muted-foreground">Net Revenue</p>
                   <p className="mt-0.5 text-xl font-bold text-green-600 dark:text-green-400 tabular-nums">
-                    ${stats.netRevenue.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+                    ₱${stats.netRevenue.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
                   </p>
                 </div>
               </div>
@@ -446,7 +445,7 @@ export default function SalesPage() {
                 <div>
                   <p className="text-sm text-muted-foreground">Avg. Order Value</p>
                   <p className="mt-0.5 text-xl font-bold tabular-nums">
-                    ${stats.avgOrderValue.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                    ₱${stats.avgOrderValue.toLocaleString('en-US', { minimumFractionDigits: 2 })}
                   </p>
                 </div>
               </div>
@@ -473,7 +472,7 @@ export default function SalesPage() {
                       <p className="text-xs text-muted-foreground">{cfg.label}</p>
                       <div className="flex items-baseline justify-between gap-2">
                         <p className="text-base font-bold tabular-nums">
-                          ${methodTotal.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+                          ₱${methodTotal.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
                         </p>
                         <span className="text-xs font-medium text-muted-foreground">{pct.toFixed(0)}%</span>
                       </div>
@@ -577,7 +576,7 @@ export default function SalesPage() {
                 Showing {filteredData.length} of {data.length} transactions
               </p>
               <p className="text-sm font-medium text-muted-foreground">
-                Net: ${stats.netRevenue.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                Net: ₱${stats.netRevenue.toLocaleString('en-US', { minimumFractionDigits: 2 })}
               </p>
             </div>
           </AnimatedCard>
@@ -669,11 +668,11 @@ export default function SalesPage() {
                     <div className="space-y-2 rounded-lg border bg-muted/30 p-4">
                       <div className="flex justify-between text-sm">
                         <span className="text-muted-foreground">Subtotal</span>
-                        <span className="tabular-nums">${selectedSale.subtotal.toFixed(2)}</span>
+                        <span className="tabular-nums">₱${selectedSale.subtotal.toFixed(2)}</span>
                       </div>
                       <div className="flex justify-between text-sm">
                         <span className="text-muted-foreground">Tax (8%)</span>
-                        <span className="tabular-nums">${selectedSale.tax.toFixed(2)}</span>
+                        <span className="tabular-nums">₱${selectedSale.tax.toFixed(2)}</span>
                       </div>
                       <Separator />
                       <div className="flex justify-between font-semibold">
@@ -682,7 +681,7 @@ export default function SalesPage() {
                           'tabular-nums text-lg',
                           selectedSale.status === 'refunded' ? 'line-through text-muted-foreground' : ''
                         )}>
-                          ${selectedSale.total.toFixed(2)}
+                          ₱${selectedSale.total.toFixed(2)}
                         </span>
                       </div>
                     </div>
@@ -717,7 +716,7 @@ export default function SalesPage() {
               <AlertDialogTitle>Issue Refund</AlertDialogTitle>
               <AlertDialogDescription>
                 Are you sure you want to issue a refund for sale <span className="font-semibold">{refundingSale?.id}</span> ({refundingSale?.customer})?
-                This will refund <span className="font-semibold">${refundingSale?.total.toFixed(2)}</span> and mark the sale as refunded.
+                This will refund <span className="font-semibold">₱${refundingSale?.total.toFixed(2)}</span> and mark the sale as refunded.
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>

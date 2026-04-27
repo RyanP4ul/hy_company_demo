@@ -168,7 +168,7 @@ export default function SettingsPage() {
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="usd">USD ($)</SelectItem>
+                            <SelectItem value="php">PHP (₱)</SelectItem>
                             <SelectItem value="eur">EUR (€)</SelectItem>
                             <SelectItem value="gbp">GBP (£)</SelectItem>
                             <SelectItem value="jpy">JPY (¥)</SelectItem>

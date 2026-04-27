@@ -81,12 +81,12 @@ const sampleReportData: Record<ReportType, { headers: string[]; rows: string[][]
   sales: {
     headers: ['Month', 'Revenue', 'Orders', 'Avg Order Value', 'Returns', 'Net Revenue'],
     rows: [
-      ['Jan 2024', '$18,600', '145', '$128.28', '3', '$18,240'],
-      ['Feb 2024', '$22,400', '178', '$125.84', '5', '$21,850'],
-      ['Mar 2024', '$19,800', '156', '$126.92', '2', '$19,550'],
-      ['Apr 2024', '$27,600', '210', '$131.43', '4', '$27,100'],
-      ['May 2024', '$31,200', '245', '$127.35', '6', '$30,480'],
-      ['Jun 2024', '$28,900', '228', '$126.75', '3', '$28,510'],
+      ['Jan 2024', '₱18,600', '145', '₱128.28', '3', '₱18,240'],
+      ['Feb 2024', '₱22,400', '178', '₱125.84', '5', '₱21,850'],
+      ['Mar 2024', '₱19,800', '156', '₱126.92', '2', '₱19,550'],
+      ['Apr 2024', '₱27,600', '210', '₱131.43', '4', '₱27,100'],
+      ['May 2024', '₱31,200', '245', '₱127.35', '6', '₱30,480'],
+      ['Jun 2024', '₱28,900', '228', '₱126.75', '3', '₱28,510'],
     ],
   },
   delivery: {
@@ -294,7 +294,7 @@ export default function ReportsPage() {
                   { label: 'Total Products', value: '3,429' },
                   { label: 'Low Stock Items', value: '4' },
                   { label: 'Out of Stock', value: '2' },
-                  { label: 'Total Value', value: '$284,520' },
+                  { label: 'Total Value', value: '₱284,520' },
                 ].map((s) => (
                   <StaggerItem key={s.label}>
                     <Card>
@@ -306,9 +306,9 @@ export default function ReportsPage() {
                   </StaggerItem>
                 ))}
                 {selectedType === 'sales' && [
-                  { label: 'Total Revenue', value: '$148,500' },
+                  { label: 'Total Revenue', value: '₱148,500' },
                   { label: 'Total Orders', value: '1,162' },
-                  { label: 'Avg Order Value', value: '$127.80' },
+                  { label: 'Avg Order Value', value: '₱127.80' },
                   { label: 'Return Rate', value: '2.0%' },
                 ].map((s) => (
                   <StaggerItem key={s.label}>

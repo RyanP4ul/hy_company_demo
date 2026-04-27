@@ -9,21 +9,20 @@ import {
   MapPin,
   Clock,
   CheckCircle2,
-  Navigation,
   User,
   Phone,
-  Hash,
   Route,
   AlertCircle,
-  ChevronDown,
+
   Star,
-  MapPinned,
   StickyNote,
   Warehouse,
   MessageSquare,
   XCircle,
   CalendarClock,
   AlertTriangle,
+  Wallet,
+  Search,
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -34,8 +33,6 @@ import { StatusBadge } from '@/components/shared/status-badge';
 import { PageTransition, FadeIn } from '@/components/shared/animated-components';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
-import { Command, CommandInput, CommandList, CommandEmpty, CommandGroup, CommandItem } from '@/components/ui/command';
 import { Separator } from '@/components/ui/separator';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
@@ -49,6 +46,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetDescription,
+} from '@/components/ui/sheet';
 import { cn } from '@/lib/utils';
 
 /* ================================================================
@@ -469,6 +473,24 @@ function StopCardsGrid({
                   Active
                 </Badge>
               )}
+              {(() => {
+                const ps = orders.find(o => o.id === stop.orderId)?.paymentStatus;
+                if (ps === 'paid') {
+                  return (
+                    <Badge className="border-0 bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300 text-[9px] px-1.5 py-0 shrink-0 gap-0.5">
+                      <Wallet className="size-2.5" />Paid
+                    </Badge>
+                  );
+                }
+                if (ps === 'unpaid') {
+                  return (
+                    <Badge className="border-0 bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300 text-[9px] px-1.5 py-0 shrink-0 gap-0.5">
+                      <AlertTriangle className="size-2.5" />Unpaid
+                    </Badge>
+                  );
+                }
+                return null;
+              })()}
             </div>
 
             {/* Address */}
@@ -482,7 +504,7 @@ function StopCardsGrid({
                 <Package className="h-3 w-3" />
                 {stop.items}
               </span>
-              <span className="font-medium tabular-nums">${stop.total.toFixed(0)}</span>
+              <span className="font-medium tabular-nums">₱{stop.total.toFixed(0)}</span>
 
               {/* Notes indicator */}
               {stop.notes && (
@@ -508,123 +530,6 @@ function StopCardsGrid({
           </motion.button>
         );
       })}
-    </div>
-  );
-}
-
-/* ================================================================
-   PROXIMITY COMBOBOX
-   ================================================================ */
-
-function ProximityCombobox({
-  stops,
-  onSelectStop,
-}: {
-  stops: DeliveryStop[];
-  onSelectStop: (stop: DeliveryStop) => void;
-}) {
-  const [open, setOpen] = useState(false);
-
-  const pendingStops = useMemo(() => {
-    return stops
-      .filter(s => s.status === 'pending' || s.status === 'in_transit')
-      .sort((a, b) => a.distanceFromPrev - b.distanceFromPrev);
-  }, [stops]);
-
-  const inTransitStop = stops.find(s => s.status === 'in_transit');
-
-  return (
-    <div className="space-y-2">
-      <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
-        <Navigation className="h-3.5 w-3.5" />
-        Next Destination
-      </h3>
-      {pendingStops.length === 0 && !inTransitStop ? (
-        <div className="flex items-center justify-center rounded-lg border border-dashed py-5 text-sm text-muted-foreground">
-          <CheckCircle2 className="h-4 w-4 mr-2 text-green-500" />
-          All stops completed
-        </div>
-      ) : (
-        <Popover open={open} onOpenChange={setOpen}>
-          <PopoverTrigger asChild>
-            <Button
-              variant="outline"
-              role="combobox"
-              aria-expanded={open}
-              className="w-full justify-between font-normal"
-            >
-              {inTransitStop ? (
-                <span className="flex items-center gap-2 text-left truncate">
-                  <Navigation className="h-3.5 w-3.5 text-blue-500 shrink-0" />
-                  <span className="truncate">
-                    {inTransitStop.customer} — {inTransitStop.address.split(',')[0]}
-                  </span>
-                </span>
-              ) : (
-                <span className="flex items-center gap-2 text-left truncate">
-                  <MapPinned className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-                  <span className="truncate">Select next destination...</span>
-                </span>
-              )}
-              <ChevronDown className="h-4 w-4 shrink-0 opacity-50" />
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
-            <Command>
-              <CommandInput placeholder="Search stops..." />
-              <CommandList>
-                <CommandEmpty>No stops found.</CommandEmpty>
-                <CommandGroup heading="Upcoming Stops (nearest first)">
-                  {pendingStops.map((stop) => (
-                    <CommandItem
-                      key={stop.id}
-                      value={`${stop.customer} ${stop.address}`}
-                      onSelect={() => {
-                        onSelectStop(stop);
-                        setOpen(false);
-                      }}
-                      className="flex-col items-start gap-1 py-2.5"
-                    >
-                      <div className="flex items-center gap-2 w-full">
-                        <span
-                          className={cn(
-                            'inline-flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-bold shrink-0',
-                            stop.status === 'in_transit'
-                              ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'
-                              : 'bg-muted text-muted-foreground'
-                          )}
-                        >
-                          {stops.indexOf(stop) + 1}
-                        </span>
-                        <span className="font-medium text-sm truncate flex-1">{stop.customer}</span>
-                        {stop.status === 'in_transit' && (
-                          <Badge
-                            variant="outline"
-                            className="text-[10px] border-blue-200 text-blue-700 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/30 shrink-0"
-                          >
-                            Current
-                          </Badge>
-                        )}
-                      </div>
-                      <div className="flex items-center gap-3 pl-7 text-xs text-muted-foreground">
-                        <span className="truncate">{stop.address.split(',')[0]}</span>
-                        <span className="shrink-0 flex items-center gap-1">
-                          <Route className="h-3 w-3" />
-                          {stop.distanceFromPrev} km
-                        </span>
-                        <span className="shrink-0 flex items-center gap-1">
-                          <Clock className="h-3 w-3" />
-                          {stop.estimatedArrival}
-                        </span>
-                      </div>
-                    </CommandItem>
-                  ))}
-                </CommandGroup>
-              </CommandList>
-            </Command>
-          </PopoverContent>
-        </Popover>
-      )}
     </div>
   );
 }
@@ -680,7 +585,18 @@ function StopDetailPanel({
       {/* Header */}
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
-          <p className="text-sm font-semibold">{stop.customer}</p>
+          <div className="flex items-center gap-2 flex-wrap">
+            <p className="text-sm font-semibold">{stop.customer}</p>
+            {relatedOrder?.paymentStatus === 'paid' ? (
+              <Badge className="gap-0.5 border-0 bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300 text-[10px] px-1.5 py-0">
+                <Wallet className="size-2.5" />Paid
+              </Badge>
+            ) : relatedOrder?.paymentStatus === 'unpaid' ? (
+              <Badge className="gap-0.5 border-0 bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300 text-[10px] px-1.5 py-0">
+                <AlertTriangle className="size-2.5" />Unpaid
+              </Badge>
+            ) : null}
+          </div>
           <p className="text-xs text-muted-foreground mt-0.5 font-mono">{stop.orderId}</p>
         </div>
         <StatusBadge
@@ -724,11 +640,16 @@ function StopDetailPanel({
 
       {/* Order items */}
       <div className="space-y-2">
-        <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-          Order Items ({stop.items})
-        </p>
-        <div className="space-y-1">
-          {orderItems.slice(0, 4).map((item, idx) => (
+        <div className="flex items-center justify-between">
+          <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+            Order Items ({stop.items})
+          </p>
+          <p className="text-[10px] text-muted-foreground">
+            Showing all {orderItems.length} items
+          </p>
+        </div>
+        <div className="max-h-[400px] overflow-y-auto custom-scrollbar space-y-1">
+          {orderItems.map((item, idx) => (
             <div
               key={idx}
               className="flex items-center justify-between rounded-md border px-2.5 py-1.5"
@@ -744,7 +665,7 @@ function StopDetailPanel({
               </div>
               <div className="text-right shrink-0 ml-2">
                 <p className="text-xs font-semibold tabular-nums">
-                  ${(item.qty * item.price).toFixed(2)}
+                  ₱${(item.qty * item.price).toFixed(2)}
                 </p>
                 <p className="text-[10px] text-muted-foreground">x{item.qty}</p>
               </div>
@@ -753,7 +674,7 @@ function StopDetailPanel({
         </div>
         <div className="flex items-center justify-between rounded-md bg-muted/40 px-2.5 py-1.5">
           <span className="text-xs text-muted-foreground">Total</span>
-          <span className="text-sm font-bold tabular-nums">${stop.total.toFixed(2)}</span>
+          <span className="text-sm font-bold tabular-nums">₱${stop.total.toFixed(2)}</span>
         </div>
       </div>
 
@@ -859,7 +780,7 @@ function RouteSummary({ route }: { route: DeliveryRoute }) {
       { label: 'Distance', value: `${route.totalDistance} km` },
       {
         label: 'Value',
-        value: `$${route.totalValue.toLocaleString('en-US', { minimumFractionDigits: 2 })}`,
+        value: `₱${route.totalValue.toLocaleString('en-US', { minimumFractionDigits: 2 })}`,
         className: 'font-semibold',
       },
     ];
@@ -1153,6 +1074,7 @@ export default function DeliveryDetailPage() {
   const returnTo = usePageContext((s) => s.returnTo);
 
   const [selectedStop, setSelectedStop] = useState<DeliveryStop | null>(null);
+  const [itemSearchQuery, setItemSearchQuery] = useState('');
   const [localStops, setLocalStops] = useState<DeliveryStop[] | null>(null);
   const [localRouteStatus, setLocalRouteStatus] = useState<string | null>(null);
   const [localCancelledAt, setLocalCancelledAt] = useState<string | null>(null);
@@ -1190,6 +1112,7 @@ export default function DeliveryDetailPage() {
 
   const handleSelectStop = useCallback((stop: DeliveryStop) => {
     setSelectedStop(stop);
+    setItemSearchQuery('');
   }, []);
 
   const handleMarkDelivered = useCallback(() => {
@@ -1439,7 +1362,7 @@ export default function DeliveryDetailPage() {
 
         <Separator />
 
-        {/* ====== 2-COLUMN LAYOUT ====== */}
+        {/* ====== RESPONSIVE LAYOUT (always 3-column) ====== */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
           {/* Left Column: Map + Stop Cards */}
           <div className="lg:col-span-2 space-y-5">
@@ -1473,15 +1396,10 @@ export default function DeliveryDetailPage() {
           <div className="lg:col-span-1">
             <FadeIn delay={0.08}>
               <div className="lg:sticky lg:top-6 space-y-4 max-h-[calc(100vh-12rem)] overflow-y-auto pr-1 custom-scrollbar">
-                {/* Proximity Combobox */}
-                <div className="rounded-xl border bg-card p-4">
-                  <ProximityCombobox stops={routeStops} onSelectStop={handleSelectStop} />
-                </div>
-
-                {/* Stop Detail Panel */}
+                {/* Stop Detail Panel (empty state prompt when no stop selected) */}
                 <div className="rounded-xl border bg-card p-4">
                   <StopDetailPanel
-                    stop={selectedStop}
+                    stop={null}
                     onMarkDelivered={handleMarkDelivered}
                   />
                 </div>
@@ -1491,14 +1409,247 @@ export default function DeliveryDetailPage() {
                   <DriverInfoCard route={{ ...delivery, stops: routeStops }} />
                 </div>
 
-                {/* Route Summary */}
-                <div className="rounded-xl border bg-card p-4">
-                  <RouteSummary route={{ ...delivery, stops: routeStops }} />
-                </div>
               </div>
             </FadeIn>
           </div>
         </div>
+
+        {/* ====== STOP DETAIL SHEET (right-side drawer) ====== */}
+        <Sheet open={selectedStop !== null} onOpenChange={(open) => { if (!open) setSelectedStop(null); }}>
+          <SheetContent side="right" className="w-full sm:max-w-md overflow-y-auto">
+            {selectedStop && (
+              <>
+                <SheetHeader className="pr-6">
+                  <SheetTitle>Stop Details</SheetTitle>
+                  <SheetDescription>{selectedStop.customer}</SheetDescription>
+                </SheetHeader>
+
+                <div className="flex flex-col gap-4 px-4 pb-6">
+                  <Separator />
+
+                  {/* Customer name + payment badge + status badge */}
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <p className="text-base font-semibold">{selectedStop.customer}</p>
+                        {(() => {
+                          const ps = orders.find(o => o.id === selectedStop.orderId)?.paymentStatus;
+                          if (ps === 'paid') {
+                            return (
+                              <Badge className="gap-0.5 border-0 bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300 text-[10px] px-1.5 py-0">
+                                <Wallet className="size-2.5" />Paid
+                              </Badge>
+                            );
+                          }
+                          if (ps === 'unpaid') {
+                            return (
+                              <Badge className="gap-0.5 border-0 bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300 text-[10px] px-1.5 py-0">
+                                <AlertTriangle className="size-2.5" />Unpaid
+                              </Badge>
+                            );
+                          }
+                          return null;
+                        })()}
+                        <StatusBadge
+                          status={selectedStop.status === 'delivered' ? 'delivered' : selectedStop.status === 'in_transit' ? 'on_delivery' : 'pending'}
+                          pulse={selectedStop.status === 'in_transit'}
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Order ID */}
+                  <div>
+                    <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-0.5">Order ID</p>
+                    <p className="text-sm font-mono">{selectedStop.orderId}</p>
+                  </div>
+
+                  {/* Address */}
+                  <div className="flex items-start gap-2 text-sm">
+                    <MapPin className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
+                    <span className="text-muted-foreground">{selectedStop.address}</span>
+                  </div>
+
+                  {/* ETA / Delivered time */}
+                  <div className="flex items-center gap-2 text-sm">
+                    <Clock className="h-4 w-4 text-muted-foreground shrink-0" />
+                    {selectedStop.status === 'delivered' && selectedStop.deliveredAt ? (
+                      <span>
+                        Delivered <span className="font-medium text-foreground">{selectedStop.deliveredAt}</span>
+                      </span>
+                    ) : (
+                      <span>
+                        ETA <span className="font-medium text-foreground">{selectedStop.estimatedArrival}</span>
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Delivery Notes */}
+                  {selectedStop.notes && (
+                    <div className="rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 px-3 py-2">
+                      <div className="flex items-center gap-1.5 mb-0.5">
+                        <StickyNote className="h-3.5 w-3.5 text-amber-500" />
+                        <p className="text-[11px] font-medium text-amber-700 dark:text-amber-400 uppercase tracking-wider">
+                          Notes
+                        </p>
+                      </div>
+                      <p className="text-sm text-amber-900 dark:text-amber-200">{selectedStop.notes}</p>
+                    </div>
+                  )}
+
+                  {/* Order Items */}
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                        Order Items ({selectedStop.items})
+                      </p>
+                    </div>
+
+                    {/* Search input */}
+                    {selectedStop.items > 4 && (
+                      <div className="relative">
+                        <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+                        <Input
+                          placeholder="Search items..."
+                          value={itemSearchQuery}
+                          onChange={(e) => setItemSearchQuery(e.target.value)}
+                          className="h-8 pl-8 text-xs"
+                        />
+                      </div>
+                    )}
+
+                    {(() => {
+                      const relatedOrder = orders.find(o => o.id === selectedStop.orderId);
+                      const productCatalog = [
+                        { name: 'Widget Pro X200', price: 149.99 },
+                        { name: 'Smart Sensor V3', price: 89.99 },
+                        { name: 'Premium Widget XL', price: 249.99 },
+                        { name: 'Basic Connector Kit', price: 29.99 },
+                        { name: 'USB-C Hub Adapter', price: 44.99 },
+                        { name: 'Wireless Charger Pad', price: 59.99 },
+                        { name: 'Noise Cancelling Buds', price: 129.99 },
+                        { name: 'Mechanical Keyboard', price: 159.99 },
+                        { name: 'Power Strip Surge', price: 34.99 },
+                        { name: 'LED Desk Lamp', price: 79.99 },
+                        { name: 'Bluetooth Speaker Mini', price: 69.99 },
+                        { name: 'Portable SSD 256GB', price: 199.99 },
+                        { name: 'HDMI Cable 2m', price: 12.99 },
+                        { name: 'Phone Stand Holder', price: 19.99 },
+                        { name: 'Webcam HD 1080p', price: 109.99 },
+                        { name: 'Mouse Pad XL', price: 24.99 },
+                        { name: 'USB Flash Drive 64GB', price: 39.99 },
+                        { name: 'Screen Protector Pack', price: 49.99 },
+                        { name: 'Wireless Mouse', price: 89.99 },
+                        { name: 'USB Micro Cable 3m', price: 14.99 },
+                      ];
+                      const count = relatedOrder ? relatedOrder.items : selectedStop.items;
+                      const allItems = productCatalog.slice(0, Math.min(count, 20)).map((p, idx) => ({
+                        name: p.name,
+                        productId: `SKU-${String(idx + 1).padStart(3, '0')}`,
+                        qty: relatedOrder
+                          ? Math.max(1, Math.floor(Math.random() * 5) + 1)
+                          : Math.max(1, Math.floor(selectedStop.items / 3)),
+                        price: p.price,
+                      }));
+
+                      const query = itemSearchQuery.toLowerCase().trim();
+                      const filteredItems = query
+                        ? allItems.filter(item =>
+                            item.name.toLowerCase().includes(query) || item.productId.toLowerCase().includes(query)
+                          )
+                        : allItems;
+
+                      const showingCount = filteredItems.length;
+                      const totalCount = allItems.length;
+
+                      return (
+                        <>
+                          {/* Showing count */}
+                          {(query || showingCount !== totalCount) && (
+                            <p className="text-[10px] text-muted-foreground">
+                              Showing {showingCount} of {totalCount} items
+                            </p>
+                          )}
+
+                          <div className="max-h-[50vh] overflow-y-auto custom-scrollbar space-y-1">
+                            {filteredItems.length === 0 ? (
+                              <div className="flex items-center justify-center py-6 text-xs text-muted-foreground">
+                                No items match "{itemSearchQuery}"
+                              </div>
+                            ) : (
+                              filteredItems.map((item, idx) => (
+                                <div
+                                  key={idx}
+                                  className="flex items-center justify-between rounded-md border px-2.5 py-1.5"
+                                >
+                                  <div className="flex items-center gap-2 min-w-0">
+                                    <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded bg-muted">
+                                      <Package className="h-3 w-3 text-muted-foreground" />
+                                    </div>
+                                    <div className="min-w-0">
+                                      <p className="text-xs font-medium truncate">{item.name}</p>
+                                      <p className="text-[10px] text-muted-foreground">{item.productId}</p>
+                                    </div>
+                                  </div>
+                                  <div className="text-right shrink-0 ml-2">
+                                    <p className="text-xs font-semibold tabular-nums">
+                                      ₱{(item.qty * item.price).toFixed(2)}
+                                    </p>
+                                    <p className="text-[10px] text-muted-foreground">x{item.qty}</p>
+                                  </div>
+                                </div>
+                              ))
+                            )}
+                          </div>
+                        </>
+                      );
+                    })()}
+
+                    <div className="flex items-center justify-between rounded-md bg-muted/40 px-2.5 py-1.5">
+                      <span className="text-xs text-muted-foreground">Total</span>
+                      <span className="text-sm font-bold tabular-nums">₱{selectedStop.total.toFixed(2)}</span>
+                    </div>
+                  </div>
+
+                  <Separator />
+
+                  {/* Route Summary (compact) */}
+                  <div className="space-y-2">
+                    <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                      Route Summary
+                    </p>
+                    <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-xs">
+                      <div>
+                        <p className="text-muted-foreground">Route ID</p>
+                        <p className="font-medium font-mono truncate">{delivery.id}</p>
+                      </div>
+                      <div>
+                        <p className="text-muted-foreground">Stops</p>
+                        <p className="font-medium">{routeStops.length}</p>
+                      </div>
+                      <div>
+                        <p className="text-muted-foreground">Distance</p>
+                        <p className="font-medium">{delivery.totalDistance} km</p>
+                      </div>
+                      <div>
+                        <p className="text-muted-foreground">Value</p>
+                        <p className="font-semibold">₱{delivery.totalValue.toLocaleString('en-US', { minimumFractionDigits: 2 })}</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Mark as Delivered button */}
+                  {selectedStop.status === 'in_transit' && (
+                    <Button className="w-full gap-2" onClick={handleMarkDelivered}>
+                      <CheckCircle2 className="h-4 w-4" />
+                      Mark as Delivered
+                    </Button>
+                  )}
+                </div>
+              </>
+            )}
+          </SheetContent>
+        </Sheet>
       </div>
 
       {/* Cancel Order Dialog */}

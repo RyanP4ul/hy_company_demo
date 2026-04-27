@@ -117,7 +117,7 @@ function getInitials(name: string): string {
 }
 
 function formatCurrency(value: number): string {
-  return `$${value.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
+  return `₱${value.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
 }
 
 // ─── Customer Type Badge ────────────────────────────────────────────────────

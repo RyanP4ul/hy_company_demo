@@ -20,6 +20,7 @@ export type NavItem =
   | 'sales'
   | 'categories'
   | 'warehouses'
+  | 'shipping-tracker'
   // Sub-pages (no sidebar nav item)
   | 'create-order'
   | 'create-delivery'
@@ -70,7 +71,8 @@ export const NAV_ITEMS: { id: NavItem; label: string; icon: string; group: strin
   { id: 'settings', label: 'Settings', icon: 'Settings', group: 'System' },
   { id: 'archived', label: 'Archived', icon: 'Archive', group: 'System' },
   { id: 'central-inbox', label: 'Central Inbox', icon: 'MessageSquare', group: 'Main' },
-  { id: 'sales', label: 'Sales', icon: 'CircleDollarSign', group: 'Main' },
+  { id: 'sales', label: 'Sales', icon: 'CirclePesoSign', group: 'Main' },
   { id: 'categories', label: 'Categories', icon: 'Tags', group: 'Management' },
   { id: 'warehouses', label: 'Warehouses', icon: 'Warehouse', group: 'Management' },
+  { id: 'shipping-tracker', label: 'Shipping Tracker', icon: 'Ship', group: 'Main' },
 ];

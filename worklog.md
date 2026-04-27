@@ -704,7 +704,7 @@ Work Log:
 
 Stage Summary:
 - New Sales page in Main sidebar section between Central Inbox and the System group
-- 12 mock sales transactions auto-linked to delivered orders with realistic payment methods
+- 12 mock sales transactions delivered orders with realistic payment methods
 - Auto-recording feature with payment method breakdown and refund capability
 
 ---
@@ -824,3 +824,148 @@ Stage Summary:
 - Complete text-based documentation of the entire HyOps system
 - Every page, every action, every data entity documented in one place
 - 3 tabs: Process Flow (narrative), Action Matrix (reference), Data Map (technical)
+
+---
+Task ID: REMOVE-FLOWCHART
+Agent: Main Agent
+Task: Remove flowchart page entirely from the project
+
+Work Log:
+- Deleted `/src/components/features/flowchart-page.tsx`
+- Removed lazy import and pageComponents entry from `/src/app/page.tsx`
+- Removed 'flowchart' from NavItem union type in `/src/stores/navigation.ts`
+- Removed flowchart entry from NAV_ITEMS array in `/src/stores/navigation.ts`
+- Removed flowchart translations from all 3 languages (EN, TL, ZH) in `/src/lib/i18n/translations.ts`
+- Removed GitBranch icon import and iconMap entry from `/src/components/dashboard/dashboard-sidebar.tsx`
+
+Stage Summary:
+- Flowchart page completely removed from codebase
+- Zero lint errors, dev server compiles successfully
+
+---
+Task ID: CURRENCY-TO-PHP
+Agent: Main Agent + 5 subagents
+Task: Change all currency from USD ($) to Philippine Pesos (₱) across entire project
+
+Work Log:
+- Updated `/src/lib/mock-data.ts`: 14 changes - KPI values, top customers revenue, top products revenue, audit log total, inbox message prices
+- Updated `/src/components/features/dashboard-page.tsx`: 4 changes - revenue chart tooltip, 3 chart Y-axis formatters ($Xk → ₱Xk)
+- Updated `/src/components/features/analytics-page.tsx`: 3 changes - metric values, chart Y-axis formatter
+- Updated `/src/components/features/sales-page.tsx`: 10 changes - summary cards, table, detail sheet, refund dialog
+- Updated `/src/components/features/orders-page.tsx`: 6 changes - table column, order detail drawer items/tax/total
+- Updated `/src/components/features/create-delivery-page.tsx`: 3 changes - order cards + summary total value, removed DollarSign icon import
+- Updated `/src/components/features/delivery-detail-page.tsx`: 4 changes - stop totals, route summary
+- Updated `/src/components/features/deliveries-page.tsx`: 1 change - route value display, removed DollarSign import
+- Updated `/src/components/features/reports-page.tsx`: 9 changes - all sales data rows + summary values
+- Updated `/src/components/features/customers-page.tsx`: 1 change - formatCurrency function
+- Updated `/src/components/features/central-inbox-page.tsx`: 1 change - formatCurrency function
+- Updated `/src/components/features/inbox-page.tsx`: 1 change - formatCurrency function
+- Updated `/src/components/features/inventory-page.tsx`: 2 changes - table price + detail price, form label
+- Updated `/src/components/features/payments-page.tsx`: 3 changes - table, footer, detail amount
+- Updated `/src/components/features/search-dialog.tsx`: 2 changes - inventory and order subtitles
+- Updated `/src/components/features/archived-page.tsx`: 2 changes - price and total display
+- Updated `/src/components/features/settings-page.tsx`: 1 change - currency option USD($) → PHP(₱)
+- Updated `/src/components/features/orders-page.tsx`: 1 change - form label "Total Amount (₱)"
+
+Stage Summary:
+- All USD ($) references changed to Philippine Pesos (₱) across 18 files
+- DollarSign lucide icons replaced with ₱ text spans in create-delivery and deliveries pages
+- Settings currency selector updated to PHP (₱)
+- Form labels updated: "Price ($)" → "Price (₱)", "Total Amount ($)" → "Total Amount (₱)"
+- All charts (AreaChart, BarChart, PieChart) now show ₱ prefix
+- Zero compilation errors (0 errors, 9 pre-existing TanStack Table warnings)
+- Dev server compiles successfully
+
+---
+Task ID: DELIVERIES-UI-REDESIGN-2
+Agent: Main Agent
+Task: Redesign Deliveries page to match Shipping Tracker UI + add paid/unpaid status everywhere
+
+Work Log:
+- Completely rewrote `/src/components/features/deliveries-page.tsx` to match Shipping Tracker UI:
+  - Stats Summary: 4-card grid using AnimatedCard with icon+text layout (In Transit, Pending, Completed, Total Stops)
+  - Payment Summary Bar: Paid Orders, Unpaid Orders, Total Distance in a horizontal AnimatedCard
+  - Search + Tabs: Single AnimatedCard with search bar and Active/Completed toggle buttons (matching Shipping Tracker)
+  - Route Cards: 2-column grid (md:grid-cols-2) using TrackingCard component with:
+    - Card header: Truck icon, route ID, status badge, action buttons (View, Reschedule, Archive)
+    - JourneyStrip (compact dot-line visualization from Shipping Tracker)
+    - Current Stop info (blue highlight for in_transit) with payment status badge
+    - Progress bar with text
+    - Rescheduled badge (when applicable)
+    - Expandable Accordion with All Stops list
+    - Each stop shows: customer, delivery status badge, payment status badge (Paid/Unpaid), address, items, value, ETA/delivered time, notes
+    - Footer: driver, vehicle, distance, orders, paid/unpaid counts
+  - Empty state component (reused from Shipping Tracker pattern)
+  - Reschedule dialog preserved from original implementation
+  - All event listeners preserved: search navigation, archive restore, delivery created
+- Added paid/unpaid payment status cross-referencing orders in delivery cards:
+  - `getOrderPaymentStatus()` helper function looks up paymentStatus from orders mock data using orderId
+  - Payment badges shown on: stop detail, current stop info, accordion header (unpaid count), card footer
+- Updated `/src/components/features/orders-page.tsx`:
+  - Added payment status badge (Paid/Unpaid) to Order detail drawer header area
+  - Badge appears alongside StatusBadge, PriorityBadge, and DeliveryType badge
+- Updated `/src/components/features/delivery-detail-page.tsx`:
+  - Added `Wallet` import from lucide-react
+  - Added payment status badge to StopCardsGrid (each stop card shows Paid/Unpaid badge)
+  - Added payment status badge to StopDetailPanel header (next to customer name)
+
+Stage Summary:
+- Deliveries page now matches Shipping Tracker's beautiful card-based UI with stats, tabs, 2-column grid, accordion stops
+- Payment status (Paid/Unpaid) visible in 5 locations:
+  1. Deliveries page: each stop in expandable accordion
+  2. Deliveries page: current stop info (if in_transit)
+  3. Deliveries page: card footer summary (X paid · Y unpaid)
+  4. Order detail drawer: header area badge
+  5. Delivery detail page: stop cards and detail panel
+- Payment summary bar shows total paid/unpaid across all delivery routes
+- Zero compilation errors, dev server compiles successfully
+
+---
+Task ID: DELIVERY-DETAIL-LAYOUT-REDESIGN
+Agent: Main Agent
+Task: Redesign Delivery Detail View layout - conditional 2-column when stop selected, remove order item limit
+
+Work Log:
+- Updated `/src/components/features/delivery-detail-page.tsx`:
+  - **StopDetailPanel**: Removed `.slice(0, 4)` limit on order items — now shows ALL items
+  - Added scrollable wrapper around order items list: `max-h-[400px] overflow-y-auto custom-scrollbar`
+  - Added "Showing all X items" indicator next to the "Order Items (X)" header
+  - Total summary row stays below the scrollable area (outside the scroll container)
+  - **Main layout (DeliveryDetailPage)**: Changed from static 3-column grid to conditional layout:
+    - When `selectedStop` is truthy: 2-column layout
+      - LEFT (lg:col-span-2): StopDetailPanel (full width, scrollable order items)
+      - RIGHT (lg:col-span-1): Scrollable panel with DriverInfoCard, RouteSummary, ProximityCombobox, StopCardsGrid
+      - Right side uses `max-h-[calc(100vh-300px)] overflow-y-auto custom-scrollbar`
+    - When no stop selected: Original 3-column layout preserved (map, stop cards, detail panel)
+  - All existing functionality preserved: map, journey strip, cancel/reschedule dialogs, mark as delivered, proximity combobox, stop selection
+
+Stage Summary:
+- Delivery Detail page now dynamically switches layout based on stop selection
+- All order items are visible (no more 4-item limit) with scrollable container
+- Right sidebar is scrollable when many components are stacked
+- Zero compilation changes beyond the modified file
+- All callbacks (onMarkDelivered, onSelectStop) work correctly
+
+---
+Task ID: 3
+Agent: Main Agent (via full-stack-developer subagent)
+Task: Change Delivery Detail stop viewing from in-page layout change to Sheet drawer
+
+Work Log:
+- Read and analyzed the full delivery-detail-page.tsx (1613 lines)
+- Verified Sheet component exists at src/components/ui/sheet.tsx
+- Removed the conditional layout switching (selectedStop ? 2-col : 3-col)
+- Main page now always shows default 3-column layout (Map+Stops left, sidebar right)
+- Added Sheet drawer (side="right") that opens when a stop is clicked
+- Drawer content: Customer info, Order ID, Address, ETA/Time, Notes, Order Items (scrollable max-h-50vh), Route Summary, Mark as Delivered button
+- Removed from drawer: Stops list, Next Destination combobox, Driver Info
+- All click handlers (StopCardsGrid, JourneyStrip, SimplifiedGPSMap, ProximityCombobox) automatically open drawer via handleSelectStop
+- Closing drawer resets selectedStop to null
+- Ran lint: 0 errors, 9 pre-existing warnings
+- Dev server compiled successfully
+
+Stage Summary:
+- File modified: src/components/features/delivery-detail-page.tsx
+- Sheet drawer replaces the in-page layout change for stop viewing
+- Drawer shows only Order Items and Route Summary as requested
+- Main page layout is stable (always 3-column grid)

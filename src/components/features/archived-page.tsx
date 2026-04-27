@@ -19,7 +19,6 @@ import {
   MapPin,
   Star,
   Clock,
-  DollarSign,
   Warehouse,
   BarChart3,
   Navigation,
@@ -30,6 +29,7 @@ import {
   Gauge,
   CheckCircle2,
 } from 'lucide-react';
+import { PesoSign } from '@/components/icons/peso-sign';
 import { toast } from 'sonner';
 import { formatDistanceToNow, parseISO } from 'date-fns';
 
@@ -176,7 +176,7 @@ function InventoryDetailView({ data }: { data: Record<string, unknown> }) {
       </div>
       <Separator />
       <DetailRow icon={Hash} label="Category" value={String(data.category)} />
-      <DetailRow icon={DollarSign} label="Price" value={data.price ? `$${Number(data.price).toFixed(2)}` : undefined} />
+      <DetailRow icon={PesoSign} label="Price" value={data.price ? `₱${Number(data.price).toFixed(2)}` : undefined} />
       <DetailRow icon={BarChart3} label="Stock" value={data.stock ? Number(data.stock).toLocaleString() : undefined} />
       <DetailRow icon={BarChart3} label="Min. Stock" value={data.minStock ? Number(data.minStock).toLocaleString() : undefined} />
       <DetailRow icon={Package} label="Status" value={data.status ? String(data.status).replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase()) : undefined} />
@@ -220,7 +220,7 @@ function OrderDetailView({ data }: { data: Record<string, unknown> }) {
       </div>
       <Separator />
       <DetailRow icon={Package} label="Items" value={data.items ? `${data.items} items` : undefined} />
-      <DetailRow icon={DollarSign} label="Total" value={data.total ? `$${Number(data.total).toLocaleString('en-US', { minimumFractionDigits: 2 })}` : undefined} />
+      <DetailRow icon={PesoSign} label="Total" value={data.total ? `₱${Number(data.total).toLocaleString('en-US', { minimumFractionDigits: 2 })}` : undefined} />
       <DetailRow icon={Calendar} label="Date" value={String(data.date)} />
       <div className="flex items-center gap-3 pt-2">
         {data.status && (
