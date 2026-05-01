@@ -157,7 +157,7 @@ export interface DeliveryRoute {
 export const deliveries: DeliveryRoute[] = [
   {
     id: 'DEL-1092',
-    driver: 'James Wilson',
+    driver: 'Ivan Paring',
     vehicle: 'Van #1',
     status: 'delivered',
     origin: { lat: 14.5995, lng: 120.9842 },
@@ -178,7 +178,7 @@ export const deliveries: DeliveryRoute[] = [
   },
   {
     id: 'DEL-1091',
-    driver: 'Maria Garcia',
+    driver: 'Jhon Elizer Belmonte',
     vehicle: 'Van #2',
     status: 'in_transit',
     origin: { lat: 14.6090, lng: 120.9820 },
@@ -199,7 +199,7 @@ export const deliveries: DeliveryRoute[] = [
   },
   {
     id: 'DEL-1090',
-    driver: 'David Chen',
+    driver: 'User 1',
     vehicle: 'Van #3',
     status: 'in_transit',
     origin: { lat: 14.5378, lng: 121.0014 },
@@ -270,40 +270,40 @@ export const deliveryTimeline = [
 ];
 
 export const activityTimeline = [
-  { id: '1', user: 'Alex Johnson', action: 'created order', target: 'ORD-2847', time: '2 min ago', type: 'order' as const },
+  { id: '1', user: 'Ryan Paul Espinola', action: 'created order', target: 'ORD-2847', time: '2 min ago', type: 'order' as const },
   { id: '2', user: 'System', action: 'alert: low stock', target: 'Widget Pro X200', time: '5 min ago', type: 'alert' as const },
-  { id: '3', user: 'Maria Garcia', action: 'started delivery', target: 'DEL-1091', time: '30 min ago', type: 'delivery' as const },
-  { id: '4', user: 'James Wilson', action: 'completed delivery', target: 'DEL-1092', time: '1 hour ago', type: 'delivery' as const },
-  { id: '5', user: 'Alex Johnson', action: 'updated inventory', target: 'Smart Sensor V3', time: '2 hours ago', type: 'inventory' as const },
-  { id: '6', user: 'System', action: 'new user registered', target: 'Sarah Miller', time: '3 hours ago', type: 'user' as const },
-  { id: '7', user: 'David Chen', action: 'accepted delivery', target: 'DEL-1090', time: '4 hours ago', type: 'delivery' as const },
+  { id: '3', user: 'Jhon Elizer Belmonte', action: 'started delivery', target: 'DEL-1091', time: '30 min ago', type: 'delivery' as const },
+  { id: '4', user: 'Ivan Paring', action: 'completed delivery', target: 'DEL-1092', time: '1 hour ago', type: 'delivery' as const },
+  { id: '5', user: 'Ryan Paul Espinola', action: 'updated inventory', target: 'Smart Sensor V3', time: '2 hours ago', type: 'inventory' as const },
+  { id: '6', user: 'System', action: 'new user registered', target: 'Miguel Cunanan', time: '3 hours ago', type: 'user' as const },
+  { id: '7', user: 'User 1', action: 'accepted delivery', target: 'DEL-1090', time: '4 hours ago', type: 'delivery' as const },
   { id: '8', user: 'System', action: 'payment received', target: 'INV-4520 (₱2,450)', time: '5 hours ago', type: 'payment' as const },
 ];
 
 export const users = [
-  { id: 'USR-001', name: 'Alex Johnson', email: 'alex@company.com', role: 'Admin', status: 'active' as const, lastActive: 'Just now', avatar: '' },
-  { id: 'USR-002', name: 'Sarah Miller', email: 'sarah@company.com', role: 'Staff', status: 'active' as const, lastActive: '5 min ago', avatar: '' },
-  { id: 'USR-003', name: 'James Wilson', email: 'james@company.com', role: 'Staff', status: 'active' as const, lastActive: '1 hour ago', avatar: '' },
-  { id: 'USR-004', name: 'Maria Garcia', email: 'maria@company.com', role: 'Staff', status: 'active' as const, lastActive: '30 min ago', avatar: '' },
-  { id: 'USR-005', name: 'David Chen', email: 'david@company.com', role: 'Staff', status: 'active' as const, lastActive: '2 hours ago', avatar: '' },
-  { id: 'USR-006', name: 'Emily Taylor', email: 'emily@company.com', role: 'Admin', status: 'active' as const, lastActive: '4 hours ago', avatar: '' },
-  { id: 'USR-007', name: 'Michael Brown', email: 'michael@company.com', role: 'Staff', status: 'inactive' as const, lastActive: '3 days ago', avatar: '' },
-  { id: 'USR-008', name: 'Lisa Wang', email: 'lisa@company.com', role: 'Staff', status: 'active' as const, lastActive: '1 day ago', avatar: '' },
+  { id: 'USR-001', name: 'Ryan Paul Espinola', email: 'espinola@company.com', role: 'Admin', status: 'active' as const, lastActive: 'Just now', avatar: '' },
+  { id: 'USR-002', name: 'Miguel Cunanan', email: 'cunanan@company.com', role: 'Staff', status: 'active' as const, lastActive: '5 min ago', avatar: '' },
+  { id: 'USR-003', name: 'Ivan Paring', email: 'paring@company.com', role: 'Staff', status: 'active' as const, lastActive: '1 hour ago', avatar: '' },
+  { id: 'USR-004', name: 'Jhon Elizer Belmonte', email: 'belmonte@company.com', role: 'Staff', status: 'active' as const, lastActive: '30 min ago', avatar: '' },
+  { id: 'USR-005', name: 'User 1', email: 'user1@company.com', role: 'Staff', status: 'active' as const, lastActive: '2 hours ago', avatar: '' },
+  { id: 'USR-006', name: 'User 2', email: 'user2@company.com', role: 'Admin', status: 'active' as const, lastActive: '4 hours ago', avatar: '' },
+  { id: 'USR-007', name: 'User 3', email: 'user3@company.com', role: 'Staff', status: 'inactive' as const, lastActive: '3 days ago', avatar: '' },
+  { id: 'USR-008', name: 'User 4', email: 'user4@company.com', role: 'Staff', status: 'active' as const, lastActive: '1 day ago', avatar: '' },
 ];
 
 export const auditLogs = [
-  { id: 'LOG-001', user: 'Alex Johnson', action: 'UPDATE', resource: 'Product', resourceId: 'SKU-002', details: { field: 'stock', old: '50', new: '120' }, timestamp: '2024-01-15 10:30:22', ip: '192.168.1.100' },
-  { id: 'LOG-002', user: 'Alex Johnson', action: 'CREATE', resource: 'Order', resourceId: 'ORD-2847', details: { customer: 'Acme Corp', items: 12, total: '₱2,400' }, timestamp: '2024-01-15 10:28:15', ip: '192.168.1.100' },
+  { id: 'LOG-001', user: 'Ryan Paul Espinola', action: 'UPDATE', resource: 'Product', resourceId: 'SKU-002', details: { field: 'stock', old: '50', new: '120' }, timestamp: '2024-01-15 10:30:22', ip: '192.168.1.100' },
+  { id: 'LOG-002', user: 'Ryan Paul Espinola', action: 'CREATE', resource: 'Order', resourceId: 'ORD-2847', details: { customer: 'Acme Corp', items: 12, total: '₱2,400' }, timestamp: '2024-01-15 10:28:15', ip: '192.168.1.100' },
   { id: 'LOG-003', user: 'System', action: 'ALERT', resource: 'Inventory', resourceId: 'SKU-002', details: { alert: 'Out of Stock', type: '28', current: 0, minimum: 20 }, timestamp: '2024-01-15 10:25:00', ip: 'system' },
-  { id: 'LOG-004', user: 'Sarah Miller', action: 'UPDATE', resource: 'Delivery', resourceId: 'DEL-1091', details: { field: 'status', old: 'pending', new: 'in_transit' }, timestamp: '2024-01-15 10:00:00', ip: '192.168.1.105' },
-  { id: 'LOG-005', user: 'Emily Taylor', action: 'DELETE', resource: 'User', resourceId: 'USR-010', details: { reason: 'Account terminated', user: 'John Doe' }, timestamp: '2024-01-15 09:45:30', ip: '192.168.1.108' },
-  { id: 'LOG-006', user: 'James Wilson', action: 'UPDATE', resource: 'Delivery', resourceId: 'DEL-1092', details: { field: 'status', old: 'in_transit', new: 'delivered' }, timestamp: '2024-01-15 09:30:00', ip: 'mobile' },
+  { id: 'LOG-004', user: 'Miguel Cunanan', action: 'UPDATE', resource: 'Delivery', resourceId: 'DEL-1091', details: { field: 'status', old: 'pending', new: 'in_transit' }, timestamp: '2024-01-15 10:00:00', ip: '192.168.1.105' },
+  { id: 'LOG-005', user: 'User 2', action: 'DELETE', resource: 'User', resourceId: 'USR-010', details: { reason: 'Account terminated', user: 'John Doe' }, timestamp: '2024-01-15 09:45:30', ip: '192.168.1.108' },
+  { id: 'LOG-006', user: 'Ivan Paring', action: 'UPDATE', resource: 'Delivery', resourceId: 'DEL-1092', details: { field: 'status', old: 'in_transit', new: 'delivered' }, timestamp: '2024-01-15 09:30:00', ip: 'mobile' },
 ];
 
 export const drivers = [
-  { id: 'DRV-001', name: 'James Wilson', phone: '+1 (555) 123-4567', status: 'available' as const, vehicle: 'Van #1', completedToday: 8, rating: 4.8, totalDeliveries: 1247 },
-  { id: 'DRV-002', name: 'Maria Garcia', phone: '+1 (555) 234-5678', status: 'on_delivery' as const, vehicle: 'Van #2', completedToday: 6, rating: 4.9, totalDeliveries: 1102 },
-  { id: 'DRV-003', name: 'David Chen', phone: '+1 (555) 345-6789', status: 'on_delivery' as const, vehicle: 'Van #3', completedToday: 5, rating: 4.7, totalDeliveries: 987 },
+  { id: 'DRV-001', name: 'Ivan Paring', phone: '+1 (555) 123-4567', status: 'available' as const, vehicle: 'Van #1', completedToday: 8, rating: 4.8, totalDeliveries: 1247 },
+  { id: 'DRV-002', name: 'Jhon Elizer Belmonte', phone: '+1 (555) 234-5678', status: 'on_delivery' as const, vehicle: 'Van #2', completedToday: 6, rating: 4.9, totalDeliveries: 1102 },
+  { id: 'DRV-003', name: 'User 1', phone: '+1 (555) 345-6789', status: 'on_delivery' as const, vehicle: 'Van #3', completedToday: 5, rating: 4.7, totalDeliveries: 987 },
   { id: 'DRV-004', name: 'Sarah Kim', phone: '+1 (555) 456-7890', status: 'available' as const, vehicle: 'Van #4', completedToday: 7, rating: 4.6, totalDeliveries: 856 },
   { id: 'DRV-005', name: 'Robert Martinez', phone: '+1 (555) 567-8901', status: 'offline' as const, vehicle: 'Van #5', completedToday: 0, rating: 4.5, totalDeliveries: 734 },
 ];
@@ -594,7 +594,7 @@ export const inboxConversations: InboxConversation[] = [
     customerTotalSpent: 68450,
     customerSince: '2023-03-15',
     status: 'open',
-    assignedTo: 'Sarah Miller',
+    assignedTo: 'Miguel Cunanan',
     lastMessage: 'Can we get an update on ORD-2847?',
     lastMessageTime: '2 min ago',
     unreadCount: 3,
@@ -619,7 +619,7 @@ export const inboxConversations: InboxConversation[] = [
     customerTotalSpent: 52300,
     customerSince: '2023-05-22',
     status: 'open',
-    assignedTo: 'Alex Johnson',
+    assignedTo: 'Ryan Paul Espinola',
     lastMessage: '我们的订单已经到港口了吗？',
     lastMessageTime: '15 min ago',
     unreadCount: 2,
@@ -643,7 +643,7 @@ export const inboxConversations: InboxConversation[] = [
     customerTotalSpent: 45100,
     customerSince: '2023-06-10',
     status: 'resolved',
-    assignedTo: 'Sarah Miller',
+    assignedTo: 'Miguel Cunanan',
     lastMessage: 'Great, that works! Thanks for your help.',
     lastMessageTime: '1 hour ago',
     unreadCount: 0,
@@ -712,7 +712,7 @@ export const inboxConversations: InboxConversation[] = [
     customerTotalSpent: 18500,
     customerSince: '2023-08-20',
     status: 'pending',
-    assignedTo: 'Emily Taylor',
+    assignedTo: 'User 2',
     lastMessage: '这次的包装有问题，有几个产品损坏了',
     lastMessageTime: '45 min ago',
     unreadCount: 1,
@@ -734,14 +734,14 @@ export const inboxConversations: InboxConversation[] = [
     customerTotalSpent: 33200,
     customerSince: '2023-08-18',
     status: 'open',
-    assignedTo: 'David Chen',
+    assignedTo: 'User 1',
     lastMessage: 'The delivery for ORD-2841 is delayed.',
     lastMessageTime: '1 hour ago',
     unreadCount: 1,
     webhookEventId: 'WH-VIB-78242',
     messages: [
       { id: 'MSG-035', conversationId: 'CONV-007', sender: 'customer', content: 'We noticed that delivery DEL-1090 hasn\'t moved for the past 2 hours. Can you check?', timestamp: '2024-01-15 08:00 AM', type: 'text' },
-      { id: 'MSG-036', conversationId: 'CONV-007', sender: 'agent', content: 'Let me check with the driver. David Chen is currently on that delivery route.', timestamp: '2024-01-15 08:10 AM', type: 'text' },
+      { id: 'MSG-036', conversationId: 'CONV-007', sender: 'agent', content: 'Let me check with the driver. User 1 is currently on that delivery route.', timestamp: '2024-01-15 08:10 AM', type: 'text' },
       { id: 'MSG-037', conversationId: 'CONV-007', sender: 'agent', content: 'The driver reported heavy traffic on the route. ETA has been updated to approximately 4 hours from start.', timestamp: '2024-01-15 08:20 AM', type: 'text' },
       { id: 'MSG-038', conversationId: 'CONV-007', sender: 'customer', content: 'The delivery for ORD-2841 is delayed.', timestamp: '2024-01-15 09:00 AM', type: 'text' },
     ],
@@ -862,10 +862,10 @@ export interface Warehouse {
 }
 
 export const warehouses: Warehouse[] = [
-  { id: 'WH-001', name: 'Warehouse A', address: '123 Commerce Blvd, Suite 100', city: 'New York', type: 'main', status: 'active', utilized: 3450, manager: 'James Wilson', contactPhone: '+1 (555) 123-4567', createdAt: '2022-06-15' },
-  { id: 'WH-002', name: 'Warehouse B', address: '456 Industrial Park Dr', city: 'Los Angeles', type: 'regional', status: 'active', utilized: 2180, manager: 'Maria Garcia', contactPhone: '+1 (555) 234-5678', createdAt: '2022-09-20' },
-  { id: 'WH-003', name: 'Warehouse C', address: '789 Logistics Way', city: 'Chicago', type: 'fulfillment', status: 'active', utilized: 1450, manager: 'David Chen', contactPhone: '+1 (555) 345-6789', createdAt: '2023-01-10' },
+  { id: 'WH-001', name: 'Warehouse A', address: '123 Commerce Blvd, Suite 100', city: 'New York', type: 'main', status: 'active', utilized: 3450, manager: 'Ivan Paring', contactPhone: '+1 (555) 123-4567', createdAt: '2022-06-15' },
+  { id: 'WH-002', name: 'Warehouse B', address: '456 Industrial Park Dr', city: 'Los Angeles', type: 'regional', status: 'active', utilized: 2180, manager: 'Jhon Elizer Belmonte', contactPhone: '+1 (555) 234-5678', createdAt: '2022-09-20' },
+  { id: 'WH-003', name: 'Warehouse C', address: '789 Logistics Way', city: 'Chicago', type: 'fulfillment', status: 'active', utilized: 1450, manager: 'User 1', contactPhone: '+1 (555) 345-6789', createdAt: '2023-01-10' },
   { id: 'WH-004', name: 'Cold Storage Unit D', address: '321 Freeze Point Rd', city: 'Houston', type: 'cold_storage', status: 'active', utilized: 890, manager: 'Sarah Kim', contactPhone: '+1 (555) 456-7890', createdAt: '2023-04-05' },
   { id: 'WH-005', name: 'Warehouse E', address: '654 Harbor View Ln', city: 'San Francisco', type: 'regional', status: 'maintenance', utilized: 0, manager: 'Robert Martinez', contactPhone: '+1 (555) 567-8901', createdAt: '2023-07-18' },
-  { id: 'WH-006', name: 'Warehouse F', address: '987 Distribution Ave', city: 'Seattle', type: 'fulfillment', status: 'inactive', utilized: 0, manager: 'Emily Taylor', contactPhone: '+1 (555) 678-9012', createdAt: '2023-11-01' },
+  { id: 'WH-006', name: 'Warehouse F', address: '987 Distribution Ave', city: 'Seattle', type: 'fulfillment', status: 'inactive', utilized: 0, manager: 'User 2', contactPhone: '+1 (555) 678-9012', createdAt: '2023-11-01' },
 ];
