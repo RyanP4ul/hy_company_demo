@@ -10,7 +10,7 @@ import {
   type WebhookSource,
 } from '@/lib/mock-data';
 import { PageTransition, FadeIn } from '@/components/shared/animated-components';
-import { cn } from '@/lib/utils';
+import { cn, formatPeso } from '@/lib/utils';
 import { toast } from 'sonner';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -50,10 +50,6 @@ function getInitials(name: string): string {
     .join('')
     .toUpperCase()
     .slice(0, 2);
-}
-
-function formatCurrency(value: number): string {
-  return `₱${value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
 function getRelativeTime(timeStr: string): string {
@@ -451,7 +447,7 @@ export default function InboxPage() {
                             </div>
                             <div className="flex justify-between">
                               <span className="text-muted-foreground">Total Spent</span>
-                              <span className="font-semibold">{formatCurrency(selectedCustomer.totalSpent)}</span>
+                              <span className="font-semibold">{formatPeso(selectedCustomer.totalSpent)}</span>
                             </div>
                             <div className="flex justify-between">
                               <span className="text-muted-foreground">Since</span>

@@ -89,7 +89,7 @@ import {
 } from 'lucide-react';
 import { PesoSign, CirclePesoSign } from '@/components/icons/peso-sign';
 import { toast } from 'sonner';
-import { cn } from '@/lib/utils';
+import { cn, formatPeso } from '@/lib/utils';
 import { useSearchStore } from '@/stores/search';
 
 // ==================== Helpers ====================
@@ -290,7 +290,7 @@ export default function SalesPage() {
             'font-semibold tabular-nums',
             row.original.status === 'refunded' ? 'line-through text-muted-foreground' : ''
           )}>
-            ₱${(row.original.total).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+            {formatPeso(row.original.total)}
           </span>
         ),
       },
@@ -408,7 +408,7 @@ export default function SalesPage() {
                 <div>
                   <p className="text-sm text-muted-foreground">Total Revenue</p>
                   <p className="mt-0.5 text-xl font-bold tabular-nums">
-                    ₱${stats.totalRevenue.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+                    {formatPeso(stats.totalRevenue, 0, 0)}
                   </p>
                 </div>
               </div>
@@ -421,7 +421,7 @@ export default function SalesPage() {
                 <div>
                   <p className="text-sm text-muted-foreground">Net Revenue</p>
                   <p className="mt-0.5 text-xl font-bold text-green-600 dark:text-green-400 tabular-nums">
-                    ₱${stats.netRevenue.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+                    {formatPeso(stats.netRevenue, 0, 0)}
                   </p>
                 </div>
               </div>
@@ -445,7 +445,7 @@ export default function SalesPage() {
                 <div>
                   <p className="text-sm text-muted-foreground">Avg. Order Value</p>
                   <p className="mt-0.5 text-xl font-bold tabular-nums">
-                    ₱${stats.avgOrderValue.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                    {formatPeso(stats.avgOrderValue)}
                   </p>
                 </div>
               </div>
@@ -472,7 +472,7 @@ export default function SalesPage() {
                       <p className="text-xs text-muted-foreground">{cfg.label}</p>
                       <div className="flex items-baseline justify-between gap-2">
                         <p className="text-base font-bold tabular-nums">
-                          ₱${methodTotal.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+                          {formatPeso(methodTotal, 0, 0)}
                         </p>
                         <span className="text-xs font-medium text-muted-foreground">{pct.toFixed(0)}%</span>
                       </div>
@@ -576,7 +576,7 @@ export default function SalesPage() {
                 Showing {filteredData.length} of {data.length} transactions
               </p>
               <p className="text-sm font-medium text-muted-foreground">
-                Net: ₱${stats.netRevenue.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                Net: {formatPeso(stats.netRevenue)}
               </p>
             </div>
           </AnimatedCard>

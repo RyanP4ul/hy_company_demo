@@ -25,9 +25,10 @@ import {
   Timer,
   CircleDot,
   CheckCircle2,
-  XCircle,
+  Wallet,
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { formatPeso } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
 
 import { useNavigationStore } from '@/stores/navigation';
@@ -88,6 +89,8 @@ interface OrderItem {
   name: string;
   quantity: number;
   unitPrice: number;
+  typeId: string;
+  typeName: string;
 }
 
 interface LalamoveConfig {
@@ -116,8 +119,6 @@ interface OrderForm {
   items: OrderItem[];
   lalamove: LalamoveConfig;
 }
-
-const TAX_RATE = 0.08;
 
 let itemIdCounter = 0;
 function generateItemId() {
@@ -163,6 +164,7 @@ export default function CreateOrderPage() {
 
   const [itemDialogOpen, setItemDialogOpen] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState('');
+  const [selectedTypeId, setSelectedTypeId] = useState('');
   const [itemQty, setItemQty] = useState('1');
   const [itemPrice, setItemPrice] = useState('');
   const [productSearch, setProductSearch] = useState('');
@@ -279,9 +281,8 @@ export default function CreateOrderPage() {
     () => form.items.reduce((sum, item) => sum + item.quantity * item.unitPrice, 0),
     [form.items]
   );
-  const tax = subtotal * TAX_RATE;
   const deliveryFee = form.deliveryType === 'lalamove' ? lalamoveDeliveryFee : 0;
-  const grandTotal = subtotal + tax + deliveryFee;
+  const grandTotal = subtotal + deliveryFee;
 
   // Update lalamove config
   const updateLalamove = useCallback(<K extends keyof LalamoveConfig>(key: K, value: LalamoveConfig[K]) => {
@@ -304,6 +305,7 @@ export default function CreateOrderPage() {
   // Open add item dialog
   const openAddItemDialog = useCallback(() => {
     setSelectedProduct('');
+    setSelectedTypeId('');
     setItemQty('1');
     setItemPrice('');
     setProductSearch('');
@@ -314,8 +316,9 @@ export default function CreateOrderPage() {
   // Select product from dropdown
   const handleSelectProduct = useCallback((product: typeof inventoryItems[number]) => {
     setSelectedProduct(product.id);
+    setSelectedTypeId('');
     setProductSearch(product.name);
-    setItemPrice(String(product.price));
+    setItemPrice('');
     setShowProductDropdown(false);
   }, []);
 
@@ -323,6 +326,10 @@ export default function CreateOrderPage() {
   const handleAddItem = useCallback(() => {
     if (!selectedProduct) {
       toast.error('Please select a product');
+      return;
+    }
+    if (!selectedTypeId) {
+      toast.error('Please select a product type');
       return;
     }
     if (!itemQty || isNaN(Number(itemQty)) || Number(itemQty) < 1) {
@@ -337,9 +344,12 @@ export default function CreateOrderPage() {
     const product = inventoryItems.find((p) => p.id === selectedProduct);
     if (!product) return;
 
-    const existing = form.items.find((i) => i.productId === selectedProduct);
+    const type = product.types.find((t) => t.id === selectedTypeId);
+    if (!type) return;
+
+    const existing = form.items.find((i) => i.productId === selectedProduct && i.typeId === selectedTypeId);
     if (existing) {
-      toast.error(`${product.name} is already in the order. Please edit the quantity instead.`);
+      toast.error(`${product.name} — ${type.name} is already in the order. Please edit the quantity instead.`);
       return;
     }
 
@@ -349,12 +359,14 @@ export default function CreateOrderPage() {
       name: product.name,
       quantity: Math.floor(Number(itemQty)),
       unitPrice: parseFloat(Number(itemPrice).toFixed(2)),
+      typeId: type.id,
+      typeName: type.name,
     };
 
     setForm((f) => ({ ...f, items: [...f.items, newItem] }));
     setItemDialogOpen(false);
-    toast.success(`${product.name} added to order`);
-  }, [selectedProduct, itemQty, itemPrice, form.items]);
+    toast.success(`${product.name} — ${type.name} added to order`);
+  }, [selectedProduct, selectedTypeId, itemQty, itemPrice, form.items]);
 
   // Remove item from order
   const handleRemoveItem = useCallback((itemId: string) => {
@@ -393,9 +405,8 @@ export default function CreateOrderPage() {
 
     const totalItems = form.items.reduce((sum, i) => sum + i.quantity, 0);
     const subtotal = form.items.reduce((sum, i) => sum + i.quantity * i.unitPrice, 0);
-    const tax = subtotal * TAX_RATE;
     const deliveryFee = form.deliveryType === 'lalamove' ? lalamoveDeliveryFee : 0;
-    const orderTotal = parseFloat((subtotal + tax + deliveryFee).toFixed(2));
+    const orderTotal = parseFloat((subtotal + deliveryFee).toFixed(2));
 
     const maxNum = 2847;
     const newId = `ORD-${maxNum + 1}`;
@@ -665,6 +676,36 @@ export default function CreateOrderPage() {
                         </SelectContent>
                       </Select>
                     </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="order-payment-status">
+                        <span className="flex items-center gap-1.5">
+                          <Wallet className="h-3.5 w-3.5" />
+                          Payment Status
+                        </span>
+                      </Label>
+                      <Select
+                        value={form.paymentStatus}
+                        onValueChange={(v) => setForm((f) => ({ ...f, paymentStatus: v as 'paid' | 'unpaid' }))}
+                      >
+                        <SelectTrigger id="order-payment-status">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="unpaid">
+                            <span className="flex items-center gap-2">
+                              <span className="h-2 w-2 rounded-full bg-red-500" />
+                              Unpaid
+                            </span>
+                          </SelectItem>
+                          <SelectItem value="paid">
+                            <span className="flex items-center gap-2">
+                              <span className="h-2 w-2 rounded-full bg-emerald-500" />
+                              Paid
+                            </span>
+                          </SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
 
                     {/* Schedule Date & Time */}
                     <div className="space-y-2 sm:col-span-2">
@@ -902,7 +943,7 @@ export default function CreateOrderPage() {
                                           <p className="text-xs text-muted-foreground">{vehicle.description}</p>
                                         </div>
                                         <div className="text-right shrink-0">
-                                          <p className="text-sm font-semibold tabular-nums">₱{vehicle.basePrice.toLocaleString()}</p>
+                                          <p className="text-sm font-semibold tabular-nums">{formatPeso(vehicle.basePrice, 0, 0)}</p>
                                           <p className="text-xs text-muted-foreground">{vehicle.capacity}</p>
                                         </div>
                                       </button>
@@ -1053,7 +1094,7 @@ export default function CreateOrderPage() {
                               <selectedVehicle.icon className="h-3.5 w-3.5" />
                               {selectedVehicle.label} (base)
                             </span>
-                            <span className="tabular-nums">₱{selectedVehicle.basePrice.toLocaleString()}</span>
+                            <span className="tabular-nums">{formatPeso(selectedVehicle.basePrice, 0, 0)}</span>
                           </div>
                           <div className="flex justify-between text-sm">
                             <span className="text-muted-foreground flex items-center gap-1.5">
@@ -1063,7 +1104,7 @@ export default function CreateOrderPage() {
                             <span className="tabular-nums">
                               {selectedPriority.multiplier === 1.0 ? '' : `${selectedPriority.multiplier}x → `}
                               <span className={selectedPriority.multiplier > 1 ? 'text-rose-600 dark:text-rose-400' : selectedPriority.multiplier < 1 ? 'text-emerald-600 dark:text-emerald-400' : ''}>
-                                ₱{Math.round(selectedVehicle.basePrice * selectedPriority.multiplier).toLocaleString()}
+                                {formatPeso(Math.round(selectedVehicle.basePrice * selectedPriority.multiplier), 0, 0)}
                               </span>
                             </span>
                           </div>
@@ -1083,7 +1124,7 @@ export default function CreateOrderPage() {
                           <Separator />
                           <div className="flex justify-between font-semibold">
                             <span>Delivery Fee</span>
-                            <span className="tabular-nums text-lg">₱{lalamoveDeliveryFee.toLocaleString()}</span>
+                            <span className="tabular-nums text-lg">{formatPeso(lalamoveDeliveryFee, 0, 0)}</span>
                           </div>
                         </div>
                       </div>
@@ -1155,7 +1196,7 @@ export default function CreateOrderPage() {
                               >
                                 <div className="col-span-5 sm:col-span-5 min-w-0">
                                   <p className="text-sm font-medium truncate">{item.name}</p>
-                                  <p className="text-xs text-muted-foreground">{item.productId}</p>
+                                  <p className="text-xs text-muted-foreground">{item.productId} — {item.typeName}</p>
                                 </div>
                                 <div className="col-span-2 sm:col-span-2 flex items-center justify-center gap-1">
                                   <button
@@ -1295,6 +1336,20 @@ export default function CreateOrderPage() {
                         </Badge>
                       </div>
                       <div className="flex justify-between text-sm">
+                        <span className="text-muted-foreground">Payment</span>
+                        <Badge
+                          variant="outline"
+                          className={
+                            form.paymentStatus === 'paid'
+                              ? 'gap-1 border-emerald-200 text-emerald-700 dark:border-emerald-800 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/30'
+                              : 'gap-1 border-red-200 text-red-700 dark:border-red-800 dark:text-red-400 bg-red-50 dark:bg-red-950/30'
+                          }
+                        >
+                          <Wallet className="h-3 w-3" />
+                          {form.paymentStatus.charAt(0).toUpperCase() + form.paymentStatus.slice(1)}
+                        </Badge>
+                      </div>
+                      <div className="flex justify-between text-sm">
                         <span className="text-muted-foreground">Delivery Type</span>
                         <Badge
                           variant="outline"
@@ -1310,18 +1365,6 @@ export default function CreateOrderPage() {
                             <><Bike className="h-3 w-3" /> Lalamove</>
                           )}
                         </Badge>
-                      </div>
-                      <div className="flex justify-between text-sm">
-                        <span className="text-muted-foreground">Payment</span>
-                        {form.paymentStatus === 'paid' ? (
-                          <Badge className="gap-1 border-0 bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300 text-xs font-medium px-2">
-                            <CheckCircle2 className="size-3" /> Paid
-                          </Badge>
-                        ) : (
-                          <Badge className="gap-1 border-0 bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300 text-xs font-medium px-2">
-                            <XCircle className="size-3" /> Unpaid
-                          </Badge>
-                        )}
                       </div>
 
                       {/* Lalamove details in summary */}
@@ -1409,16 +1452,10 @@ export default function CreateOrderPage() {
                         <span className="tabular-nums">₱{subtotal.toFixed(2)}</span>
                       </div>
                       <div className="flex justify-between text-sm">
-                        <span className="text-muted-foreground">
-                          Tax ({(TAX_RATE * 100).toFixed(0)}%)
-                        </span>
-                        <span className="tabular-nums">₱{tax.toFixed(2)}</span>
-                      </div>
-                      <div className="flex justify-between text-sm">
                         <span className="text-muted-foreground">Shipping</span>
                         {form.deliveryType === 'lalamove' ? (
                           <span className="tabular-nums text-rose-600 dark:text-rose-400 font-medium">
-                            ₱{lalamoveDeliveryFee.toLocaleString()}
+                            {formatPeso(lalamoveDeliveryFee, 0, 0)}
                           </span>
                         ) : (
                           <span className="tabular-nums text-green-600 dark:text-green-400 font-medium">
@@ -1430,13 +1467,13 @@ export default function CreateOrderPage() {
                         <div className="rounded-md bg-muted/50 p-2 space-y-1">
                           <div className="flex justify-between text-xs text-muted-foreground">
                             <span>{selectedVehicle.label} base</span>
-                            <span className="tabular-nums">₱{selectedVehicle.basePrice.toLocaleString()}</span>
+                            <span className="tabular-nums">{formatPeso(selectedVehicle.basePrice, 0, 0)}</span>
                           </div>
                           {selectedPriority.multiplier !== 1.0 && (
                             <div className="flex justify-between text-xs text-muted-foreground">
                               <span>{selectedPriority.label} ({selectedPriority.multiplier}x)</span>
                               <span className="tabular-nums">
-                                {selectedPriority.multiplier > 1 ? '+' : ''}₱{Math.round(selectedVehicle.basePrice * (selectedPriority.multiplier - 1)).toLocaleString()}
+                                {selectedPriority.multiplier > 1 ? '+' : ''}{formatPeso(Math.round(selectedVehicle.basePrice * (selectedPriority.multiplier - 1)), 0, 0)}
                               </span>
                             </div>
                           )}
@@ -1455,46 +1492,7 @@ export default function CreateOrderPage() {
                       <Separator />
                       <div className="flex justify-between font-semibold text-lg">
                         <span>Total</span>
-                        <span className="tabular-nums">₱{grandTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-                      </div>
-                    </div>
-
-                    {/* Payment Status Selector */}
-                    <Separator />
-                    <div className="space-y-2">
-                      <Label htmlFor="summary-payment-status">Payment Status</Label>
-                      <Select
-                        value={form.paymentStatus}
-                        onValueChange={(v) => setForm((f) => ({ ...f, paymentStatus: v as 'paid' | 'unpaid' }))}
-                      >
-                        <SelectTrigger id="summary-payment-status">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="unpaid">
-                            <span className="flex items-center gap-2">
-                              <span className="h-2 w-2 rounded-full bg-red-500" />
-                              Unpaid
-                            </span>
-                          </SelectItem>
-                          <SelectItem value="paid">
-                            <span className="flex items-center gap-2">
-                              <span className="h-2 w-2 rounded-full bg-emerald-500" />
-                              Paid
-                            </span>
-                          </SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <div className="flex items-center gap-2">
-                        {form.paymentStatus === 'paid' ? (
-                          <Badge className="gap-1 border-0 bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300 text-xs font-medium px-2.5 py-1">
-                            💰 Paid
-                          </Badge>
-                        ) : (
-                          <Badge className="gap-1 border-0 bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300 text-xs font-medium px-2.5 py-1">
-                            ⏳ Unpaid
-                          </Badge>
-                        )}
+                        <span className="tabular-nums">{formatPeso(grandTotal)}</span>
                       </div>
                     </div>
 
@@ -1506,7 +1504,7 @@ export default function CreateOrderPage() {
                       disabled={!form.customer.trim() || form.items.length === 0}
                     >
                       <ShoppingCart className="h-4 w-4" />
-                      Place Order — ₱{grandTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      Place Order — {formatPeso(grandTotal)}
                     </Button>
 
                     <Button
@@ -1575,6 +1573,7 @@ export default function CreateOrderPage() {
                   onChange={(e) => {
                     setProductSearch(e.target.value);
                     setSelectedProduct('');
+                    setSelectedTypeId('');
                     setItemPrice('');
                     setShowProductDropdown(true);
                   }}
@@ -1585,6 +1584,7 @@ export default function CreateOrderPage() {
                     className="absolute right-2 top-1/2 -translate-y-1/2 flex h-6 w-6 items-center justify-center rounded-full hover:bg-muted transition-colors"
                     onClick={() => {
                       setSelectedProduct('');
+                      setSelectedTypeId('');
                       setProductSearch('');
                       setItemPrice('');
                     }}
@@ -1611,9 +1611,8 @@ export default function CreateOrderPage() {
                           </div>
                           <div className="flex-1 min-w-0">
                             <p className="text-sm font-medium truncate">{product.name}</p>
-                            <p className="text-xs text-muted-foreground">{product.id}</p>
+                            <p className="text-xs text-muted-foreground">{product.id} · {product.types.length} {product.types.length === 1 ? 'type' : 'types'}</p>
                           </div>
-                          <span className="text-sm font-semibold tabular-nums">₱{product.price.toFixed(2)}</span>
                         </button>
                       ))
                     )}
@@ -1621,6 +1620,42 @@ export default function CreateOrderPage() {
                 )}
               </div>
             </div>
+
+            {/* Type Selector */}
+            {selectedProduct && (() => {
+              const product = inventoryItems.find((p) => p.id === selectedProduct);
+              if (!product) return null;
+              return (
+                <div className="space-y-2">
+                  <Label>Product Type</Label>
+                  <Select
+                    value={selectedTypeId}
+                    onValueChange={(v) => {
+                      setSelectedTypeId(v);
+                      const type = product.types.find((t) => t.id === v);
+                      if (type) {
+                        setItemPrice(String(type.price));
+                      }
+                    }}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select a type..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {product.types.map((type) => (
+                        <SelectItem key={type.id} value={type.id}>
+                          <span className="flex items-center justify-between gap-4">
+                            <span>{type.name}</span>
+                            <span className="text-muted-foreground text-xs tabular-nums">₱{type.price.toFixed(2)}</span>
+                          </span>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              );
+            })()}
+
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-2">
                 <Label>Quantity</Label>

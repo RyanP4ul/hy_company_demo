@@ -2,8 +2,9 @@
 
 import React, { useState, useCallback } from 'react';
 import { cn } from '@/lib/utils';
-import { useNavigationStore, NAV_ITEMS, type NavItem } from '@/stores/navigation';
+import { useNavigationStore, NAV_ITEMS, STAFF_HIDDEN_PAGES, type NavItem } from '@/stores/navigation';
 import { useTranslation } from '@/lib/i18n/use-translation';
+import { useAuthStore, type UserRole } from '@/stores/auth';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   LayoutDashboard,
@@ -27,13 +28,12 @@ import {
   MessageSquare,
   Tags,
   Warehouse,
-  Ship,
+  Navigation,
 } from 'lucide-react';
 import { CirclePesoSign } from '@/components/icons/peso-sign';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import { useAuthStore } from '@/stores/auth';
 
 const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
   LayoutDashboard,
@@ -54,7 +54,7 @@ const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
   CirclePesoSign,
   Tags,
   Warehouse,
-  Ship,
+  Navigation,
 };
 
 interface SidebarProps {
@@ -66,7 +66,13 @@ interface SidebarProps {
 export function DashboardSidebar({ className, mobileOpen, onMobileClose }: SidebarProps) {
   const { currentView, setCurrentView, sidebarCollapsed, toggleSidebar } = useNavigationStore();
   const logout = useAuthStore((s) => s.logout);
+  const userRole = useAuthStore((s) => s.user?.role ?? 'Admin' as UserRole);
   const { t } = useTranslation();
+
+  // Filter nav items based on user role
+  const visibleNavItems = userRole === 'Admin'
+    ? NAV_ITEMS
+    : NAV_ITEMS.filter((item) => !STAFF_HIDDEN_PAGES.includes(item.id));
 
   // i18n mapping for nav item IDs
   const navLabel = (id: string): string => {
@@ -92,7 +98,9 @@ export function DashboardSidebar({ className, mobileOpen, onMobileClose }: Sideb
   const groups = ['Main', 'Insights', 'Management', 'System'];
   const filteredItems = groups.map((group) => ({
     group,
-    items: NAV_ITEMS.filter((item) => item.group === group),
+    items: visibleNavItems.filter((item) => item.group === group).length > 0
+      ? visibleNavItems.filter((item) => item.group === group)
+      : NAV_ITEMS.filter((item) => item.group === group).filter((item) => !STAFF_HIDDEN_PAGES.includes(item.id)),
   }));
 
   const handleNavClick = useCallback((view: NavItem) => {

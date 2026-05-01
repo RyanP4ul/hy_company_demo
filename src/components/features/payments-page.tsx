@@ -40,7 +40,7 @@ import { payments, type Payment, type PaymentMethod, type PaymentStatus } from '
 import { PageTransition, FadeIn, StaggerContainer, StaggerItem } from '@/components/shared/animated-components';
 import { AnimatedCard } from '@/components/shared/animated-card';
 import { StatusBadge } from '@/components/shared/status-badge';
-import { cn } from '@/lib/utils';
+import { cn, formatPeso, formatNumber } from '@/lib/utils';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -410,7 +410,7 @@ export default function PaymentsPage() {
         ),
         cell: ({ getValue }) => (
           <span className="font-bold tabular-nums">
-            ₱${(getValue() as number).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+            {formatPeso(getValue() as number)}
           </span>
         ),
       },
@@ -727,8 +727,7 @@ export default function PaymentsPage() {
         <footer className="mt-auto border-t py-4">
           <p className="text-center text-sm text-muted-foreground">
             Showing {filteredData.length} of {data.length} transactions · Total
-            Volume: ₱
-            {totalVolume.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+            Volume: {formatPeso(totalVolume)}
           </p>
         </footer>
       </div>
@@ -762,10 +761,7 @@ export default function PaymentsPage() {
                     <div className="flex items-center gap-2">
                       <PesoSign className="h-5 w-5 text-muted-foreground" />
                       <span className="text-3xl font-bold tabular-nums">
-                        ₱
-                        {selectedPayment.amount.toLocaleString('en-US', {
-                          minimumFractionDigits: 2,
-                        })}
+                        {formatPeso(selectedPayment.amount)}
                       </span>
                     </div>
                     <div className="flex items-center gap-2">

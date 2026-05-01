@@ -42,6 +42,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import { Badge } from '@/components/ui/badge';
 import {
   kpiData,
   revenueChartData,
@@ -408,15 +409,19 @@ export default function DashboardPage() {
                 <TableRow>
                   <TableHead className="w-[40px]">#</TableHead>
                   <TableHead>Product</TableHead>
+                  <TableHead>Type</TableHead>
                   <TableHead className="text-right">Units Sold</TableHead>
                   <TableHead className="text-right">Revenue</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {topSellingProducts.map((product, idx) => (
-                  <TableRow key={product.name}>
+                  <TableRow key={`${product.name}-${product.type}-${idx}`}>
                     <TableCell className="font-medium text-muted-foreground">{idx + 1}</TableCell>
                     <TableCell className="font-medium">{product.name}</TableCell>
+                    <TableCell>
+                      <Badge variant="secondary" className="font-normal">{product.type}</Badge>
+                    </TableCell>
                     <TableCell className="text-right tabular-nums">{product.sold.toLocaleString()}</TableCell>
                     <TableCell className="text-right font-semibold tabular-nums">{product.revenue}</TableCell>
                   </TableRow>

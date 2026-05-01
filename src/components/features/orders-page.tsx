@@ -35,14 +35,15 @@ import {
   CheckCircle2,
   Circle,
   CalendarClock,
-  XCircle,
+  Wallet,
+  AlertTriangle,
 } from 'lucide-react';
 import { useNavigationStore } from '@/stores/navigation';
 import { usePageContext } from '@/stores/page-context';
 import { toast } from 'sonner';
-import { cn } from '@/lib/utils';
+import { cn, formatPeso } from '@/lib/utils';
 
-import { orders as initialOrders, deliveries, type DeliveryRoute } from '@/lib/mock-data';
+import { orders as initialOrders, deliveries, inventoryItems, type DeliveryRoute, type PaymentStatus } from '@/lib/mock-data';
 import { StatusBadge, PriorityBadge } from '@/components/shared/status-badge';
 import { PageTransition, FadeIn } from '@/components/shared/animated-components';
 import { AnimatedCard } from '@/components/shared/animated-card';
@@ -157,7 +158,6 @@ export default function OrdersPage() {
   const [statusFilter, setStatusFilter] = useState('all');
   const [priorityFilter, setPriorityFilter] = useState('all');
   const [deliveryTypeFilter, setDeliveryTypeFilter] = useState('all');
-  const [paymentStatusFilter, setPaymentStatusFilter] = useState('all');
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
 
@@ -278,16 +278,15 @@ export default function OrdersPage() {
   }, []);
 
   const mockOrderItems = useMemo(() => {
-    const productNames = [
-      'Widget Pro X200', 'Smart Sensor V3', 'Premium Widget XL',
-      'Basic Connector Kit', 'USB-C Hub Adapter', 'Wireless Charger Pad',
-      'Noise Cancelling Buds', 'Mechanical Keyboard',
-    ];
-    return productNames.slice(0, 6).map((name, idx) => ({
-      name,
-      qty: Math.floor(Math.random() * 5) + 1,
-      price: [149.99, 89.99, 249.99, 29.99, 44.99, 59.99, 129.99, 159.99][idx],
-    }));
+    return inventoryItems.slice(0, 6).flatMap((product) =>
+      product.types.slice(0, 1).map((type) => ({
+        name: product.name,
+        typeName: type.name,
+        productId: product.id,
+        qty: Math.floor(Math.random() * 5) + 1,
+        price: type.price,
+      }))
+    );
   }, []);
 
   const openAddDialog = useCallback(() => {
@@ -400,7 +399,7 @@ export default function OrdersPage() {
       setData((prev) =>
         prev.map((order) =>
           order.id === editingOrder.id
-            ? { ...order, customer: form.customer.trim(), items, total, priority: form.priority as 'high' | 'medium' | 'low', paymentStatus: form.paymentStatus as 'paid' | 'unpaid' }
+            ? { ...order, customer: form.customer.trim(), items, total, priority: form.priority as 'high' | 'medium' | 'low', paymentStatus: form.paymentStatus as PaymentStatus }
             : order
         )
       );
@@ -408,7 +407,7 @@ export default function OrdersPage() {
       // Also update the selectedOrder in drawer if it matches
       setSelectedOrder((prev) =>
         prev && prev.id === editingOrder.id
-          ? { ...prev, customer: form.customer.trim(), items, total, priority: form.priority as 'high' | 'medium' | 'low', paymentStatus: form.paymentStatus as 'paid' | 'unpaid' }
+          ? { ...prev, customer: form.customer.trim(), items, total, priority: form.priority as 'high' | 'medium' | 'low', paymentStatus: form.paymentStatus as PaymentStatus }
           : prev
       );
     } else {
@@ -425,7 +424,7 @@ export default function OrdersPage() {
         status: 'pending',
         date: today,
         priority: form.priority as 'high' | 'medium' | 'low',
-        paymentStatus: form.paymentStatus as 'paid' | 'unpaid',
+        paymentStatus: form.paymentStatus as PaymentStatus,
       };
       setData((prev) => [newOrder, ...prev]);
       toast.success('Order created successfully');
@@ -539,28 +538,9 @@ export default function OrdersPage() {
         ),
         cell: ({ getValue }) => (
           <span className="tabular-nums font-semibold">
-            ₱${(getValue() as number).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+            {formatPeso(getValue() as number)}
           </span>
         ),
-      },
-      {
-        accessorKey: 'paymentStatus',
-        header: 'Payment',
-        cell: ({ row }) => {
-          const ps = (row.original as Record<string, unknown>).paymentStatus as string | undefined;
-          if (ps === 'paid') {
-            return (
-              <Badge className="gap-1 border-0 bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300 text-xs font-medium px-2">
-                <CheckCircle2 className="size-3" />Paid
-              </Badge>
-            );
-          }
-          return (
-            <Badge className="gap-1 border-0 bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300 text-xs font-medium px-2">
-              <XCircle className="size-3" />Unpaid
-            </Badge>
-          );
-        },
       },
       {
         accessorKey: 'status',
@@ -568,6 +548,25 @@ export default function OrdersPage() {
         cell: ({ getValue }) => (
           <StatusBadge status={getValue() as string} />
         ),
+      },
+      {
+        accessorKey: 'paymentStatus',
+        header: 'Payment',
+        cell: ({ getValue }) => {
+          const ps = getValue() as PaymentStatus | undefined;
+          if (ps === 'paid') {
+            return (
+              <Badge className="gap-0.5 border-0 bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300 text-[11px] px-2 py-0.5">
+                <Wallet className="size-3" />Paid
+              </Badge>
+            );
+          }
+          return (
+            <Badge className="gap-0.5 border-0 bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300 text-[11px] px-2 py-0.5">
+              <AlertTriangle className="size-3" />Unpaid
+            </Badge>
+          );
+        },
       },
       {
         id: 'deliveryType',
@@ -680,15 +679,8 @@ export default function OrdersPage() {
       });
     }
 
-    if (paymentStatusFilter !== 'all') {
-      result = result.filter((order) => {
-        const ps = (order as Record<string, unknown>).paymentStatus as string | undefined;
-        return ps === paymentStatusFilter;
-      });
-    }
-
     return result;
-  }, [data, statusFilter, priorityFilter, deliveryTypeFilter, paymentStatusFilter]);
+  }, [data, statusFilter, priorityFilter, deliveryTypeFilter]);
 
   const table = useReactTable({
     data: filteredData,
@@ -845,16 +837,6 @@ export default function OrdersPage() {
                     <SelectItem value="lalamove">Lalamove</SelectItem>
                   </SelectContent>
                 </Select>
-                <Select value={paymentStatusFilter} onValueChange={setPaymentStatusFilter}>
-                  <SelectTrigger className="w-[140px]">
-                    <SelectValue placeholder="Payment" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Payment</SelectItem>
-                    <SelectItem value="paid">Paid</SelectItem>
-                    <SelectItem value="unpaid">Unpaid</SelectItem>
-                  </SelectContent>
-                </Select>
               </div>
             </div>
           </AnimatedCard>
@@ -938,6 +920,24 @@ export default function OrdersPage() {
                     <StatusBadge status={selectedOrder.status} />
                     <PriorityBadge priority={selectedOrder.priority} />
                     {(() => {
+                      const ps = (selectedOrder as Record<string, unknown>).paymentStatus as string | undefined;
+                      if (ps === 'paid') {
+                        return (
+                          <Badge className="gap-0.5 border-0 bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300 text-[10px] px-1.5 py-0">
+                            <Wallet className="size-2.5" />Paid
+                          </Badge>
+                        );
+                      }
+                      if (ps === 'unpaid') {
+                        return (
+                          <Badge className="gap-0.5 border-0 bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300 text-[10px] px-1.5 py-0">
+                            <AlertTriangle className="size-2.5" />Unpaid
+                          </Badge>
+                        );
+                      }
+                      return null;
+                    })()}
+                    {(() => {
                       const dt = (selectedOrder as Record<string, unknown>).deliveryType as string | undefined;
                       if (dt === 'lalamove') {
                         return (
@@ -951,21 +951,6 @@ export default function OrdersPage() {
                         <Badge variant="outline" className="gap-1 bg-sky-50 text-sky-700 dark:bg-sky-950/30 dark:text-sky-400 border-sky-200 dark:border-sky-800">
                           <Truck className="h-3 w-3" />
                           Truck
-                        </Badge>
-                      );
-                    })()}
-                    {(() => {
-                      const ps = (selectedOrder as Record<string, unknown>).paymentStatus as string | undefined;
-                      if (ps === 'paid') {
-                        return (
-                          <Badge className="gap-1 border-0 bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300 text-xs font-medium px-2">
-                            <CheckCircle2 className="size-3" />Paid
-                          </Badge>
-                        );
-                      }
-                      return (
-                        <Badge className="gap-1 border-0 bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300 text-xs font-medium px-2">
-                          <XCircle className="size-3" />Unpaid
                         </Badge>
                       );
                     })()}
@@ -1050,7 +1035,7 @@ export default function OrdersPage() {
                             <div>
                               <p className="font-medium">{item.name}</p>
                               <p className="text-xs text-muted-foreground">
-                                Qty: {item.qty} × ₱${item.price.toFixed(2)}
+                                {item.typeName} · Qty: {item.qty} × ₱{item.price.toFixed(2)}
                               </p>
                             </div>
                           </div>
@@ -1078,65 +1063,30 @@ export default function OrdersPage() {
                         Free
                       </span>
                     </div>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">Tax</span>
-                      <span className="tabular-nums">
-                        ₱${(selectedOrder.total * 0.08).toFixed(2)}
-                      </span>
-                    </div>
                     <Separator />
                     <div className="flex justify-between font-semibold">
                       <span>Total</span>
                       <span className="tabular-nums text-lg">
-                        ₱${(selectedOrder.total * 1.08).toFixed(2)}
+                        ₱${selectedOrder.total.toFixed(2)}
                       </span>
                     </div>
-                    <Separator />
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <span className="text-sm font-medium">Payment</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        {(() => {
-                          const ps = (selectedOrder as Record<string, unknown>).paymentStatus as string | undefined;
-                          if (ps === 'paid') {
-                            return (
-                              <Badge className="gap-1 border-0 bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300 text-xs font-medium px-2">
-                                <CheckCircle2 className="size-3" />Paid
-                              </Badge>
-                            );
-                          }
+                    <div className="flex items-center justify-between pt-1">
+                      <span className="text-xs text-muted-foreground">Payment Status</span>
+                      {(() => {
+                        const ps = (selectedOrder as Record<string, unknown>).paymentStatus as string | undefined;
+                        if (ps === 'paid') {
                           return (
-                            <Badge className="gap-1 border-0 bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300 text-xs font-medium px-2">
-                              <XCircle className="size-3" />Unpaid
+                            <Badge className="gap-1 border-0 bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300 text-[11px] px-2 py-0.5">
+                              <Wallet className="size-3" />Paid
                             </Badge>
                           );
-                        })()}
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="h-7 text-xs"
-                          onClick={() => {
-                            const currentPs = (selectedOrder as Record<string, unknown>).paymentStatus as string | undefined;
-                            const newPs = currentPs === 'paid' ? 'unpaid' : 'paid';
-                            setData((prev) =>
-                              prev.map((order) =>
-                                order.id === selectedOrder.id
-                                  ? { ...order, paymentStatus: newPs as 'paid' | 'unpaid' }
-                                  : order
-                              )
-                            );
-                            setSelectedOrder((prev) =>
-                              prev && prev.id === selectedOrder.id
-                                ? { ...prev, paymentStatus: newPs as 'paid' | 'unpaid' }
-                                : prev
-                            );
-                            toast.success(`Payment status updated to ${newPs === 'paid' ? 'Paid' : 'Unpaid'}`);
-                          }}
-                        >
-                          Toggle
-                        </Button>
-                      </div>
+                        }
+                        return (
+                          <Badge className="gap-1 border-0 bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300 text-[11px] px-2 py-0.5">
+                            <AlertTriangle className="size-3" />Unpaid
+                          </Badge>
+                        );
+                      })()}
                     </div>
                   </div>
 
@@ -1375,17 +1325,27 @@ export default function OrdersPage() {
                 </Select>
               </div>
               <div className="grid gap-2">
-                <Label htmlFor="order-payment-status">Payment Status</Label>
+                <Label htmlFor="edit-payment-status">Payment Status</Label>
                 <Select
                   value={form.paymentStatus}
                   onValueChange={(v) => setForm((f) => ({ ...f, paymentStatus: v }))}
                 >
-                  <SelectTrigger id="order-payment-status">
+                  <SelectTrigger id="edit-payment-status">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="unpaid">Unpaid</SelectItem>
-                    <SelectItem value="paid">Paid</SelectItem>
+                    <SelectItem value="unpaid">
+                      <span className="flex items-center gap-2">
+                        <span className="h-2 w-2 rounded-full bg-red-500" />
+                        Unpaid
+                      </span>
+                    </SelectItem>
+                    <SelectItem value="paid">
+                      <span className="flex items-center gap-2">
+                        <span className="h-2 w-2 rounded-full bg-emerald-500" />
+                        Paid
+                      </span>
+                    </SelectItem>
                   </SelectContent>
                 </Select>
               </div>

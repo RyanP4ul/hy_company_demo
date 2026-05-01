@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>HyOps ERD — Entity Relationship Diagram</title>
+<script src="https://cdn.jsdelivr.net/npm/echarts@5/dist/echarts.min.js"></script>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #F8FAFC; font-family: 'Inter', system-ui, -apple-system, sans-serif; }
+  #chart { width: 1800px; height: 1300px; margin: 0 auto; }
+</style>
+</head>
+<body>
+<div id="chart"></div>
+<script>
+// ── Categories (Table Groups) ──
+const categories = [
+  { name: 'Core Entities', itemStyle: { color: '#3B82F6' } },
+  { name: 'Inventory',     itemStyle: { color: '#10B981' } },
+  { name: 'Orders',        itemStyle: { color: '#8B5CF6' } },
+  { name: 'Deliveries',    itemStyle: { color: '#F59E0B' } },
+  { name: 'Sales',         itemStyle: { color: '#EF4444' } },
+  { name: 'Messaging',     itemStyle: { color: '#EC4899' } },
+  { name: 'System',        itemStyle: { color: '#64748B' } },
+];
+
+// ── Color palette per category ──
+const catColors = [
+  { bg: '#EFF6FF', border: '#3B82F6', text: '#1E40AF' },  // Core - blue
+  { bg: '#F0FDF4', border: '#10B981', text: '#065F46' },  // Inventory - green
+  { bg: '#F5F3FF', border: '#8B5CF6', text: '#5B21B6' },  // Orders - purple
+  { bg: '#FFF7ED', border: '#F59E0B', text: '#92400E' },  // Deliveries - amber
+  { bg: '#FEF2F2', border: '#EF4444', text: '#991B1B' },  // Sales - red
+  { bg: '#FDF2F8', border: '#EC4899', text: '#9D174D' },  // Messaging - pink
+  { bg: '#F1F5F9', border: '#64748B', text: '#334155' },  // System - slate
+];
+
+// ── Nodes (Tables) ──
+// Layout: fixed positions for clean grouped ERD
+const nodes = [
+  // ── Core Entities (top row) ──
+  { name: 'users',       category: 0, x: 200,  y: 80,  symbolSize: [180, 70],
+    label: { formatter: '{title|users}\n{cols|PK id · name · email · role · status}', rich: tableRich(0) },
+    itemStyle: nodeStyle(0) },
+  { name: 'customers',   category: 0, x: 550,  y: 80,  symbolSize: [200, 70],
+    label: { formatter: '{title|customers}\n{cols|PK id · name · contact · company · status}', rich: tableRich(0) },
+    itemStyle: nodeStyle(0) },
+  { name: 'warehouses',  category: 0, x: 950,  y: 80,  symbolSize: [210, 70],
+    label: { formatter: '{title|warehouses}\n{cols|PK id · name · city · type · status · utilized}', rich: tableRich(0) },
+    itemStyle: nodeStyle(0) },
+  { name: 'drivers',     category: 0, x: 1350, y: 80,  symbolSize: [210, 70],
+    label: { formatter: '{title|drivers}\n{cols|PK id · FK user_id · name · phone · status}', rich: tableRich(0) },
+    itemStyle: nodeStyle(0) },
+
+  // ── Inventory ──
+  { name: 'inventory',     category: 1, x: 650,  y: 280, symbolSize: [210, 70],
+    label: { formatter: '{title|inventory}\n{cols|PK id · FK warehouse_id · name · last_updated}', rich: tableRich(1) },
+    itemStyle: nodeStyle(1) },
+  { name: 'product_types',  category: 1, x: 1000, y: 280, symbolSize: [240, 70],
+    label: { formatter: '{title|product_types}\n{cols|PK id · FK product_id · name · stock · min_stock · price}', rich: tableRich(1) },
+    itemStyle: nodeStyle(1) },
+
+  // ── Orders ──
+  { name: 'orders',      category: 2, x: 400,  y: 280, symbolSize: [250, 70],
+    label: { formatter: '{title|orders}\n{cols|PK id · FK customer_id · total · status · payment_status}', rich: tableRich(2) },
+    itemStyle: nodeStyle(2) },
+  { name: 'order_items', category: 2, x: 400,  y: 460, symbolSize: [280, 70],
+    label: { formatter: '{title|order_items}\n{cols|PK id · FK order_id · FK product_id · FK type_id · qty · subtotal}', rich: tableRich(2) },
+    itemStyle: nodeStyle(2) },
+
+  // ── Deliveries ──
+  { name: 'deliveries',        category: 3, x: 900,  y: 480, symbolSize: [260, 70],
+    label: { formatter: '{title|deliveries}\n{cols|PK id · FK order_id · FK driver_id · status · progress}', rich: tableRich(3) },
+    itemStyle: nodeStyle(3) },
+  { name: 'delivery_stops',    category: 3, x: 650,  y: 660, symbolSize: [240, 70],
+    label: { formatter: '{title|delivery_stops}\n{cols|PK id · FK delivery_id · customer · address · status}', rich: tableRich(3) },
+    itemStyle: nodeStyle(3) },
+  { name: 'delivery_timeline', category: 3, x: 1150, y: 660, symbolSize: [240, 70],
+    label: { formatter: '{title|delivery_timeline}\n{cols|PK id · FK delivery_id · step_name · step_time}', rich: tableRich(3) },
+    itemStyle: nodeStyle(3) },
+
+  // ── Sales ──
+  { name: 'sales', category: 4, x: 150, y: 480, symbolSize: [240, 70],
+    label: { formatter: '{title|sales}\n{cols|PK id · FK order_id · customer · total · payment_method}', rich: tableRich(4) },
+    itemStyle: nodeStyle(4) },
+
+  // ── Messaging ──
+  { name: 'inbox_conversations', category: 5, x: 1300, y: 480, symbolSize: [260, 70],
+    label: { formatter: '{title|inbox_conversations}\n{cols|PK id · channel · customer_name · status · unread}', rich: tableRich(5) },
+    itemStyle: nodeStyle(5) },
+  { name: 'inbox_messages',      category: 5, x: 1350, y: 660, symbolSize: [260, 70],
+    label: { formatter: '{title|inbox_messages}\n{cols|PK id · FK conversation_id · sender · content · type}', rich: tableRich(5) },
+    itemStyle: nodeStyle(5) },
+
+  // ── System ──
+  { name: 'notifications',     category: 6, x: 150,  y: 660, symbolSize: [230, 70],
+    label: { formatter: '{title|notifications}\n{cols|PK id · FK user_id · title · message · type}', rich: tableRich(6) },
+    itemStyle: nodeStyle(6) },
+  { name: 'audit_logs',        category: 6, x: 450,  y: 860, symbolSize: [240, 70],
+    label: { formatter: '{title|audit_logs}\n{cols|PK id · user_name · action · resource · details}', rich: tableRich(6) },
+    itemStyle: nodeStyle(6) },
+  { name: 'activity_timeline', category: 6, x: 750,  y: 860, symbolSize: [250, 70],
+    label: { formatter: '{title|activity_timeline}\n{cols|PK id · user_name · action · target · target_type}', rich: tableRich(6) },
+    itemStyle: nodeStyle(6) },
+  { name: 'archives',          category: 6, x: 1100, y: 860, symbolSize: [250, 70],
+    label: { formatter: '{title|archives}\n{cols|PK id · entity_type · entity_id · entity_data}', rich: tableRich(6) },
+    itemStyle: nodeStyle(6) },
+  { name: 'settings',          category: 6, x: 1450, y: 860, symbolSize: [200, 70],
+    label: { formatter: '{title|settings}\n{cols|PK key · value · description · updated_at}', rich: tableRich(6) },
+    itemStyle: nodeStyle(6) },
+];
+
+// ── Relationships (Foreign Keys) ──
+const links = [
+  // Core → Core
+  { source: 'drivers',   target: 'users',       label: { show: true, formatter: 'user_id' } },
+
+  // Core → Inventory
+  { source: 'inventory',     target: 'warehouses',   label: { show: true, formatter: 'warehouse_id' } },
+  { source: 'product_types', target: 'inventory',    label: { show: true, formatter: 'product_id' } },
+
+  // Core → Orders
+  { source: 'orders',    target: 'customers',   label: { show: true, formatter: 'customer_id' } },
+  { source: 'orders',    target: 'drivers',     label: { show: true, formatter: 'assigned_driver_id' } },
+
+  // Orders → Order Items
+  { source: 'order_items', target: 'orders',        label: { show: true, formatter: 'order_id' } },
+  { source: 'order_items', target: 'inventory',     label: { show: true, formatter: 'product_id' } },
+  { source: 'order_items', target: 'product_types', label: { show: true, formatter: 'type_id' } },
+
+  // Orders → Sales
+  { source: 'sales',     target: 'orders',      label: { show: true, formatter: 'order_id' } },
+
+  // Orders → Deliveries
+  { source: 'deliveries',   target: 'orders',   label: { show: true, formatter: 'order_id' } },
+  { source: 'deliveries',   target: 'drivers',  label: { show: true, formatter: 'driver_id' } },
+
+  // Deliveries → Stops / Timeline
+  { source: 'delivery_stops',    target: 'deliveries',        label: { show: true, formatter: 'delivery_id' } },
+  { source: 'delivery_timeline', target: 'deliveries',        label: { show: true, formatter: 'delivery_id' } },
+
+  // Users → Notifications
+  { source: 'notifications', target: 'users',      label: { show: true, formatter: 'user_id' } },
+
+  // Inbox → Messages
+  { source: 'inbox_messages', target: 'inbox_conversations', label: { show: true, formatter: 'conversation_id' } },
+];
+
+function tableRich(catIdx) {
+  const c = catColors[catIdx];
+  return {
+    title: { fontSize: 14, fontWeight: 'bold', color: c.text, lineHeight: 22, align: 'center' },
+    cols:  { fontSize: 10, color: '#64748B', lineHeight: 16, align: 'center' },
+  };
+}
+
+function nodeStyle(catIdx) {
+  const c = catColors[catIdx];
+  return {
+    color: c.bg,
+    borderColor: c.border,
+    borderWidth: 2,
+    shadowBlur: 8,
+    shadowColor: c.border + '33',
+    borderRadius: 8,
+  };
+}
+
+// ── Chart Option ──
+const option = {
+  backgroundColor: '#F8FAFC',
+  title: {
+    text: 'HyOps — Entity Relationship Diagram',
+    subtext: 'Cloud-Based Real-Time Inventory, Order & Delivery Management  ·  PostgreSQL 15+  ·  19 Tables',
+    left: 'center', top: 20,
+    textStyle: { fontSize: 22, fontWeight: 'bold', color: '#1E293B', fontFamily: 'Inter, system-ui, sans-serif' },
+    subtextStyle: { fontSize: 13, color: '#64748B', fontFamily: 'Inter, system-ui, sans-serif' },
+  },
+  tooltip: {
+    trigger: 'item',
+    backgroundColor: '#1E293B',
+    borderColor: '#334155',
+    borderWidth: 1,
+    textStyle: { color: '#F1F5F9', fontSize: 12 },
+    formatter: (params) => {
+      if (params.dataType === 'edge') {
+        return `<b>${params.data.source}</b> → <b>${params.data.target}</b><br/>FK: <span style="color:#60A5FA">${params.data.label?.formatter || ''}</span>`;
+      }
+      return `<b>${params.name}</b><br/><span style="color:#94A3B8">${categories[params.data.category]?.name || ''}</span>`;
+    },
+  },
+  legend: {
+    data: categories.map(c => c.name),
+    bottom: 20,
+    textStyle: { fontSize: 12, color: '#475569' },
+    itemWidth: 18,
+    itemHeight: 12,
+    itemGap: 24,
+    icon: 'roundRect',
+  },
+  series: [{
+    type: 'graph',
+    layout: 'none',
+    data: nodes.map(n => ({
+      ...n,
+      symbol: 'roundRect',
+      symbolSize: n.symbolSize || [180, 60],
+    })),
+    links: links.map(l => ({
+      ...l,
+      lineStyle: {
+        color: '#94A3B8',
+        width: 1.8,
+        curveness: 0.15,
+        type: 'solid',
+      },
+      label: {
+        show: l.label?.show || false,
+        formatter: l.label?.formatter || '',
+        fontSize: 10,
+        color: '#475569',
+        backgroundColor: '#F8FAFC',
+        padding: [2, 6],
+        borderRadius: 3,
+        borderWidth: 0.5,
+        borderColor: '#CBD5E1',
+      },
+      edgeSymbol: ['none', 'arrow'],
+      edgeSymbolSize: [0, 10],
+    })),
+    categories,
+    label: {
+      show: true,
+    },
+    emphasis: {
+      focus: 'adjacency',
+      itemStyle: {
+        borderWidth: 3,
+        shadowBlur: 16,
+      },
+      lineStyle: { width: 3 },
+    },
+    lineStyle: {
+      opacity: 0.8,
+    },
+    z: 10,
+    animationDuration: 800,
+    animationEasing: 'cubicOut',
+  }],
+};
+
+const chart = echarts.init(document.getElementById('chart'));
+chart.setOption(option);
+window.addEventListener('resize', () => chart.resize());
+</script>
+</body>
+</html>

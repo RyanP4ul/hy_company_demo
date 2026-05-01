@@ -19,7 +19,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
-import { cn } from '@/lib/utils';
+import { cn, formatPeso, formatNumber } from '@/lib/utils';
 
 import { useNavigationStore } from '@/stores/navigation';
 import { usePageContext } from '@/stores/page-context';
@@ -426,9 +426,7 @@ export default function CreateDeliveryPage() {
                                   </span>
                                   <span className="flex items-center gap-1 font-semibold text-foreground">
                                     <span className="text-xs">₱</span>
-                                    {order.total.toLocaleString('en-US', {
-                                      minimumFractionDigits: 2,
-                                    })}
+                                    {formatNumber(order.total)}
                                   </span>
                                   <span className="flex items-center gap-1">
                                     <Clock className="h-3 w-3" />
@@ -591,7 +589,7 @@ export default function CreateDeliveryPage() {
                             Total Value
                           </span>
                           <span className="font-semibold tabular-nums">
-                            ₱${totalValue.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                            {formatPeso(totalValue)}
                           </span>
                         </div>
 
@@ -657,7 +655,7 @@ export default function CreateDeliveryPage() {
                                       </span>
                                       <span className="flex items-center gap-1 font-medium text-foreground">
                                         <span className="text-xs">₱</span>
-                                        {order.total.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                                        {formatNumber(order.total)}
                                       </span>
                                     </div>
                                   </div>

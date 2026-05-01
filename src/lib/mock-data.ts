@@ -25,42 +25,92 @@ export const revenueChartData = [
 ];
 
 export const categoryData = [
-  { name: 'Electronics', value: 35, fill: 'var(--color-chart-1)' },
-  { name: 'Clothing', value: 25, fill: 'var(--color-chart-2)' },
-  { name: 'Food & Beverage', value: 20, fill: 'var(--color-chart-3)' },
-  { name: 'Home & Garden', value: 12, fill: 'var(--color-chart-4)' },
-  { name: 'Other', value: 8, fill: 'var(--color-chart-5)' },
+  { name: 'Tarpaulin', value: 40, fill: 'var(--color-chart-1)' },
+  { name: 'Linoleum', value: 35, fill: 'var(--color-chart-2)' },
+  { name: 'Sakolin', value: 25, fill: 'var(--color-chart-3)' },
 ];
 
-export const inventoryItems = [
-  { id: 'SKU-001', name: 'Widget Pro X200', category: 'Electronics', price: 149.99, stock: 5, minStock: 10, status: 'low_stock' as const, warehouse: 'Warehouse A', lastUpdated: '2024-01-15' },
-  { id: 'SKU-002', name: 'Smart Sensor V3', category: 'Electronics', price: 89.99, stock: 234, minStock: 50, status: 'in_stock' as const, warehouse: 'Warehouse A', lastUpdated: '2024-01-14' },
-  { id: 'SKU-003', name: 'Premium Widget XL', category: 'Electronics', price: 249.99, stock: 67, minStock: 20, status: 'in_stock' as const, warehouse: 'Warehouse B', lastUpdated: '2024-01-13' },
-  { id: 'SKU-004', name: 'Basic Connector Kit', category: 'Electronics', price: 29.99, stock: 1024, minStock: 200, status: 'in_stock' as const, warehouse: 'Warehouse A', lastUpdated: '2024-01-12' },
-  { id: 'SKU-005', name: 'Eco-Friendly Case', category: 'Accessories', price: 39.99, stock: 0, minStock: 30, status: 'out_of_stock' as const, warehouse: 'Warehouse B', lastUpdated: '2024-01-11' },
-  { id: 'SKU-006', name: 'Wireless Charger Pad', category: 'Electronics', price: 59.99, stock: 189, minStock: 40, status: 'in_stock' as const, warehouse: 'Warehouse A', lastUpdated: '2024-01-10' },
-  { id: 'SKU-007', name: 'USB-C Hub Adapter', category: 'Accessories', price: 44.99, stock: 456, minStock: 100, status: 'in_stock' as const, warehouse: 'Warehouse C', lastUpdated: '2024-01-09' },
-  { id: 'SKU-008', name: 'LED Desk Lamp', category: 'Home', price: 79.99, stock: 12, minStock: 15, status: 'low_stock' as const, warehouse: 'Warehouse B', lastUpdated: '2024-01-08' },
-  { id: 'SKU-009', name: 'Noise Cancelling Buds', category: 'Electronics', price: 129.99, stock: 89, minStock: 25, status: 'in_stock' as const, warehouse: 'Warehouse A', lastUpdated: '2024-01-07' },
-  { id: 'SKU-010', name: 'Portable Power Bank', category: 'Electronics', price: 49.99, stock: 567, minStock: 100, status: 'in_stock' as const, warehouse: 'Warehouse C', lastUpdated: '2024-01-06' },
-  { id: 'SKU-011', name: 'Bluetooth Speaker Mini', category: 'Electronics', price: 69.99, stock: 3, minStock: 20, status: 'low_stock' as const, warehouse: 'Warehouse A', lastUpdated: '2024-01-05' },
-  { id: 'SKU-012', name: 'Webcam HD 1080p', category: 'Electronics', price: 99.99, stock: 0, minStock: 30, status: 'out_of_stock' as const, warehouse: 'Warehouse B', lastUpdated: '2024-01-04' },
-  { id: 'SKU-013', name: 'Mechanical Keyboard', category: 'Electronics', price: 159.99, stock: 234, minStock: 50, status: 'in_stock' as const, warehouse: 'Warehouse A', lastUpdated: '2024-01-03' },
-  { id: 'SKU-014', name: 'Wireless Mouse', category: 'Electronics', price: 69.99, stock: 445, minStock: 80, status: 'in_stock' as const, warehouse: 'Warehouse C', lastUpdated: '2024-01-02' },
-  { id: 'SKU-015', name: 'Monitor Stand', category: 'Accessories', price: 89.99, stock: 78, minStock: 20, status: 'in_stock' as const, warehouse: 'Warehouse B', lastUpdated: '2024-01-01' },
+export interface ProductType {
+  id: string;
+  name: string;
+  stock: number;
+  minStock: number;
+  price: number;
+}
+
+export interface InventoryItem {
+  id: string;
+  name: string;
+  types: ProductType[];
+  warehouse: string;
+  lastUpdated: string;
+}
+
+export function getProductStatus(types: ProductType[]): 'in_stock' | 'low_stock' | 'out_of_stock' {
+  if (types.some(t => t.stock === 0)) return 'out_of_stock';
+  if (types.some(t => t.stock < t.minStock)) return 'low_stock';
+  return 'in_stock';
+}
+
+export function getTotalStock(types: ProductType[]): number {
+  return types.reduce((sum, t) => sum + t.stock, 0);
+}
+
+export function getMinPrice(types: ProductType[]): number {
+  return Math.min(...types.map(t => t.price));
+}
+
+export const inventoryItems: InventoryItem[] = [
+  {
+    id: 'SKU-001', name: 'Tarpaulin',
+    types: [
+      { id: 'T-001', name: 'C1',  stock: 150, minStock: 50, price: 100 },
+      { id: 'T-002', name: 'S4',  stock: 200, minStock: 50, price: 200 },
+      { id: 'T-003', name: 'S2',  stock: 180, minStock: 50, price: 300 },
+      { id: 'T-004', name: 'A2',  stock: 75,  minStock: 30, price: 400 },
+    ],
+    warehouse: 'Warehouse A', lastUpdated: '2024-01-15',
+  },
+  {
+    id: 'SKU-002', name: 'Linoleum',
+    types: [
+      { id: 'T-005', name: 'Kilo 17', stock: 120, minStock: 30, price: 100 },
+      { id: 'T-006', name: '20',       stock: 95,  minStock: 30, price: 200 },
+      { id: 'T-007', name: '28',       stock: 0,   minStock: 20, price: 300 },
+      { id: 'T-008', name: '32',       stock: 85,  minStock: 25, price: 400 },
+      { id: 'T-009', name: '36',       stock: 60,  minStock: 20, price: 500 },
+      { id: 'T-010', name: '40',       stock: 0,   minStock: 15, price: 600 },
+      { id: 'T-011', name: '52',       stock: 45,  minStock: 15, price: 700 },
+      { id: 'T-012', name: '60',       stock: 30,  minStock: 10, price: 800 },
+    ],
+    warehouse: 'Warehouse B', lastUpdated: '2024-01-14',
+  },
+  {
+    id: 'SKU-003', name: 'Sakolin',
+    types: [
+      { id: 'T-013', name: '.32mm', stock: 200, minStock: 40, price: 100 },
+      { id: 'T-014', name: '.35mm', stock: 170, minStock: 40, price: 200 },
+      { id: 'T-015', name: '.40mm', stock: 130, minStock: 30, price: 300 },
+      { id: 'T-016', name: '.45mm', stock: 50,  minStock: 25, price: 400 },
+      { id: 'T-017', name: '1mm',   stock: 0,   minStock: 20, price: 500 },
+    ],
+    warehouse: 'Warehouse C', lastUpdated: '2024-01-13',
+  },
 ];
+
+export type PaymentStatus = 'paid' | 'unpaid' | 'delayed';
 
 export const orders = [
-  { id: 'ORD-2847', customer: 'Acme Corp', items: 12, total: 1847.99, status: 'pending' as const, date: '2024-01-15', priority: 'high' as const, deliveryType: 'truck' as const, paymentStatus: 'unpaid' as const },
-  { id: 'ORD-2846', customer: 'TechStart Inc', items: 5, total: 749.95, status: 'processing' as const, date: '2024-01-15', priority: 'medium' as const, deliveryType: 'lalamove' as const, paymentStatus: 'unpaid' as const },
-  { id: 'ORD-2845', customer: 'Global Trade Ltd', items: 34, total: 5199.66, status: 'shipped' as const, date: '2024-01-14', priority: 'high' as const, deliveryType: 'truck' as const, paymentStatus: 'paid' as const },
-  { id: 'ORD-2844', customer: 'Metro Supply Co', items: 8, total: 1199.92, status: 'delivered' as const, date: '2024-01-14', priority: 'low' as const, deliveryType: 'lalamove' as const, paymentStatus: 'paid' as const },
-  { id: 'ORD-2843', customer: 'Swift Retail', items: 2, total: 299.98, status: 'cancelled' as const, date: '2024-01-13', priority: 'low' as const, deliveryType: 'truck' as const, paymentStatus: 'unpaid' as const },
-  { id: 'ORD-2842', customer: 'Digital Hub', items: 15, total: 2249.85, status: 'processing' as const, date: '2024-01-13', priority: 'medium' as const, deliveryType: 'truck' as const, paymentStatus: 'paid' as const },
-  { id: 'ORD-2841', customer: 'Prime Logistics', items: 22, total: 3299.78, status: 'shipped' as const, date: '2024-01-12', priority: 'high' as const, deliveryType: 'truck' as const, paymentStatus: 'paid' as const },
-  { id: 'ORD-2840', customer: 'Nova Enterprises', items: 6, total: 899.94, status: 'delivered' as const, date: '2024-01-12', priority: 'low' as const, deliveryType: 'lalamove' as const, paymentStatus: 'paid' as const },
-  { id: 'ORD-2839', customer: 'Atlas Trading', items: 18, total: 2699.82, status: 'pending' as const, date: '2024-01-11', priority: 'medium' as const, deliveryType: 'truck' as const, paymentStatus: 'unpaid' as const },
-  { id: 'ORD-2838', customer: 'Pinnacle Goods', items: 9, total: 1349.91, status: 'processing' as const, date: '2024-01-11', priority: 'high' as const, deliveryType: 'lalamove' as const, paymentStatus: 'unpaid' as const },
+  { id: 'ORD-2847', customer: 'Acme Corp', items: 12, total: 2400.00, status: 'pending' as const, date: '2024-01-15', priority: 'high' as const, deliveryType: 'truck' as const, paymentStatus: 'paid' as const },
+  { id: 'ORD-2846', customer: 'TechStart Inc', items: 5, total: 1500.00, status: 'processing' as const, date: '2024-01-15', priority: 'medium' as const, deliveryType: 'lalamove' as const, paymentStatus: 'unpaid' as const },
+  { id: 'ORD-2845', customer: 'Global Trade Ltd', items: 34, total: 6800.00, status: 'shipped' as const, date: '2024-01-14', priority: 'high' as const, deliveryType: 'truck' as const, paymentStatus: 'paid' as const },
+  { id: 'ORD-2844', customer: 'Metro Supply Co', items: 8, total: 1600.00, status: 'delivered' as const, date: '2024-01-14', priority: 'low' as const, deliveryType: 'lalamove' as const, paymentStatus: 'paid' as const },
+  { id: 'ORD-2843', customer: 'Swift Retail', items: 2, total: 400.00, status: 'cancelled' as const, date: '2024-01-13', priority: 'low' as const, deliveryType: 'truck' as const, paymentStatus: 'unpaid' as const },
+  { id: 'ORD-2842', customer: 'Digital Hub', items: 15, total: 4500.00, status: 'processing' as const, date: '2024-01-13', priority: 'medium' as const, deliveryType: 'truck' as const, paymentStatus: 'paid' as const },
+  { id: 'ORD-2841', customer: 'Prime Logistics', items: 22, total: 5600.00, status: 'shipped' as const, date: '2024-01-12', priority: 'high' as const, deliveryType: 'truck' as const, paymentStatus: 'unpaid' as const },
+  { id: 'ORD-2840', customer: 'Nova Enterprises', items: 6, total: 1800.00, status: 'delivered' as const, date: '2024-01-12', priority: 'low' as const, deliveryType: 'lalamove' as const, paymentStatus: 'paid' as const },
+  { id: 'ORD-2839', customer: 'Atlas Trading', items: 18, total: 3600.00, status: 'pending' as const, date: '2024-01-11', priority: 'medium' as const, deliveryType: 'truck' as const, paymentStatus: 'unpaid' as const },
+  { id: 'ORD-2838', customer: 'Pinnacle Goods', items: 9, total: 2100.00, status: 'processing' as const, date: '2024-01-11', priority: 'high' as const, deliveryType: 'lalamove' as const, paymentStatus: 'paid' as const },
 ];
 
 export type StopStatus = 'pending' | 'in_transit' | 'delivered';
@@ -77,6 +127,8 @@ export interface DeliveryStop {
   distanceFromPrev: number; // km from previous stop
   estimatedArrival: string;
   notes?: string;
+  lat: number;
+  lng: number;
 }
 
 export interface DeliveryRoute {
@@ -84,6 +136,7 @@ export interface DeliveryRoute {
   driver: string;
   vehicle: string;
   status: 'pending' | 'in_transit' | 'delivered' | 'cancelled';
+  origin: { lat: number; lng: number };
   stops: DeliveryStop[];
   totalDistance: number; // total route km
   totalOrders: number;
@@ -107,6 +160,7 @@ export const deliveries: DeliveryRoute[] = [
     driver: 'James Wilson',
     vehicle: 'Van #1',
     status: 'delivered',
+    origin: { lat: 14.5995, lng: 120.9842 },
     currentStopIndex: 3,
     totalDistance: 42.5,
     totalOrders: 3,
@@ -116,10 +170,10 @@ export const deliveries: DeliveryRoute[] = [
     cancelledAt: null,
     cancelReason: null,
     stops: [
-      { id: 'S-001', orderId: 'ORD-2844', customer: 'Metro Supply Co', address: '147 Pine Road, Philadelphia, PA 19101', status: 'delivered', items: 8, total: 1199.92, deliveredAt: '2024-01-14 09:15', distanceFromPrev: 12.3, estimatedArrival: '09:00 AM' },
-      { id: 'S-002', orderId: 'ORD-2839', customer: 'Atlas Trading', address: '369 Elm Street, San Diego, CA 92101', status: 'delivered', items: 18, total: 2699.82, deliveredAt: '2024-01-14 11:30', distanceFromPrev: 15.2, estimatedArrival: '11:00 AM' },
-      { id: 'S-003', orderId: 'ORD-2838', customer: 'Pinnacle Goods', address: '480 Birch Blvd, Dallas, TX 75201', status: 'delivered', items: 9, total: 1349.91, deliveredAt: '2024-01-14 14:00', distanceFromPrev: 10.8, estimatedArrival: '01:30 PM' },
-      { id: 'S-004', orderId: 'ORD-2843', customer: 'Swift Retail', address: '591 Walnut Dr, San Jose, CA 95101', status: 'delivered', items: 2, total: 299.98, deliveredAt: '2024-01-14 15:10', distanceFromPrev: 4.2, estimatedArrival: '02:45 PM' },
+      { id: 'S-001', orderId: 'ORD-2844', customer: 'Metro Supply Co', address: '147 Pine Road, Makati City', status: 'delivered', items: 8, total: 1199.92, deliveredAt: '2024-01-14 09:15', distanceFromPrev: 12.3, estimatedArrival: '09:00 AM', lat: 14.5547, lng: 121.0244 },
+      { id: 'S-002', orderId: 'ORD-2839', customer: 'Atlas Trading', address: '369 Elm Street, BGC Taguig', status: 'delivered', items: 18, total: 2699.82, deliveredAt: '2024-01-14 11:30', distanceFromPrev: 15.2, estimatedArrival: '11:00 AM', lat: 14.5176, lng: 121.0509 },
+      { id: 'S-003', orderId: 'ORD-2838', customer: 'Pinnacle Goods', address: '480 Birch Blvd, Pasig City', status: 'delivered', items: 9, total: 1349.91, deliveredAt: '2024-01-14 14:00', distanceFromPrev: 10.8, estimatedArrival: '01:30 PM', lat: 14.5764, lng: 121.0613 },
+      { id: 'S-004', orderId: 'ORD-2843', customer: 'Swift Retail', address: '591 Walnut Dr, Quezon City', status: 'delivered', items: 2, total: 299.98, deliveredAt: '2024-01-14 15:10', distanceFromPrev: 4.2, estimatedArrival: '02:45 PM', lat: 14.6488, lng: 121.0509 },
     ],
   },
   {
@@ -127,6 +181,7 @@ export const deliveries: DeliveryRoute[] = [
     driver: 'Maria Garcia',
     vehicle: 'Van #2',
     status: 'in_transit',
+    origin: { lat: 14.6090, lng: 120.9820 },
     currentStopIndex: 1,
     totalDistance: 38.7,
     totalOrders: 4,
@@ -136,10 +191,10 @@ export const deliveries: DeliveryRoute[] = [
     cancelledAt: null,
     cancelReason: null,
     stops: [
-      { id: 'S-005', orderId: 'ORD-2845', customer: 'Global Trade Ltd', address: '456 Commerce Blvd, Los Angeles, CA 90001', status: 'delivered', items: 34, total: 5199.66, deliveredAt: '2024-01-15 10:20', distanceFromPrev: 14.1, estimatedArrival: '10:00 AM' },
-      { id: 'S-006', orderId: 'ORD-2846', customer: 'TechStart Inc', address: '789 Innovation Dr, San Francisco, CA 94102', status: 'in_transit', items: 5, total: 749.95, deliveredAt: null, distanceFromPrev: 8.5, estimatedArrival: '12:30 PM', notes: 'Gate code: 4521' },
-      { id: 'S-007', orderId: 'ORD-2841', customer: 'Prime Logistics', address: '987 Trade St, Houston, TX 77001', status: 'pending', items: 22, total: 3299.78, deliveredAt: null, distanceFromPrev: 9.8, estimatedArrival: '02:00 PM' },
-      { id: 'S-008', orderId: 'ORD-2847', customer: 'Acme Corp', address: '123 Business Ave, New York, NY 10001', status: 'pending', items: 12, total: 1847.99, deliveredAt: null, distanceFromPrev: 6.3, estimatedArrival: '03:30 PM' },
+      { id: 'S-005', orderId: 'ORD-2845', customer: 'Global Trade Ltd', address: '456 Commerce Blvd, San Juan City', status: 'delivered', items: 34, total: 5199.66, deliveredAt: '2024-01-15 10:20', distanceFromPrev: 14.1, estimatedArrival: '10:00 AM', lat: 14.6037, lng: 121.0366 },
+      { id: 'S-006', orderId: 'ORD-2846', customer: 'TechStart Inc', address: '789 Innovation Dr, Mandaluyong City', status: 'in_transit', items: 5, total: 749.95, deliveredAt: null, distanceFromPrev: 8.5, estimatedArrival: '12:30 PM', notes: 'Gate code: 4521', lat: 14.5794, lng: 121.0355 },
+      { id: 'S-007', orderId: 'ORD-2841', customer: 'Prime Logistics', address: '987 Trade St, Marikina City', status: 'pending', items: 22, total: 3299.78, deliveredAt: null, distanceFromPrev: 9.8, estimatedArrival: '02:00 PM', lat: 14.6507, lng: 121.1082 },
+      { id: 'S-008', orderId: 'ORD-2847', customer: 'Acme Corp', address: '123 Business Ave, Caloocan City', status: 'pending', items: 12, total: 1847.99, deliveredAt: null, distanceFromPrev: 6.3, estimatedArrival: '03:30 PM', lat: 14.6488, lng: 120.9730 },
     ],
   },
   {
@@ -147,6 +202,7 @@ export const deliveries: DeliveryRoute[] = [
     driver: 'David Chen',
     vehicle: 'Van #3',
     status: 'in_transit',
+    origin: { lat: 14.5378, lng: 121.0014 },
     currentStopIndex: 0,
     totalDistance: 25.4,
     totalOrders: 3,
@@ -156,9 +212,9 @@ export const deliveries: DeliveryRoute[] = [
     cancelledAt: null,
     cancelReason: null,
     stops: [
-      { id: 'S-009', orderId: 'ORD-2840', customer: 'Nova Enterprises', address: '712 Ash Court, Austin, TX 73301', status: 'in_transit', items: 6, total: 899.94, deliveredAt: null, distanceFromPrev: 11.2, estimatedArrival: '10:30 AM', notes: 'Back entrance, ring bell' },
-      { id: 'S-010', orderId: 'ORD-2842', customer: 'Digital Hub', address: '258 Cedar Lane, San Antonio, TX 78201', status: 'pending', items: 15, total: 2249.85, deliveredAt: null, distanceFromPrev: 7.8, estimatedArrival: '12:00 PM' },
-      { id: 'S-011', orderId: 'ORD-2848', customer: 'Summit Electronics', address: '445 Oak Ridge Rd, Austin, TX 73344', status: 'pending', items: 10, total: 1799.88, deliveredAt: null, distanceFromPrev: 6.4, estimatedArrival: '01:15 PM' },
+      { id: 'S-009', orderId: 'ORD-2840', customer: 'Nova Enterprises', address: '712 Ash Court, Parañaque City', status: 'in_transit', items: 6, total: 899.94, deliveredAt: null, distanceFromPrev: 11.2, estimatedArrival: '10:30 AM', notes: 'Back entrance, ring bell', lat: 14.4793, lng: 121.0198 },
+      { id: 'S-010', orderId: 'ORD-2842', customer: 'Digital Hub', address: '258 Cedar Lane, Las Piñas City', status: 'pending', items: 15, total: 2249.85, deliveredAt: null, distanceFromPrev: 7.8, estimatedArrival: '12:00 PM', lat: 14.4509, lng: 121.0140 },
+      { id: 'S-011', orderId: 'ORD-2848', customer: 'Summit Electronics', address: '445 Oak Ridge Rd, Muntinlupa City', status: 'pending', items: 10, total: 1799.88, deliveredAt: null, distanceFromPrev: 6.4, estimatedArrival: '01:15 PM', lat: 14.4127, lng: 121.0259 },
     ],
   },
   {
@@ -166,6 +222,7 @@ export const deliveries: DeliveryRoute[] = [
     driver: 'Sarah Kim',
     vehicle: 'Van #4',
     status: 'pending',
+    origin: { lat: 14.5547, lng: 121.0244 },
     currentStopIndex: 0,
     totalDistance: 31.6,
     totalOrders: 3,
@@ -175,9 +232,9 @@ export const deliveries: DeliveryRoute[] = [
     cancelledAt: null,
     cancelReason: null,
     stops: [
-      { id: 'S-012', orderId: 'ORD-2849', customer: 'Pacific Supply', address: '888 Harbor Blvd, Seattle, WA 98101', status: 'pending', items: 20, total: 3299.50, deliveredAt: null, distanceFromPrev: 13.4, estimatedArrival: 'Tomorrow 09:30 AM' },
-      { id: 'S-013', orderId: 'ORD-2850', customer: 'Redwood Distributors', address: '222 Pinecrest Ave, Portland, OR 97201', status: 'pending', items: 8, total: 1549.89, deliveredAt: null, distanceFromPrev: 10.2, estimatedArrival: 'Tomorrow 11:15 AM' },
-      { id: 'S-014', orderId: 'ORD-2851', customer: 'Golden Gate Trading', address: '555 Market St, San Francisco, CA 94105', status: 'pending', items: 14, total: 1500.00, deliveredAt: null, distanceFromPrev: 8.0, estimatedArrival: 'Tomorrow 01:00 PM' },
+      { id: 'S-012', orderId: 'ORD-2849', customer: 'Pacific Supply', address: '888 Harbor Blvd, Navotas City', status: 'pending', items: 20, total: 3299.50, deliveredAt: null, distanceFromPrev: 13.4, estimatedArrival: 'Tomorrow 09:30 AM', lat: 14.6547, lng: 120.9464 },
+      { id: 'S-013', orderId: 'ORD-2850', customer: 'Redwood Distributors', address: '222 Pinecrest Ave, Malabon City', status: 'pending', items: 8, total: 1549.89, deliveredAt: null, distanceFromPrev: 10.2, estimatedArrival: 'Tomorrow 11:15 AM', lat: 14.6689, lng: 120.9610 },
+      { id: 'S-014', orderId: 'ORD-2851', customer: 'Golden Gate Trading', address: '555 Market St, Valenzuela City', status: 'pending', items: 14, total: 1500.00, deliveredAt: null, distanceFromPrev: 8.0, estimatedArrival: 'Tomorrow 01:00 PM', lat: 14.6989, lng: 120.9749 },
     ],
   },
   {
@@ -185,6 +242,7 @@ export const deliveries: DeliveryRoute[] = [
     driver: 'Robert Martinez',
     vehicle: 'Van #5',
     status: 'delivered',
+    origin: { lat: 14.5995, lng: 120.9842 },
     currentStopIndex: 2,
     totalDistance: 19.8,
     totalOrders: 2,
@@ -194,8 +252,8 @@ export const deliveries: DeliveryRoute[] = [
     cancelledAt: null,
     cancelReason: null,
     stops: [
-      { id: 'S-015', orderId: 'ORD-2835', customer: 'Lakeview Industries', address: '333 Lakeshore Dr, Chicago, IL 60601', status: 'delivered', items: 7, total: 899.94, deliveredAt: '2024-01-13 09:00', distanceFromPrev: 10.5, estimatedArrival: '08:45 AM' },
-      { id: 'S-016', orderId: 'ORD-2836', customer: 'Mountain Supply Co', address: '666 Peak Rd, Denver, CO 80201', status: 'delivered', items: 11, total: 1299.92, deliveredAt: '2024-01-13 11:30', distanceFromPrev: 9.3, estimatedArrival: '11:00 AM' },
+      { id: 'S-015', orderId: 'ORD-2835', customer: 'Lakeview Industries', address: '333 Lakeshore Dr, Manila', status: 'delivered', items: 7, total: 899.94, deliveredAt: '2024-01-13 09:00', distanceFromPrev: 10.5, estimatedArrival: '08:45 AM', lat: 14.5906, lng: 120.9798 },
+      { id: 'S-016', orderId: 'ORD-2836', customer: 'Mountain Supply Co', address: '666 Peak Rd, Manila', status: 'delivered', items: 11, total: 1299.92, deliveredAt: '2024-01-13 11:30', distanceFromPrev: 9.3, estimatedArrival: '11:00 AM', lat: 14.6042, lng: 120.9914 },
     ],
   },
 ];
@@ -212,31 +270,31 @@ export const deliveryTimeline = [
 ];
 
 export const activityTimeline = [
-  { id: '1', user: 'Ryan Paul Espinola', action: 'created order', target: 'ORD-2847', time: '2 min ago', type: 'order' as const },
+  { id: '1', user: 'Alex Johnson', action: 'created order', target: 'ORD-2847', time: '2 min ago', type: 'order' as const },
   { id: '2', user: 'System', action: 'alert: low stock', target: 'Widget Pro X200', time: '5 min ago', type: 'alert' as const },
   { id: '3', user: 'Maria Garcia', action: 'started delivery', target: 'DEL-1091', time: '30 min ago', type: 'delivery' as const },
   { id: '4', user: 'James Wilson', action: 'completed delivery', target: 'DEL-1092', time: '1 hour ago', type: 'delivery' as const },
-  { id: '5', user: 'Ryan Paul Espinola', action: 'updated inventory', target: 'Smart Sensor V3', time: '2 hours ago', type: 'inventory' as const },
+  { id: '5', user: 'Alex Johnson', action: 'updated inventory', target: 'Smart Sensor V3', time: '2 hours ago', type: 'inventory' as const },
   { id: '6', user: 'System', action: 'new user registered', target: 'Sarah Miller', time: '3 hours ago', type: 'user' as const },
   { id: '7', user: 'David Chen', action: 'accepted delivery', target: 'DEL-1090', time: '4 hours ago', type: 'delivery' as const },
   { id: '8', user: 'System', action: 'payment received', target: 'INV-4520 (₱2,450)', time: '5 hours ago', type: 'payment' as const },
 ];
 
 export const users = [
-  { id: 'USR-001', name: 'Ryan Paul Espinola', email: 'espinola@company.com', role: 'Admin', status: 'active' as const, lastActive: 'Just now', avatar: '' },
+  { id: 'USR-001', name: 'Alex Johnson', email: 'alex@company.com', role: 'Admin', status: 'active' as const, lastActive: 'Just now', avatar: '' },
   { id: 'USR-002', name: 'Sarah Miller', email: 'sarah@company.com', role: 'Staff', status: 'active' as const, lastActive: '5 min ago', avatar: '' },
-  { id: 'USR-003', name: 'James Wilson', email: 'james@company.com', role: 'Driver', status: 'active' as const, lastActive: '1 hour ago', avatar: '' },
-  { id: 'USR-004', name: 'Maria Garcia', email: 'maria@company.com', role: 'Driver', status: 'active' as const, lastActive: '30 min ago', avatar: '' },
+  { id: 'USR-003', name: 'James Wilson', email: 'james@company.com', role: 'Staff', status: 'active' as const, lastActive: '1 hour ago', avatar: '' },
+  { id: 'USR-004', name: 'Maria Garcia', email: 'maria@company.com', role: 'Staff', status: 'active' as const, lastActive: '30 min ago', avatar: '' },
   { id: 'USR-005', name: 'David Chen', email: 'david@company.com', role: 'Staff', status: 'active' as const, lastActive: '2 hours ago', avatar: '' },
-  { id: 'USR-006', name: 'Emily Taylor', email: 'emily@company.com', role: 'Manager', status: 'active' as const, lastActive: '4 hours ago', avatar: '' },
+  { id: 'USR-006', name: 'Emily Taylor', email: 'emily@company.com', role: 'Admin', status: 'active' as const, lastActive: '4 hours ago', avatar: '' },
   { id: 'USR-007', name: 'Michael Brown', email: 'michael@company.com', role: 'Staff', status: 'inactive' as const, lastActive: '3 days ago', avatar: '' },
   { id: 'USR-008', name: 'Lisa Wang', email: 'lisa@company.com', role: 'Staff', status: 'active' as const, lastActive: '1 day ago', avatar: '' },
 ];
 
 export const auditLogs = [
-  { id: 'LOG-001', user: 'Ryan Paul Espinola', action: 'UPDATE', resource: 'Product', resourceId: 'SKU-002', details: { field: 'price', old: '79.99', new: '89.99' }, timestamp: '2024-01-15 10:30:22', ip: '192.168.1.100' },
-  { id: 'LOG-002', user: 'Ryan Paul Espinola', action: 'CREATE', resource: 'Order', resourceId: 'ORD-2847', details: { customer: 'Acme Corp', items: 12, total: '₱1,847.99' }, timestamp: '2024-01-15 10:28:15', ip: '192.168.1.100' },
-  { id: 'LOG-003', user: 'System', action: 'ALERT', resource: 'Inventory', resourceId: 'SKU-001', details: { alert: 'Low Stock', current: 5, minimum: 10 }, timestamp: '2024-01-15 10:25:00', ip: 'system' },
+  { id: 'LOG-001', user: 'Alex Johnson', action: 'UPDATE', resource: 'Product', resourceId: 'SKU-002', details: { field: 'stock', old: '50', new: '120' }, timestamp: '2024-01-15 10:30:22', ip: '192.168.1.100' },
+  { id: 'LOG-002', user: 'Alex Johnson', action: 'CREATE', resource: 'Order', resourceId: 'ORD-2847', details: { customer: 'Acme Corp', items: 12, total: '₱2,400' }, timestamp: '2024-01-15 10:28:15', ip: '192.168.1.100' },
+  { id: 'LOG-003', user: 'System', action: 'ALERT', resource: 'Inventory', resourceId: 'SKU-002', details: { alert: 'Out of Stock', type: '28', current: 0, minimum: 20 }, timestamp: '2024-01-15 10:25:00', ip: 'system' },
   { id: 'LOG-004', user: 'Sarah Miller', action: 'UPDATE', resource: 'Delivery', resourceId: 'DEL-1091', details: { field: 'status', old: 'pending', new: 'in_transit' }, timestamp: '2024-01-15 10:00:00', ip: '192.168.1.105' },
   { id: 'LOG-005', user: 'Emily Taylor', action: 'DELETE', resource: 'User', resourceId: 'USR-010', details: { reason: 'Account terminated', user: 'John Doe' }, timestamp: '2024-01-15 09:45:30', ip: '192.168.1.108' },
   { id: 'LOG-006', user: 'James Wilson', action: 'UPDATE', resource: 'Delivery', resourceId: 'DEL-1092', details: { field: 'status', old: 'in_transit', new: 'delivered' }, timestamp: '2024-01-15 09:30:00', ip: 'mobile' },
@@ -284,11 +342,11 @@ export const topCustomers = [
 ];
 
 export const topSellingProducts = [
-  { name: 'Smart Sensor V3', sold: 342, revenue: '₱30,776' },
-  { name: 'Wireless Charger Pad', sold: 289, revenue: '₱17,334' },
-  { name: 'USB-C Hub Adapter', sold: 256, revenue: '₱11,518' },
-  { name: 'Mechanical Keyboard', sold: 198, revenue: '₱31,678' },
-  { name: 'Noise Cancelling Buds', sold: 176, revenue: '₱22,878' },
+  { name: 'Tarpaulin',     type: 'S4',     sold: 342, revenue: '₱68,400' },
+  { name: 'Linoleum',      type: '32',     sold: 289, revenue: '₱115,600' },
+  { name: 'Sakolin',       type: '.35mm',  sold: 256, revenue: '₱51,200' },
+  { name: 'Tarpaulin',     type: 'A2',     sold: 198, revenue: '₱79,200' },
+  { name: 'Linoleum',      type: 'Kilo 17',sold: 176, revenue: '₱17,600' },
 ];
 
 export const dailySales = [
@@ -302,9 +360,9 @@ export const dailySales = [
 ];
 
 export const inventoryStatus = [
-  { name: 'In Stock', value: 8, fill: 'var(--color-chart-1)' },
-  { name: 'Low Stock', value: 3, fill: 'var(--color-chart-3)' },
-  { name: 'Out of Stock', value: 2, fill: 'var(--color-chart-5)' },
+  { name: 'In Stock', value: 2, fill: 'var(--color-chart-1)' },
+  { name: 'Low Stock', value: 1, fill: 'var(--color-chart-3)' },
+  { name: 'Out of Stock', value: 3, fill: 'var(--color-chart-5)' },
 ];
 
 // ========================
@@ -561,7 +619,7 @@ export const inboxConversations: InboxConversation[] = [
     customerTotalSpent: 52300,
     customerSince: '2023-05-22',
     status: 'open',
-    assignedTo: 'Ryan Paul Espinola',
+    assignedTo: 'Alex Johnson',
     lastMessage: '我们的订单已经到港口了吗？',
     lastMessageTime: '15 min ago',
     unreadCount: 2,
@@ -797,7 +855,6 @@ export interface Warehouse {
   city: string;
   type: WarehouseType;
   status: WarehouseStatus;
-  capacity: number;
   utilized: number;
   manager: string;
   contactPhone: string;
@@ -805,10 +862,10 @@ export interface Warehouse {
 }
 
 export const warehouses: Warehouse[] = [
-  { id: 'WH-001', name: 'Warehouse A', address: '123 Commerce Blvd, Suite 100', city: 'New York', type: 'main', status: 'active', capacity: 5000, utilized: 3450, manager: 'James Wilson', contactPhone: '+1 (555) 123-4567', createdAt: '2022-06-15' },
-  { id: 'WH-002', name: 'Warehouse B', address: '456 Industrial Park Dr', city: 'Los Angeles', type: 'regional', status: 'active', capacity: 3500, utilized: 2180, manager: 'Maria Garcia', contactPhone: '+1 (555) 234-5678', createdAt: '2022-09-20' },
-  { id: 'WH-003', name: 'Warehouse C', address: '789 Logistics Way', city: 'Chicago', type: 'fulfillment', status: 'active', capacity: 2500, utilized: 1450, manager: 'David Chen', contactPhone: '+1 (555) 345-6789', createdAt: '2023-01-10' },
-  { id: 'WH-004', name: 'Cold Storage Unit D', address: '321 Freeze Point Rd', city: 'Houston', type: 'cold_storage', status: 'active', capacity: 1200, utilized: 890, manager: 'Sarah Kim', contactPhone: '+1 (555) 456-7890', createdAt: '2023-04-05' },
-  { id: 'WH-005', name: 'Warehouse E', address: '654 Harbor View Ln', city: 'San Francisco', type: 'regional', status: 'maintenance', capacity: 2000, utilized: 0, manager: 'Robert Martinez', contactPhone: '+1 (555) 567-8901', createdAt: '2023-07-18' },
-  { id: 'WH-006', name: 'Warehouse F', address: '987 Distribution Ave', city: 'Seattle', type: 'fulfillment', status: 'inactive', capacity: 1800, utilized: 0, manager: 'Emily Taylor', contactPhone: '+1 (555) 678-9012', createdAt: '2023-11-01' },
+  { id: 'WH-001', name: 'Warehouse A', address: '123 Commerce Blvd, Suite 100', city: 'New York', type: 'main', status: 'active', utilized: 3450, manager: 'James Wilson', contactPhone: '+1 (555) 123-4567', createdAt: '2022-06-15' },
+  { id: 'WH-002', name: 'Warehouse B', address: '456 Industrial Park Dr', city: 'Los Angeles', type: 'regional', status: 'active', utilized: 2180, manager: 'Maria Garcia', contactPhone: '+1 (555) 234-5678', createdAt: '2022-09-20' },
+  { id: 'WH-003', name: 'Warehouse C', address: '789 Logistics Way', city: 'Chicago', type: 'fulfillment', status: 'active', utilized: 1450, manager: 'David Chen', contactPhone: '+1 (555) 345-6789', createdAt: '2023-01-10' },
+  { id: 'WH-004', name: 'Cold Storage Unit D', address: '321 Freeze Point Rd', city: 'Houston', type: 'cold_storage', status: 'active', utilized: 890, manager: 'Sarah Kim', contactPhone: '+1 (555) 456-7890', createdAt: '2023-04-05' },
+  { id: 'WH-005', name: 'Warehouse E', address: '654 Harbor View Ln', city: 'San Francisco', type: 'regional', status: 'maintenance', utilized: 0, manager: 'Robert Martinez', contactPhone: '+1 (555) 567-8901', createdAt: '2023-07-18' },
+  { id: 'WH-006', name: 'Warehouse F', address: '987 Distribution Ave', city: 'Seattle', type: 'fulfillment', status: 'inactive', utilized: 0, manager: 'Emily Taylor', contactPhone: '+1 (555) 678-9012', createdAt: '2023-11-01' },
 ];

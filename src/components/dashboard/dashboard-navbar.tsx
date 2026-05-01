@@ -1,8 +1,8 @@
 'use client';
 
 import { cn } from '@/lib/utils';
-import { useNavigationStore, NAV_ITEMS } from '@/stores/navigation';
-import { useAuthStore } from '@/stores/auth';
+import { useNavigationStore, NAV_ITEMS, STAFF_HIDDEN_PAGES } from '@/stores/navigation';
+import { useAuthStore, type UserRole } from '@/stores/auth';
 import { useNotificationStore } from '@/stores/notifications';
 import { useTranslation } from '@/lib/i18n/use-translation';
 import { motion } from 'framer-motion';
@@ -15,6 +15,8 @@ import {
   ChevronDown,
   User,
   LogOut,
+  Shield,
+  ShieldCheck,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
@@ -43,6 +45,8 @@ export function DashboardNavbar({ onMobileMenuToggle, onSearchOpen }: NavbarProp
   const { currentView } = useNavigationStore();
   const user = useAuthStore((s) => s.user);
   const logout = useAuthStore((s) => s.logout);
+  const switchRole = useAuthStore((s) => s.switchRole);
+  const currentRole = useAuthStore((s) => s.user?.role ?? 'Admin' as UserRole);
   const { theme, setTheme } = useTheme();
   const { notifications, unreadCount, markAsRead, markAllAsRead } = useNotificationStore();
   const { t } = useTranslation();
@@ -229,11 +233,26 @@ export function DashboardNavbar({ onMobileMenuToggle, onSearchOpen }: NavbarProp
           <DropdownMenuContent align="end" className="w-56">
             <DropdownMenuLabel>
               <div className="flex flex-col space-y-1">
-                <p className="text-sm font-medium">{user?.name}</p>
+                <div className="flex items-center gap-2">
+                  <p className="text-sm font-medium">{user?.name}</p>
+                  <span className={cn(
+                    'inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[10px] font-semibold',
+                    currentRole === 'Admin'
+                      ? 'bg-primary/10 text-primary'
+                      : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400'
+                  )}>
+                    {currentRole === 'Admin' ? <ShieldCheck className="size-3" /> : <Shield className="size-3" />}
+                    {currentRole}
+                  </span>
+                </div>
                 <p className="text-xs text-muted-foreground">{user?.email}</p>
               </div>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={() => switchRole(currentRole === 'Admin' ? 'Staff' : 'Admin')}>
+              <Shield className="mr-2 h-4 w-4" />
+              Switch to {currentRole === 'Admin' ? 'Staff' : 'Admin'}
+            </DropdownMenuItem>
             <DropdownMenuItem>
               <User className="mr-2 h-4 w-4" />
               {t('common.profile')}

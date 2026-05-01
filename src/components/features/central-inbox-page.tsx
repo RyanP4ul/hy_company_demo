@@ -8,7 +8,7 @@ import {
   StaggerContainer,
   StaggerItem,
 } from '@/components/shared/animated-components';
-import { cn } from '@/lib/utils';
+import { cn, formatPeso } from '@/lib/utils';
 import {
   inboxConversations,
   type InboxConversation,
@@ -114,10 +114,6 @@ function getInitials(name: string): string {
     .join('')
     .toUpperCase()
     .slice(0, 2);
-}
-
-function formatCurrency(value: number): string {
-  return `₱${value.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
 }
 
 // ─── Customer Type Badge ────────────────────────────────────────────────────
@@ -317,7 +313,7 @@ function CustomerInfoPanel({
         </div>
         <div className="rounded-lg border bg-muted/20 p-2.5 text-center">
           <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Total Spent</p>
-          <p className="mt-0.5 text-lg font-bold tabular-nums">{formatCurrency(conversation.customerTotalSpent)}</p>
+          <p className="mt-0.5 text-lg font-bold tabular-nums">{formatPeso(conversation.customerTotalSpent, 0, 0)}</p>
         </div>
       </div>
 

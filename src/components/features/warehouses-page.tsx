@@ -20,10 +20,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Combobox, type ComboboxOption } from '@/components/ui/combobox';
-import { Warehouse as WarehouseIcon, Plus, MoreVertical, Pencil, Archive, MapPin, Package, Phone, LayoutGrid, LayoutList, Search, ArrowUpDown, ArrowUp, ArrowDown, Building2, Snowflake, TruckIcon, BarChart3, Wrench } from 'lucide-react';
+import { Warehouse as WarehouseIcon, Plus, MoreVertical, Pencil, Archive, Eye, MapPin, Package, Phone, LayoutGrid, LayoutList, Search, ArrowUpDown, ArrowUp, ArrowDown, Building2, Snowflake, TruckIcon, BarChart3, Wrench } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { useArchiveStore } from '@/stores/archive';
+import { useAuthStore } from '@/stores/auth';
 import { useSearchStore } from '@/stores/search';
 
 // ─── Combobox Options ───────────────────────────────────────────────────
@@ -64,7 +65,6 @@ interface WarehouseFormData {
   city: string;
   type: WarehouseType;
   status: WarehouseStatus;
-  capacity: string;
   manager: string;
   contactPhone: string;
 }
@@ -75,7 +75,6 @@ const defaultFormData: WarehouseFormData = {
   city: '',
   type: 'main',
   status: 'active',
-  capacity: '',
   manager: '',
   contactPhone: '',
 };
@@ -96,21 +95,16 @@ function SortIcon({ direction }: { direction: false | 'asc' | 'desc' }) {
 
 // ─── Utilization Bar ────────────────────────────────────────────────────
 
-function UtilizationBar({ utilized, capacity }: { utilized: number; capacity: number }) {
-  const pct = capacity > 0 ? Math.round((utilized / capacity) * 100) : 0;
-  const color = pct >= 90 ? 'bg-red-500' : pct >= 70 ? 'bg-amber-500' : 'bg-green-500';
+function UtilizedCount({ utilized }: { utilized: number }) {
   return (
-    <div className="space-y-1">
-      <div className="flex items-center justify-between text-xs">
-        <span className="text-muted-foreground">Utilization</span>
-        <span className={cn('font-semibold', pct >= 90 ? 'text-red-600' : pct >= 70 ? 'text-amber-600' : 'text-green-600')}>
-          {pct}%
-        </span>
+    <div className="flex items-center gap-3">
+      <div className="flex size-9 items-center justify-center rounded-lg bg-muted">
+        <Package className="size-4 text-muted-foreground" />
       </div>
-      <div className="h-2 w-full rounded-full bg-muted">
-        <div className={cn('h-full rounded-full transition-all', color)} style={{ width: `${pct}%` }} />
+      <div>
+        <p className="text-xs text-muted-foreground">Items Stored</p>
+        <p className="text-sm font-semibold tabular-nums">{utilized.toLocaleString()}</p>
       </div>
-      <p className="text-xs text-muted-foreground">{utilized.toLocaleString()} / {capacity.toLocaleString()} units</p>
     </div>
   );
 }
@@ -121,15 +115,13 @@ function SummaryCards({ data }: { data: Warehouse[] }) {
   const total = data.length;
   const active = data.filter((w) => w.status === 'active').length;
   const maintenance = data.filter((w) => w.status === 'maintenance').length;
-  const avgUtil = total > 0
-    ? Math.round(data.reduce((sum, w) => sum + (w.capacity > 0 ? (w.utilized / w.capacity) * 100 : 0), 0) / total)
-    : 0;
+  const totalUtilized = data.reduce((sum, w) => sum + w.utilized, 0);
 
   const summaries = [
     { label: 'Total Warehouses', count: total, icon: WarehouseIcon, color: 'text-primary', bg: 'bg-primary/10', isPercent: false },
     { label: 'Active', count: active, icon: Package, color: 'text-green-600 dark:text-green-400', bg: 'bg-green-500/10', isPercent: false },
     { label: 'In Maintenance', count: maintenance, icon: Wrench, color: 'text-amber-600 dark:text-amber-400', bg: 'bg-amber-500/10', isPercent: false },
-    { label: 'Avg. Utilization', count: avgUtil, icon: BarChart3, color: 'text-primary', bg: 'bg-primary/10', isPercent: true },
+    { label: 'Total Stored', count: totalUtilized, icon: BarChart3, color: 'text-primary', bg: 'bg-primary/10', isPercent: false },
   ];
 
   return (
@@ -160,11 +152,13 @@ function WarehouseCard({
   onEdit,
   onArchive,
   onView,
+  isViewOnly,
 }: {
   warehouse: Warehouse;
   onEdit: (warehouse: Warehouse) => void;
   onArchive: (warehouse: Warehouse) => void;
   onView: (warehouse: Warehouse) => void;
+  isViewOnly: boolean;
 }) {
   const cfg = statusConfig[warehouse.status];
 
@@ -182,6 +176,7 @@ function WarehouseCard({
           <div className={cn('absolute left-0 top-0 h-full w-1', cfg.bg)} />
 
           {/* Action dropdown */}
+          {!isViewOnly && (
           <div className="absolute right-2 top-2 z-10">
             <DropdownMenu>
               <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
@@ -213,6 +208,7 @@ function WarehouseCard({
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
+          )}
 
           <CardContent className="p-5 pl-5">
             {/* Header */}
@@ -246,13 +242,12 @@ function WarehouseCard({
             {/* Divider */}
             <Separator className="my-4" />
 
-            {/* Utilization Bar */}
-            <UtilizationBar utilized={warehouse.utilized} capacity={warehouse.capacity} />
+            {/* Utilized Count */}
+            <UtilizedCount utilized={warehouse.utilized} />
 
             {/* Footer info */}
-            <div className="mt-3 flex items-center justify-between text-xs text-muted-foreground">
+            <div className="mt-3 flex items-center text-xs text-muted-foreground">
               <span className="truncate">{warehouse.manager}</span>
-              <span>{warehouse.capacity.toLocaleString()} units</span>
             </div>
           </CardContent>
         </Card>
@@ -352,22 +347,6 @@ function WarehouseFormDialog({
           </div>
 
           <div className="grid gap-2">
-            <Label htmlFor="wh-capacity">Capacity (units)</Label>
-            <div className="relative">
-              <Package className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                id="wh-capacity"
-                type="number"
-                min="1"
-                placeholder="e.g. 5000"
-                value={formData.capacity}
-                onChange={(e) => setFormData((prev) => ({ ...prev, capacity: e.target.value }))}
-                className="pl-9"
-              />
-            </div>
-          </div>
-
-          <div className="grid gap-2">
             <Label htmlFor="wh-manager">Manager</Label>
             <Input
               id="wh-manager"
@@ -398,7 +377,7 @@ function WarehouseFormDialog({
           </Button>
           <Button
             onClick={onSubmit}
-            disabled={!formData.name.trim() || !formData.address.trim() || !formData.city.trim() || !formData.manager.trim() || !formData.capacity}
+            disabled={!formData.name.trim() || !formData.address.trim() || !formData.city.trim() || !formData.manager.trim()}
           >
             {mode === 'add' ? 'Add Warehouse' : 'Save Changes'}
           </Button>
@@ -448,6 +427,8 @@ function ArchiveWarehouseDialog({
 
 export default function WarehousesPage() {
   const [data, setData] = useState<Warehouse[]>(initialWarehouses as Warehouse[]);
+  const userRole = useAuthStore((s) => s.user?.role ?? 'Admin');
+  const isViewOnly = userRole !== 'Admin';
   const [dialogOpen, setDialogOpen] = useState(false);
   const [archiveDialogOpen, setArchiveDialogOpen] = useState(false);
   const [dialogMode, setDialogMode] = useState<'add' | 'edit'>('add');
@@ -462,7 +443,7 @@ export default function WarehousesPage() {
   // Search & filter
   const [globalFilter, setGlobalFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
-  const [viewMode, setViewMode] = useState<'grid' | 'table'>('grid');
+  const [viewMode, setViewMode] = useState<'grid' | 'table'>('table');
 
   // Sorting for table view
   const [sorting, setSorting] = useState<SortingState>([]);
@@ -569,44 +550,13 @@ export default function WarehousesPage() {
         },
       },
       {
-        accessorKey: 'capacity',
+        accessorKey: 'utilized',
         header: ({ column }) => (
           <Button variant="ghost" size="sm" className="-ml-3 h-8 font-semibold" onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}>
-            Capacity <SortIcon direction={column.getIsSorted()} />
+            Items Stored <SortIcon direction={column.getIsSorted()} />
           </Button>
         ),
         cell: ({ getValue }) => <span className="font-semibold tabular-nums">{(getValue() as number).toLocaleString()}</span>,
-      },
-      {
-        accessorKey: 'utilization',
-        header: ({ column }) => (
-          <Button variant="ghost" size="sm" className="-ml-3 h-8 font-semibold" onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}>
-            Utilization <SortIcon direction={column.getIsSorted()} />
-          </Button>
-        ),
-        cell: ({ row }) => {
-          const wh = row.original;
-          const pct = wh.capacity > 0 ? Math.round((wh.utilized / wh.capacity) * 100) : 0;
-          return (
-            <div className="flex items-center gap-2">
-              <div className="h-1.5 w-16 rounded-full bg-muted">
-                <div
-                  className={cn(
-                    'h-full rounded-full',
-                    pct >= 90 ? 'bg-red-500' : pct >= 70 ? 'bg-amber-500' : 'bg-green-500'
-                  )}
-                  style={{ width: `${pct}%` }}
-                />
-              </div>
-              <span className={cn(
-                'text-xs font-semibold tabular-nums',
-                pct >= 90 ? 'text-red-600' : pct >= 70 ? 'text-amber-600' : 'text-green-600'
-              )}>
-                {pct}%
-              </span>
-            </div>
-          );
-        },
       },
       {
         accessorKey: 'status',
@@ -627,7 +577,17 @@ export default function WarehousesPage() {
         size: 40,
         cell: ({ row }) => {
           const warehouse = row.original;
-          return (
+          return isViewOnly ? (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="size-8"
+              onClick={(e) => { e.stopPropagation(); handleViewDetail(warehouse); }}
+            >
+              <Eye className="size-4" />
+              <span className="sr-only">View details</span>
+            </Button>
+          ) : (
             <DropdownMenu>
               <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
                 <Button variant="ghost" size="icon" className="size-8">
@@ -687,7 +647,6 @@ export default function WarehousesPage() {
       city: warehouse.city,
       type: warehouse.type,
       status: warehouse.status,
-      capacity: String(warehouse.capacity),
       manager: warehouse.manager,
       contactPhone: warehouse.contactPhone,
     });
@@ -701,14 +660,8 @@ export default function WarehousesPage() {
   };
 
   const handleSubmit = () => {
-    if (!formData.name.trim() || !formData.address.trim() || !formData.city.trim() || !formData.manager.trim() || !formData.capacity) {
+    if (!formData.name.trim() || !formData.address.trim() || !formData.city.trim() || !formData.manager.trim()) {
       toast.error('Please fill in all required fields.');
-      return;
-    }
-
-    const capacityNum = parseInt(formData.capacity);
-    if (isNaN(capacityNum) || capacityNum <= 0) {
-      toast.error('Capacity must be a positive number.');
       return;
     }
 
@@ -720,7 +673,6 @@ export default function WarehousesPage() {
         city: formData.city.trim(),
         type: formData.type,
         status: formData.status,
-        capacity: capacityNum,
         utilized: 0,
         manager: formData.manager.trim(),
         contactPhone: formData.contactPhone.trim(),
@@ -739,7 +691,6 @@ export default function WarehousesPage() {
                 city: formData.city.trim(),
                 type: formData.type,
                 status: formData.status,
-                capacity: capacityNum,
                 manager: formData.manager.trim(),
                 contactPhone: formData.contactPhone.trim(),
               }
@@ -756,7 +707,6 @@ export default function WarehousesPage() {
               city: formData.city.trim(),
               type: formData.type,
               status: formData.status,
-              capacity: capacityNum,
               manager: formData.manager.trim(),
               contactPhone: formData.contactPhone.trim(),
             }
@@ -804,10 +754,18 @@ export default function WarehousesPage() {
                 </p>
               </div>
             </div>
-            <Button className="gap-2" onClick={handleOpenAdd}>
-              <Plus className="size-4" />
-              Add Warehouse
-            </Button>
+            {!isViewOnly && (
+              <Button className="gap-2" onClick={handleOpenAdd}>
+                <Plus className="size-4" />
+                Add Warehouse
+              </Button>
+            )}
+            {isViewOnly && (
+              <span className="inline-flex items-center gap-1.5 rounded-md border bg-muted/50 px-3 py-1.5 text-xs font-medium text-muted-foreground">
+                <Eye className="size-3.5" />
+                View Only
+              </span>
+            )}
           </div>
         </FadeIn>
 
@@ -880,7 +838,7 @@ export default function WarehousesPage() {
                       : 'Get started by adding your first warehouse.'}
                   </p>
                 </div>
-                {!globalFilter && statusFilter === 'all' && (
+                {!globalFilter && statusFilter === 'all' && !isViewOnly && (
                   <Button className="gap-2" onClick={handleOpenAdd}>
                     <Plus className="size-4" />
                     Add Warehouse
@@ -897,6 +855,7 @@ export default function WarehousesPage() {
                   onEdit={handleOpenEdit}
                   onArchive={handleOpenArchive}
                   onView={handleViewDetail}
+                  isViewOnly={isViewOnly}
                 />
               ))}
             </StaggerContainer>
@@ -999,34 +958,22 @@ export default function WarehousesPage() {
                 </SheetHeader>
 
                 <div className="space-y-5 px-4 pb-6">
-                  {/* Utilization */}
+                  {/* Items Stored */}
                   <div className="rounded-lg border bg-muted/30 p-4">
-                    <UtilizationBar utilized={detailWarehouse.utilized} capacity={detailWarehouse.capacity} />
+                    <UtilizedCount utilized={detailWarehouse.utilized} />
                   </div>
 
                   <Separator />
 
-                  {/* Capacity Stats */}
+                  {/* Storage Stats */}
                   <div className="space-y-3">
                     <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
-                      Capacity Stats
+                      Storage Info
                     </h3>
                     <div className="rounded-lg border bg-muted/30 p-4 space-y-3">
                       <div className="flex items-center justify-between">
-                        <span className="text-sm text-muted-foreground">Total Capacity</span>
-                        <span className="text-sm font-semibold tabular-nums">{detailWarehouse.capacity.toLocaleString()} units</span>
-                      </div>
-                      <Separator />
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm text-muted-foreground">Utilized</span>
-                        <span className="text-sm font-semibold tabular-nums">{detailWarehouse.utilized.toLocaleString()} units</span>
-                      </div>
-                      <Separator />
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm text-muted-foreground">Available</span>
-                        <span className="text-sm font-semibold tabular-nums text-green-600 dark:text-green-400">
-                          {(detailWarehouse.capacity - detailWarehouse.utilized).toLocaleString()} units
-                        </span>
+                        <span className="text-sm text-muted-foreground">Items Stored</span>
+                        <span className="text-sm font-semibold tabular-nums">{detailWarehouse.utilized.toLocaleString()}</span>
                       </div>
                     </div>
                   </div>
@@ -1101,6 +1048,7 @@ export default function WarehousesPage() {
                   <Separator />
 
                   {/* Quick Actions */}
+                  {!isViewOnly && (
                   <div className="space-y-3">
                     <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
                       Quick Actions
@@ -1130,6 +1078,7 @@ export default function WarehousesPage() {
                       </Button>
                     </div>
                   </div>
+                  )}
                 </div>
               </>
             )}

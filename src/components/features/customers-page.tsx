@@ -13,7 +13,7 @@ import {
   type SortingState,
 } from '@tanstack/react-table';
 import { toast } from 'sonner';
-import { cn } from '@/lib/utils';
+import { cn, formatPeso } from '@/lib/utils';
 import { useArchiveStore } from '@/stores/archive';
 import { useSearchStore } from '@/stores/search';
 import { customers as initialCustomers } from '@/lib/mock-data';
@@ -84,6 +84,7 @@ import {
   MoreHorizontal,
   Pencil,
   Archive,
+  Eye,
   ChevronUp,
   ChevronDown,
   Phone,
@@ -95,6 +96,7 @@ import {
   UserCheck,
 } from 'lucide-react';
 import { PesoSign } from '@/components/icons/peso-sign';
+import { useAuthStore } from '@/stores/auth';
 
 type Customer = (typeof initialCustomers)[number];
 
@@ -121,12 +123,10 @@ function getInitials(name: string): string {
     .slice(0, 2);
 }
 
-function formatCurrency(value: number): string {
-  return `₱${value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-}
-
 export default function CustomersPage() {
   const [data, setData] = useState<Customer[]>(initialCustomers);
+  const userRole = useAuthStore((s) => s.user?.role ?? 'Admin');
+  const isViewOnly = userRole !== 'Admin';
   const [sorting, setSorting] = useState<SortingState>([]);
   const [globalFilter, setGlobalFilter] = useState('');
 
@@ -411,7 +411,7 @@ export default function CustomersPage() {
           </Button>
         ),
         cell: ({ row }) => (
-          <span className="font-semibold tabular-nums">{formatCurrency(row.getValue('totalSpent') as number)}</span>
+          <span className="font-semibold tabular-nums">{formatPeso(row.getValue('totalSpent') as number)}</span>
         ),
       },
       {
@@ -450,7 +450,17 @@ export default function CustomersPage() {
         cell: ({ row }) => {
           const customer = row.original;
           const isActive = customer.status === 'active';
-          return (
+          return isViewOnly ? (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="size-8"
+              onClick={() => { setDetailCustomer(customer); setDetailOpen(true); }}
+            >
+              <Eye className="size-4" />
+              <span className="sr-only">View details</span>
+            </Button>
+          ) : (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="icon" className="size-8">
@@ -489,7 +499,7 @@ export default function CustomersPage() {
         },
       },
     ],
-    [openEditDialog, openToggleDialog, openArchiveDialog]
+    [openEditDialog, openToggleDialog, openArchiveDialog, isViewOnly]
   );
 
   const table = useReactTable({
@@ -524,10 +534,18 @@ export default function CustomersPage() {
                 Manage your customers and track their order history.
               </p>
             </div>
-            <Button className="gap-2" onClick={openAddDialog}>
-              <Plus className="size-4" />
-              Add Customer
-            </Button>
+            {!isViewOnly && (
+              <Button className="gap-2" onClick={openAddDialog}>
+                <Plus className="size-4" />
+                Add Customer
+              </Button>
+            )}
+            {isViewOnly && (
+              <span className="inline-flex items-center gap-1.5 rounded-md border bg-muted/50 px-3 py-1.5 text-xs font-medium text-muted-foreground">
+                <Eye className="size-3.5" />
+                View Only
+              </span>
+            )}
           </div>
         </FadeIn>
 
@@ -593,7 +611,7 @@ export default function CustomersPage() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-xs font-medium text-muted-foreground">Total Revenue</p>
-                  <p className="mt-1 text-2xl font-bold tabular-nums">{formatCurrency(totalRevenue)}</p>
+                  <p className="mt-1 text-2xl font-bold tabular-nums">{formatPeso(totalRevenue)}</p>
                 </div>
                 <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-amber-500/10">
                   <PesoSign className="size-5 text-amber-600 dark:text-amber-400" />
@@ -866,7 +884,7 @@ export default function CustomersPage() {
                     </div>
                     <div className="rounded-lg border bg-muted/30 p-3 text-center">
                       <p className="text-xs text-muted-foreground">Total Spent</p>
-                      <p className="mt-1 text-xl font-bold tabular-nums">{formatCurrency(detailCustomer.totalSpent)}</p>
+                      <p className="mt-1 text-xl font-bold tabular-nums">{formatPeso(detailCustomer.totalSpent)}</p>
                     </div>
                   </div>
 
@@ -937,16 +955,18 @@ export default function CustomersPage() {
 
                   <Separator />
 
-                  <Button
-                    className="w-full gap-2"
-                    onClick={() => {
-                      setDetailOpen(false);
-                      openEditDialog(detailCustomer);
-                    }}
-                  >
-                    <Pencil className="h-4 w-4" />
-                    Edit Customer
-                  </Button>
+                  {!isViewOnly && (
+                    <Button
+                      className="w-full gap-2"
+                      onClick={() => {
+                        setDetailOpen(false);
+                        openEditDialog(detailCustomer);
+                      }}
+                    >
+                      <Pencil className="h-4 w-4" />
+                      Edit Customer
+                    </Button>
+                  )}
                 </div>
               </>
             )}

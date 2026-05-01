@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, lazy, Suspense, useSyncExternalStore } from 'react';
 import { useAuthStore } from '@/stores/auth';
-import { useNavigationStore, type NavItem } from '@/stores/navigation';
+import { useNavigationStore, STAFF_HIDDEN_PAGES, type NavItem } from '@/stores/navigation';
 import { DashboardSidebar } from '@/components/dashboard/dashboard-sidebar';
 import { DashboardNavbar } from '@/components/dashboard/dashboard-navbar';
 import { SearchDialog } from '@/components/features/search-dialog';
@@ -17,7 +17,6 @@ const OrdersPage = lazy(() => import('@/components/features/orders-page'));
 const DeliveriesPage = lazy(() => import('@/components/features/deliveries-page'));
 const AnalyticsPage = lazy(() => import('@/components/features/analytics-page'));
 const UsersPage = lazy(() => import('@/components/features/users-page'));
-const RolesPage = lazy(() => import('@/components/features/roles-page'));
 const DriversPage = lazy(() => import('@/components/features/drivers-page'));
 const AuditLogsPage = lazy(() => import('@/components/features/audit-logs-page'));
 const ReportsPage = lazy(() => import('@/components/features/reports-page'));
@@ -27,9 +26,7 @@ const CustomersPage = lazy(() => import('@/components/features/customers-page'))
 const ArchivedPage = lazy(() => import('@/components/features/archived-page'));
 const CentralInboxPage = lazy(() => import('@/components/features/central-inbox-page'));
 const SalesPage = lazy(() => import('@/components/features/sales-page'));
-const CategoriesPage = lazy(() => import('@/components/features/categories-page'));
 const WarehousesPage = lazy(() => import('@/components/features/warehouses-page'));
-const ShippingTrackerPage = lazy(() => import('@/components/features/shipping-tracker-page'));
 const CreateOrderPage = lazy(() => import('@/components/features/create-order-page'));
 const DeliveryDetailPage = lazy(() => import('@/components/features/delivery-detail-page'));
 const CreateDeliveryPage = lazy(() => import('@/components/features/create-delivery-page'));
@@ -43,7 +40,6 @@ const pageComponents: Record<string, React.LazyExoticComponent<React.ComponentTy
   analytics: AnalyticsPage,
   users: UsersPage,
   customers: CustomersPage,
-  roles: RolesPage,
   drivers: DriversPage,
   'audit-logs': AuditLogsPage,
   reports: ReportsPage,
@@ -52,9 +48,7 @@ const pageComponents: Record<string, React.LazyExoticComponent<React.ComponentTy
   archived: ArchivedPage,
   'central-inbox': CentralInboxPage,
   sales: SalesPage,
-  categories: CategoriesPage,
   warehouses: WarehousesPage,
-  'shipping-tracker': ShippingTrackerPage,
 };
 
 // Sub-page components (no sidebar highlight)
@@ -96,13 +90,23 @@ function useHydrated() {
 }
 
 export default function Home() {
-  const { isAuthenticated } = useAuthStore();
+  const { isAuthenticated, user } = useAuthStore();
   const currentView = useNavigationStore((s) => s.currentView);
   const mobileMenuOpen = useNavigationStore((s) => s.mobileMenuOpen);
   const setMobileMenuOpen = useNavigationStore((s) => s.setMobileMenuOpen);
+  const setCurrentView = useNavigationStore((s) => s.setCurrentView);
   const toggleMobileMenu = useNavigationStore((s) => s.setMobileMenuOpen);
   const [searchOpen, setSearchOpen] = useState(false);
   const mounted = useHydrated();
+
+  const userRole = user?.role ?? 'Admin';
+
+  // Redirect to dashboard if Staff user is on a restricted page
+  useEffect(() => {
+    if (userRole === 'Staff' && STAFF_HIDDEN_PAGES.includes(currentView as NavItem)) {
+      setCurrentView('dashboard');
+    }
+  }, [userRole, currentView, setCurrentView]);
 
   // Keyboard shortcut for search
   useEffect(() => {

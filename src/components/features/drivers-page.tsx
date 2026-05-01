@@ -72,6 +72,7 @@ import {
 import {
   Phone,
   Truck,
+  Eye,
   PackageCheck,
   Wifi,
   WifiOff,
@@ -81,6 +82,7 @@ import {
   Pencil,
   Archive,
   MapPin,
+  Star,
   LayoutGrid,
   LayoutList,
   Search,
@@ -94,6 +96,7 @@ import {
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { useArchiveStore } from '@/stores/archive';
+import { useAuthStore } from '@/stores/auth';
 import { useSearchStore } from '@/stores/search';
 
 type DriverStatus = 'available' | 'on_delivery' | 'offline';
@@ -229,11 +232,13 @@ function DriverCard({
   onEdit,
   onArchive,
   onView,
+  isViewOnly,
 }: {
   driver: Driver;
   onEdit: (driver: Driver) => void;
   onArchive: (driver: Driver) => void;
   onView: (driver: Driver) => void;
+  isViewOnly: boolean;
 }) {
   const cfg = statusConfig[driver.status];
 
@@ -247,7 +252,7 @@ function DriverCard({
           {/* Status indicator bar */}
           <div className={cn('absolute left-0 top-0 h-full w-1', driver.status === 'available' ? 'bg-green-500' : driver.status === 'on_delivery' ? 'bg-blue-500' : 'bg-gray-400')} />
 
-          {/* Action dropdown */}
+          {/* Action dropdown - Admin only */}
           <div className="absolute right-2 top-2 z-10">
             <DropdownMenu>
               <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
@@ -264,18 +269,22 @@ function DriverCard({
                   <Users className="mr-2 size-4" />
                   View Details
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onEdit(driver); }}>
-                  <Pencil className="mr-2 size-4" />
-                  Edit
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem
-                  onClick={(e) => { e.stopPropagation(); onArchive(driver); }}
-                  className="text-destructive focus:text-destructive"
-                >
-                  <Archive className="mr-2 size-4" />
-                  Archive
-                </DropdownMenuItem>
+                {!isViewOnly && (
+                  <>
+                    <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onEdit(driver); }}>
+                      <Pencil className="mr-2 size-4" />
+                      Edit
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem
+                      onClick={(e) => { e.stopPropagation(); onArchive(driver); }}
+                      className="text-destructive focus:text-destructive"
+                    >
+                      <Archive className="mr-2 size-4" />
+                      Archive
+                    </DropdownMenuItem>
+                  </>
+                )}
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
@@ -478,6 +487,8 @@ function ArchiveDriverDialog({
 
 export default function DriversPage() {
   const [data, setData] = useState<Driver[]>(initialDrivers as Driver[]);
+  const userRole = useAuthStore((s) => s.user?.role ?? 'Admin');
+  const isViewOnly = userRole !== 'Admin';
   const [dialogOpen, setDialogOpen] = useState(false);
   const [archiveDialogOpen, setArchiveDialogOpen] = useState(false);
   const [dialogMode, setDialogMode] = useState<'add' | 'edit'>('add');
@@ -492,7 +503,8 @@ export default function DriversPage() {
   // Search & filter
   const [globalFilter, setGlobalFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
-  const [viewMode, setViewMode] = useState<'grid' | 'table'>('grid');
+  const [viewMode, setViewMode] = useState<'grid' | 'table'>('table');
+  const [tableData, setTableData] = useState(data);
 
   // Sorting for table view
   const [sorting, setSorting] = useState<SortingState>([]);
@@ -616,7 +628,17 @@ export default function DriversPage() {
         size: 40,
         cell: ({ row }) => {
           const driver = row.original;
-          return (
+          return isViewOnly ? (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="size-8"
+              onClick={(e) => { e.stopPropagation(); handleViewDetail(driver); }}
+            >
+              <Eye className="size-4" />
+              <span className="sr-only">View details</span>
+            </Button>
+          ) : (
             <DropdownMenu>
               <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
                 <Button variant="ghost" size="icon" className="size-8">
@@ -766,10 +788,18 @@ export default function DriversPage() {
                 </p>
               </div>
             </div>
-            <Button className="gap-2" onClick={handleOpenAdd}>
-              <Plus className="size-4" />
-              Add Driver
-            </Button>
+            {!isViewOnly && (
+              <Button className="gap-2" onClick={handleOpenAdd}>
+                <Plus className="size-4" />
+                Add Driver
+              </Button>
+            )}
+            {isViewOnly && (
+              <span className="inline-flex items-center gap-1.5 rounded-md border bg-muted/50 px-3 py-1.5 text-xs font-medium text-muted-foreground">
+                <Eye className="size-3.5" />
+                View Only
+              </span>
+            )}
           </div>
         </FadeIn>
 
@@ -842,7 +872,7 @@ export default function DriversPage() {
                       : 'Get started by adding your first driver.'}
                   </p>
                 </div>
-                {!globalFilter && statusFilter === 'all' && (
+                {!globalFilter && statusFilter === 'all' && !isViewOnly && (
                   <Button className="gap-2" onClick={handleOpenAdd}>
                     <Plus className="size-4" />
                     Add Driver
@@ -859,6 +889,7 @@ export default function DriversPage() {
                   onEdit={handleOpenEdit}
                   onArchive={handleOpenArchive}
                   onView={handleViewDetail}
+                  isViewOnly={isViewOnly}
                 />
               ))}
             </StaggerContainer>
@@ -1065,65 +1096,67 @@ export default function DriversPage() {
 
                   <Separator />
 
-                  {/* Quick Status Toggle */}
-                  <div className="space-y-3">
-                    <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
-                      Quick Actions
-                    </h3>
-                    <div className="grid grid-cols-2 gap-2">
-                      <Button
-                        variant={detailDriver.status === 'available' ? 'default' : 'outline'}
-                        size="sm"
-                        className="gap-1.5"
-                        onClick={() => {
-                          setData((prev) => prev.map((d) => d.id === detailDriver.id ? { ...d, status: 'available' } : d));
-                          setDetailDriver((prev) => prev ? { ...prev, status: 'available' } : prev);
-                          toast.success(`${detailDriver.name} is now Available`);
-                        }}
-                      >
-                        <Wifi className="size-3.5" />
-                        Available
-                      </Button>
-                      <Button
-                        variant={detailDriver.status === 'on_delivery' ? 'default' : 'outline'}
-                        size="sm"
-                        className="gap-1.5"
-                        onClick={() => {
-                          setData((prev) => prev.map((d) => d.id === detailDriver.id ? { ...d, status: 'on_delivery' } : d));
-                          setDetailDriver((prev) => prev ? { ...prev, status: 'on_delivery' } : prev);
-                          toast.success(`${detailDriver.name} is now On Delivery`);
-                        }}
-                      >
-                        <Navigation className="size-3.5" />
-                        On Delivery
-                      </Button>
-                      <Button
-                        variant={detailDriver.status === 'offline' ? 'default' : 'outline'}
-                        size="sm"
-                        className="gap-1.5"
-                        onClick={() => {
-                          setData((prev) => prev.map((d) => d.id === detailDriver.id ? { ...d, status: 'offline' } : d));
-                          setDetailDriver((prev) => prev ? { ...prev, status: 'offline' } : prev);
-                          toast.success(`${detailDriver.name} is now Offline`);
-                        }}
-                      >
-                        <WifiOff className="size-3.5" />
-                        Offline
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="gap-1.5"
-                        onClick={() => {
-                          setDetailOpen(false);
-                          handleOpenEdit(detailDriver);
-                        }}
-                      >
-                        <Pencil className="size-3.5" />
-                        Edit Profile
-                      </Button>
+                  {/* Quick Status Toggle - Admin only */}
+                  {!isViewOnly && (
+                    <div className="space-y-3">
+                      <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
+                        Quick Actions
+                      </h3>
+                      <div className="grid grid-cols-2 gap-2">
+                        <Button
+                          variant={detailDriver.status === 'available' ? 'default' : 'outline'}
+                          size="sm"
+                          className="gap-1.5"
+                          onClick={() => {
+                            setData((prev) => prev.map((d) => d.id === detailDriver.id ? { ...d, status: 'available' } : d));
+                            setDetailDriver((prev) => prev ? { ...prev, status: 'available' } : prev);
+                            toast.success(`${detailDriver.name} is now Available`);
+                          }}
+                        >
+                          <Wifi className="size-3.5" />
+                          Available
+                        </Button>
+                        <Button
+                          variant={detailDriver.status === 'on_delivery' ? 'default' : 'outline'}
+                          size="sm"
+                          className="gap-1.5"
+                          onClick={() => {
+                            setData((prev) => prev.map((d) => d.id === detailDriver.id ? { ...d, status: 'on_delivery' } : d));
+                            setDetailDriver((prev) => prev ? { ...prev, status: 'on_delivery' } : prev);
+                            toast.success(`${detailDriver.name} is now On Delivery`);
+                          }}
+                        >
+                          <Navigation className="size-3.5" />
+                          On Delivery
+                        </Button>
+                        <Button
+                          variant={detailDriver.status === 'offline' ? 'default' : 'outline'}
+                          size="sm"
+                          className="gap-1.5"
+                          onClick={() => {
+                            setData((prev) => prev.map((d) => d.id === detailDriver.id ? { ...d, status: 'offline' } : d));
+                            setDetailDriver((prev) => prev ? { ...prev, status: 'offline' } : prev);
+                            toast.success(`${detailDriver.name} is now Offline`);
+                          }}
+                        >
+                          <WifiOff className="size-3.5" />
+                          Offline
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="gap-1.5"
+                          onClick={() => {
+                            setDetailOpen(false);
+                            handleOpenEdit(detailDriver);
+                          }}
+                        >
+                          <Pencil className="size-3.5" />
+                          Edit Profile
+                        </Button>
+                      </div>
                     </div>
-                  </div>
+                  )}
                 </div>
               </>
             )}

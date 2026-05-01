@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import {
   ArrowLeft,
@@ -9,30 +9,33 @@ import {
   MapPin,
   Clock,
   CheckCircle2,
+  Navigation,
   User,
   Phone,
+  Hash,
   Route,
   AlertCircle,
-
+  ChevronDown,
   Star,
+  MapPinned,
   StickyNote,
   Warehouse,
   MessageSquare,
   XCircle,
   CalendarClock,
   AlertTriangle,
-  Wallet,
-  Search,
 } from 'lucide-react';
 import { toast } from 'sonner';
 
 import { useNavigationStore } from '@/stores/navigation';
 import { usePageContext } from '@/stores/page-context';
-import { deliveries, type DeliveryRoute, type DeliveryStop, orders, drivers } from '@/lib/mock-data';
+import { deliveries, inventoryItems, type DeliveryRoute, type DeliveryStop, orders, drivers } from '@/lib/mock-data';
 import { StatusBadge } from '@/components/shared/status-badge';
 import { PageTransition, FadeIn } from '@/components/shared/animated-components';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
+import { Command, CommandInput, CommandList, CommandEmpty, CommandGroup, CommandItem } from '@/components/ui/command';
 import { Separator } from '@/components/ui/separator';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
@@ -46,26 +49,73 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import L from 'leaflet';
 import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-  SheetDescription,
-} from '@/components/ui/sheet';
-import { cn } from '@/lib/utils';
+  MapContainer,
+  TileLayer,
+  Marker,
+  Polyline,
+  Tooltip,
+  useMap,
+} from 'react-leaflet';
+import 'leaflet/dist/leaflet.css';
+import { cn, formatPeso } from '@/lib/utils';
+import { StopDetailDrawer } from './stop-detail-drawer';
 
 /* ================================================================
-   CONSTANTS
+   LEAFLET MARKER ICONS (fix default icon bug in bundlers)
    ================================================================ */
 
-const MAP_POSITIONS: { x: number; y: number }[] = [
-  { x: 40, y: 200 },
-  { x: 130, y: 155 },
-  { x: 220, y: 100 },
-  { x: 310, y: 140 },
-  { x: 400, y: 60 },
-];
+// Fix Leaflet's default marker icons in bundled environments
+delete (L.Icon.Default.prototype as Record<string, unknown>)._getIconUrl;
+L.Icon.Default.mergeOptions({
+  iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
+  iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
+  shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
+});
+
+function createColoredIcon(color: string, label: string): L.DivIcon {
+  return L.divIcon({
+    className: 'custom-div-icon',
+    html: `<div style="background:${color};width:28px;height:28px;border-radius:50%;border:3px solid white;box-shadow:0 2px 8px rgba(0,0,0,0.3);display:flex;align-items:center;justify-content:center;color:white;font-size:11px;font-weight:700;">${label}</div>`,
+    iconSize: [28, 28],
+    iconAnchor: [14, 14],
+    tooltipAnchor: [0, -18],
+  });
+}
+
+function createWarehouseIcon(): L.DivIcon {
+  return L.divIcon({
+    className: 'custom-div-icon',
+    html: `<div style="background:#64748b;width:32px;height:32px;border-radius:8px;border:3px solid white;box-shadow:0 2px 8px rgba(0,0,0,0.3);display:flex;align-items:center;justify-content:center;color:white;font-size:13px;font-weight:700;">W</div>`,
+    iconSize: [32, 32],
+    iconAnchor: [16, 16],
+    tooltipAnchor: [0, -20],
+  });
+}
+
+// Pulsing icon for in-transit stops
+function createPulsingIcon(label: string): L.DivIcon {
+  return L.divIcon({
+    className: 'custom-div-icon',
+    html: `<div style="position:relative;width:28px;height:28px;display:flex;align-items:center;justify-content:center;">
+      <div style="position:absolute;inset:-6px;border-radius:50%;background:rgba(59,130,246,0.3);animation:pulse-ring 2s ease-out infinite;"></div>
+      <div style="background:#3b82f6;width:28px;height:28px;border-radius:50%;border:3px solid white;box-shadow:0 2px 8px rgba(0,0,0,0.3);display:flex;align-items:center;justify-content:center;color:white;font-size:11px;font-weight:700;z-index:1;">${label}</div>
+    </div>
+    <style>@keyframes pulse-ring{0%{transform:scale(1);opacity:1}100%{transform:scale(2.2);opacity:0}}</style>`,
+    iconSize: [28, 28],
+    iconAnchor: [14, 14],
+    tooltipAnchor: [0, -18],
+  });
+}
+
+function MapBoundsUpdater({ bounds }: { bounds: L.LatLngBoundsExpression }) {
+  const map = useMap();
+  useEffect(() => {
+    map.fitBounds(bounds, { padding: [40, 40], maxZoom: 14 });
+  }, [map, bounds]);
+  return null;
+}
 
 /* ================================================================
    JOURNEY STRIP — Horizontal dot-and-line progress
@@ -164,7 +214,7 @@ function JourneyStrip({
 }
 
 /* ================================================================
-   SIMPLIFIED GPS MAP — Light, clean design
+   DELIVERY MAP — React Leaflet + OpenStreetMap
    ================================================================ */
 
 function SimplifiedGPSMap({
@@ -178,208 +228,168 @@ function SimplifiedGPSMap({
   const isPending = route.status === 'pending';
   const isInTransit = route.status === 'in_transit';
 
-  const completedLinePoints = useMemo(() => {
-    const pts: string[] = [];
-    pts.push(`${MAP_POSITIONS[0].x},${MAP_POSITIONS[0].y}`);
-    for (let i = 0; i < route.stops.length; i++) {
-      if (route.stops[i].status === 'delivered' || route.stops[i].status === 'in_transit') {
-        pts.push(`${MAP_POSITIONS[i + 1].x},${MAP_POSITIONS[i + 1].y}`);
+  // Build route coordinates for polylines
+  const completedCoords: [number, number][] = useMemo(() => {
+    const coords: [number, number][] = [[route.origin.lat, route.origin.lng]];
+    for (const stop of route.stops) {
+      if (stop.status === 'delivered' || stop.status === 'in_transit') {
+        coords.push([stop.lat, stop.lng]);
       }
     }
-    return pts.join(' ');
-  }, [route.stops]);
+    return coords;
+  }, [route.stops, route.origin]);
 
-  const remainingLinePoints = useMemo(() => {
-    if (route.stops.every(s => s.status === 'delivered')) return '';
-    const pts: string[] = [];
-    const fromIdx = route.stops.findIndex(s => s.status === 'in_transit');
-    if (fromIdx >= 0) {
-      pts.push(`${MAP_POSITIONS[fromIdx].x},${MAP_POSITIONS[fromIdx].y}`);
+  const remainingCoords: [number, number][] = useMemo(() => {
+    if (route.stops.every(s => s.status === 'delivered')) return [];
+    const coords: [number, number][] = [];
+    const inTransitIdx = route.stops.findIndex(s => s.status === 'in_transit');
+    if (inTransitIdx >= 0) {
+      coords.push([route.stops[inTransitIdx].lat, route.stops[inTransitIdx].lng]);
+      for (let i = inTransitIdx + 1; i < route.stops.length; i++) {
+        coords.push([route.stops[i].lat, route.stops[i].lng]);
+      }
     } else {
-      const firstPending = route.stops.findIndex(s => s.status === 'pending');
-      if (firstPending >= 0) {
-        pts.push(`${MAP_POSITIONS[firstPending].x},${MAP_POSITIONS[firstPending].y}`);
+      // Pending: show full route from origin
+      coords.push([route.origin.lat, route.origin.lng]);
+      for (const stop of route.stops) {
+        coords.push([stop.lat, stop.lng]);
       }
     }
-    const startIdx = route.stops.findIndex(s => s.status === 'in_transit');
-    for (let i = (startIdx >= 0 ? startIdx : 0) + 1; i < route.stops.length; i++) {
-      pts.push(`${MAP_POSITIONS[i + 1].x},${MAP_POSITIONS[i + 1].y}`);
+    return coords;
+  }, [route.stops, route.origin]);
+
+  const allCoords: [number, number][] = useMemo(() => {
+    const coords: [number, number][] = [[route.origin.lat, route.origin.lng]];
+    for (const stop of route.stops) {
+      coords.push([stop.lat, stop.lng]);
     }
-    return pts.join(' ');
-  }, [route.stops]);
+    return coords;
+  }, [route.stops, route.origin]);
+
+  const bounds: L.LatLngBoundsExpression = useMemo(() => {
+    return allCoords.map(c => L.latLng(c[0], c[1]));
+  }, [allCoords]);
 
   return (
     <div
       className="relative overflow-hidden rounded-xl border border-border bg-slate-100 dark:bg-slate-800"
-      style={{ height: 320 }}
+      style={{ height: 360 }}
     >
-      {/* Subtle grid pattern */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        {[40, 80, 120, 160, 200, 240, 280].map((y) => (
-          <div
-            key={`h-${y}`}
-            className="absolute left-0 right-0 border-t border-slate-200/60 dark:border-slate-700/40"
-            style={{ top: `${y * 0.46}px` }}
-          />
-        ))}
-        {[70, 140, 210, 280, 350, 420].map((x) => (
-          <div
-            key={`v-${x}`}
-            className="absolute top-0 bottom-0 border-l border-slate-200/60 dark:border-slate-700/40"
-            style={{ left: `${x}px` }}
-          />
-        ))}
-        {/* Subtle block shapes for map feel */}
-        <div className="absolute top-[20px] left-[100px] w-[70px] h-[40px] rounded-md bg-slate-200/50 dark:bg-slate-700/30" />
-        <div className="absolute top-[80px] left-[220px] w-[50px] h-[60px] rounded-md bg-slate-200/50 dark:bg-slate-700/30" />
-        <div className="absolute top-[50px] left-[300px] w-[80px] h-[35px] rounded-md bg-slate-200/50 dark:bg-slate-700/30" />
-        <div className="absolute top-[130px] left-[150px] w-[60px] h-[45px] rounded-md bg-slate-200/50 dark:bg-slate-700/30" />
-        <div className="absolute top-[160px] left-[330px] w-[50px] h-[40px] rounded-md bg-slate-200/50 dark:bg-slate-700/30" />
-      </div>
-
-      <svg
-        viewBox="0 0 500 240"
-        className="absolute inset-0 w-full h-full"
-        preserveAspectRatio="xMidYMid meet"
+      <MapContainer
+        center={[route.origin.lat, route.origin.lng]}
+        zoom={13}
+        scrollWheelZoom={true}
+        zoomControl={false}
+        attributionControl={false}
+        className="w-full h-full z-0"
+        style={{ background: '#e2e8f0' }}
       >
-        {/* Completed route line (solid green) */}
-        {completedLinePoints && (
-          <polyline
-            points={completedLinePoints}
-            fill="none"
-            stroke="rgba(34,197,94,0.7)"
-            strokeWidth="2.5"
-            strokeLinecap="round"
-            strokeLinejoin="round"
+        <TileLayer
+          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+        />
+        <MapBoundsUpdater bounds={bounds} />
+
+        {/* Warehouse / Origin marker */}
+        <Marker
+          position={[route.origin.lat, route.origin.lng]}
+          icon={createWarehouseIcon()}
+        >
+          <Tooltip direction="top" offset={[0, -20]}>
+            <span className="font-semibold">Warehouse</span>
+          </Tooltip>
+        </Marker>
+
+        {/* Completed route polyline (solid green) */}
+        {completedCoords.length > 1 && (
+          <Polyline
+            positions={completedCoords}
+            pathOptions={{
+              color: '#22c55e',
+              weight: 3,
+              opacity: 0.8,
+            }}
           />
         )}
 
-        {/* Remaining route line (dashed blue) */}
-        {remainingLinePoints && !isDelivered && (
-          <polyline
-            points={remainingLinePoints}
-            fill="none"
-            stroke="rgba(59,130,246,0.45)"
-            strokeWidth="2.5"
-            strokeDasharray="8,5"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
-            <animate
-              attributeName="stroke-dashoffset"
-              from="0"
-              to="26"
-              dur="1.5s"
-              repeatCount="indefinite"
-            />
-          </polyline>
+        {/* Remaining route polyline (dashed blue) */}
+        {remainingCoords.length > 1 && !isDelivered && (
+          <Polyline
+            positions={remainingCoords}
+            pathOptions={{
+              color: '#3b82f6',
+              weight: 3,
+              opacity: 0.6,
+              dashArray: '10,6',
+            }}
+          />
         )}
 
-        {/* Pending-only full route (dashed gray) */}
+        {/* Pending-only route (dashed gray) */}
         {isPending && (
-          <polyline
-            points={MAP_POSITIONS.map(p => `${p.x},${p.y}`).join(' ')}
-            fill="none"
-            stroke="rgba(148,163,184,0.35)"
-            strokeWidth="2"
-            strokeDasharray="6,6"
-            strokeLinecap="round"
-            strokeLinejoin="round"
+          <Polyline
+            positions={allCoords}
+            pathOptions={{
+              color: '#94a3b8',
+              weight: 2,
+              opacity: 0.5,
+              dashArray: '8,8',
+            }}
           />
         )}
-
-        {/* Warehouse marker */}
-        <g transform={`translate(${MAP_POSITIONS[0].x - 14}, ${MAP_POSITIONS[0].y - 12})`}>
-          <rect
-            x="0" y="0" width="28" height="22" rx="3"
-            fill="rgba(148,163,184,0.2)"
-            stroke="rgba(148,163,184,0.5)"
-            strokeWidth="1"
-          />
-          <text x="14" y="15" textAnchor="middle" fill="rgba(100,116,139,0.8)" fontSize="9" fontWeight="600">
-            W
-          </text>
-          <text x="14" y="34" textAnchor="middle" fill="rgba(100,116,139,0.5)" fontSize="8">
-            Start
-          </text>
-        </g>
 
         {/* Stop markers */}
         {route.stops.map((stop, idx) => {
-          const pos = MAP_POSITIONS[idx + 1];
-          if (!pos) return null;
+          const position: [number, number] = [stop.lat, stop.lng];
           const isThisDelivered = stop.status === 'delivered';
           const isThisCurrent = stop.status === 'in_transit';
-          const isThisPending = stop.status === 'pending';
+
+          const icon = isThisCurrent
+            ? createPulsingIcon(String(idx + 1))
+            : isThisDelivered
+              ? createColoredIcon('#22c55e', '✓')
+              : createColoredIcon('#94a3b8', String(idx + 1));
 
           return (
-            <g key={stop.id} className="cursor-pointer" onClick={() => onSelectStop(stop)}>
-              {/* Delivered: green filled */}
-              {isThisDelivered && (
-                <>
-                  <circle cx={pos.x} cy={pos.y} r="13" fill="rgba(34,197,94,0.15)" />
-                  <circle cx={pos.x} cy={pos.y} r="11" fill="rgba(34,197,94,0.85)" />
-                  <polyline
-                    points={`${pos.x - 4},${pos.y} ${pos.x - 1},${pos.y + 3} ${pos.x + 4},${pos.y - 3}`}
-                    fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
-                  />
-                  <text x={pos.x} y={pos.y - 18} textAnchor="middle" fill="rgba(34,197,94,0.7)" fontSize="8" fontWeight="600">
-                    Stop {idx + 1}
-                  </text>
-                </>
-              )}
-
-              {/* In transit: pulsing blue */}
-              {isThisCurrent && (
-                <>
-                  <circle cx={pos.x} cy={pos.y} r="10" fill="rgba(59,130,246,0.2)">
-                    <animate attributeName="r" values="10;18;10" dur="2s" repeatCount="indefinite" />
-                    <animate attributeName="opacity" values="0.5;0;0.5" dur="2s" repeatCount="indefinite" />
-                  </circle>
-                  <circle cx={pos.x} cy={pos.y} r="11" fill="rgba(59,130,246,0.85)" />
-                  <text x={pos.x} y={pos.y + 4} textAnchor="middle" fill="white" fontSize="10" fontWeight="700">
-                    {idx + 1}
-                  </text>
-                  <text x={pos.x} y={pos.y - 18} textAnchor="middle" fill="rgba(59,130,246,0.7)" fontSize="8" fontWeight="600">
-                    Stop {idx + 1}
-                  </text>
-                </>
-              )}
-
-              {/* Pending: gray */}
-              {isThisPending && (
-                <>
-                  <circle cx={pos.x} cy={pos.y} r="11" fill="rgba(148,163,184,0.15)" stroke="rgba(148,163,184,0.4)" strokeWidth="1.5" />
-                  <text x={pos.x} y={pos.y + 4} textAnchor="middle" fill="rgba(148,163,184,0.6)" fontSize="10" fontWeight="600">
-                    {idx + 1}
-                  </text>
-                  <text x={pos.x} y={pos.y - 18} textAnchor="middle" fill="rgba(148,163,184,0.4)" fontSize="8" fontWeight="600">
-                    Stop {idx + 1}
-                  </text>
-                </>
-              )}
-            </g>
+            <Marker
+              key={stop.id}
+              position={position}
+              icon={icon}
+              eventHandlers={{ click: () => onSelectStop(stop) }}
+            >
+              <Tooltip direction="top">
+                <div className="text-center">
+                  <div className="font-semibold">Stop {idx + 1}: {stop.customer}</div>
+                  <div className="text-xs text-muted-foreground">{stop.address}</div>
+                  <div className={cn(
+                    'text-xs font-medium mt-0.5',
+                    isThisDelivered ? 'text-green-600' : isThisCurrent ? 'text-blue-600' : 'text-muted-foreground'
+                  )}>
+                    {isThisDelivered ? 'Delivered' : isThisCurrent ? 'In Transit' : 'Pending'}
+                  </div>
+                </div>
+              </Tooltip>
+            </Marker>
           );
         })}
-      </svg>
+      </MapContainer>
 
       {/* Route ID badge — top-left */}
-      <div className="absolute top-3 left-3 z-10">
-        <div className="rounded-md bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm border border-border px-2.5 py-1 text-xs font-mono font-semibold text-foreground">
+      <div className="absolute top-3 left-3 z-[1000]">
+        <div className="rounded-md bg-white/90 dark:bg-slate-900/90 backdrop-blur-sm border border-border px-2.5 py-1 text-xs font-mono font-semibold text-foreground shadow-sm">
           {route.id}
         </div>
       </div>
 
       {/* LIVE / Scheduled / Complete badge — top-right */}
-      <div className="absolute top-3 right-3 z-10">
+      <div className="absolute top-3 right-3 z-[1000]">
         <div
           className={cn(
-            'flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider',
+            'flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider shadow-sm',
             isInTransit
-              ? 'border-blue-500/30 bg-blue-500/10 text-blue-600 dark:text-blue-400'
+              ? 'border-blue-500/30 bg-white/90 dark:bg-slate-900/90 text-blue-600 dark:text-blue-400'
               : isDelivered
-                ? 'border-green-500/30 bg-green-500/10 text-green-600 dark:text-green-400'
-                : 'border-amber-500/30 bg-amber-500/10 text-amber-600 dark:text-amber-400'
+                ? 'border-green-500/30 bg-white/90 dark:bg-slate-900/90 text-green-600 dark:text-green-400'
+                : 'border-amber-500/30 bg-white/90 dark:bg-slate-900/90 text-amber-600 dark:text-amber-400'
           )}
         >
           {isInTransit && (
@@ -473,24 +483,6 @@ function StopCardsGrid({
                   Active
                 </Badge>
               )}
-              {(() => {
-                const ps = orders.find(o => o.id === stop.orderId)?.paymentStatus;
-                if (ps === 'paid') {
-                  return (
-                    <Badge className="border-0 bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300 text-[9px] px-1.5 py-0 shrink-0 gap-0.5">
-                      <Wallet className="size-2.5" />Paid
-                    </Badge>
-                  );
-                }
-                if (ps === 'unpaid') {
-                  return (
-                    <Badge className="border-0 bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300 text-[9px] px-1.5 py-0 shrink-0 gap-0.5">
-                      <AlertTriangle className="size-2.5" />Unpaid
-                    </Badge>
-                  );
-                }
-                return null;
-              })()}
             </div>
 
             {/* Address */}
@@ -535,6 +527,123 @@ function StopCardsGrid({
 }
 
 /* ================================================================
+   PROXIMITY COMBOBOX
+   ================================================================ */
+
+function ProximityCombobox({
+  stops,
+  onSelectStop,
+}: {
+  stops: DeliveryStop[];
+  onSelectStop: (stop: DeliveryStop) => void;
+}) {
+  const [open, setOpen] = useState(false);
+
+  const pendingStops = useMemo(() => {
+    return stops
+      .filter(s => s.status === 'pending' || s.status === 'in_transit')
+      .sort((a, b) => a.distanceFromPrev - b.distanceFromPrev);
+  }, [stops]);
+
+  const inTransitStop = stops.find(s => s.status === 'in_transit');
+
+  return (
+    <div className="space-y-2">
+      <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+        <Navigation className="h-3.5 w-3.5" />
+        Next Destination
+      </h3>
+      {pendingStops.length === 0 && !inTransitStop ? (
+        <div className="flex items-center justify-center rounded-lg border border-dashed py-5 text-sm text-muted-foreground">
+          <CheckCircle2 className="h-4 w-4 mr-2 text-green-500" />
+          All stops completed
+        </div>
+      ) : (
+        <Popover open={open} onOpenChange={setOpen}>
+          <PopoverTrigger asChild>
+            <Button
+              variant="outline"
+              role="combobox"
+              aria-expanded={open}
+              className="w-full justify-between font-normal"
+            >
+              {inTransitStop ? (
+                <span className="flex items-center gap-2 text-left truncate">
+                  <Navigation className="h-3.5 w-3.5 text-blue-500 shrink-0" />
+                  <span className="truncate">
+                    {inTransitStop.customer} — {inTransitStop.address.split(',')[0]}
+                  </span>
+                </span>
+              ) : (
+                <span className="flex items-center gap-2 text-left truncate">
+                  <MapPinned className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                  <span className="truncate">Select next destination...</span>
+                </span>
+              )}
+              <ChevronDown className="h-4 w-4 shrink-0 opacity-50" />
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+            <Command>
+              <CommandInput placeholder="Search stops..." />
+              <CommandList>
+                <CommandEmpty>No stops found.</CommandEmpty>
+                <CommandGroup heading="Upcoming Stops (nearest first)">
+                  {pendingStops.map((stop) => (
+                    <CommandItem
+                      key={stop.id}
+                      value={`${stop.customer} ${stop.address}`}
+                      onSelect={() => {
+                        onSelectStop(stop);
+                        setOpen(false);
+                      }}
+                      className="flex-col items-start gap-1 py-2.5"
+                    >
+                      <div className="flex items-center gap-2 w-full">
+                        <span
+                          className={cn(
+                            'inline-flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-bold shrink-0',
+                            stop.status === 'in_transit'
+                              ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'
+                              : 'bg-muted text-muted-foreground'
+                          )}
+                        >
+                          {stops.indexOf(stop) + 1}
+                        </span>
+                        <span className="font-medium text-sm truncate flex-1">{stop.customer}</span>
+                        {stop.status === 'in_transit' && (
+                          <Badge
+                            variant="outline"
+                            className="text-[10px] border-blue-200 text-blue-700 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/30 shrink-0"
+                          >
+                            Current
+                          </Badge>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-3 pl-7 text-xs text-muted-foreground">
+                        <span className="truncate">{stop.address.split(',')[0]}</span>
+                        <span className="shrink-0 flex items-center gap-1">
+                          <Route className="h-3 w-3" />
+                          {stop.distanceFromPrev} km
+                        </span>
+                        <span className="shrink-0 flex items-center gap-1">
+                          <Clock className="h-3 w-3" />
+                          {stop.estimatedArrival}
+                        </span>
+                      </div>
+                    </CommandItem>
+                  ))}
+                </CommandGroup>
+              </CommandList>
+            </Command>
+          </PopoverContent>
+        </Popover>
+      )}
+    </div>
+  );
+}
+
+/* ================================================================
    STOP DETAIL PANEL — Simplified
    ================================================================ */
 
@@ -549,20 +658,27 @@ function StopDetailPanel({
 
   const orderItems = useMemo(() => {
     if (!stop) return [];
-    const productNames = [
-      'Widget Pro X200', 'Smart Sensor V3', 'Premium Widget XL',
-      'Basic Connector Kit', 'USB-C Hub Adapter', 'Wireless Charger Pad',
-      'Noise Cancelling Buds', 'Mechanical Keyboard',
-    ];
     const count = relatedOrder ? relatedOrder.items : stop.items;
-    return productNames.slice(0, Math.min(count, 6)).map((name, idx) => ({
-      name,
-      productId: `SKU-${String(idx + 1).padStart(3, '0')}`,
-      qty: relatedOrder
-        ? Math.max(1, Math.floor(Math.random() * 5) + 1)
-        : Math.max(1, Math.floor(stop.items / 3)),
-      price: [149.99, 89.99, 249.99, 29.99, 44.99, 59.99, 129.99, 159.99][idx],
-    }));
+    const items: { name: string; productId: string; typeName: string; qty: number; price: number }[] = [];
+    let remaining = count;
+    for (const product of inventoryItems) {
+      if (remaining <= 0) break;
+      for (const type of product.types) {
+        if (remaining <= 0) break;
+        const qty = relatedOrder
+          ? Math.max(1, Math.floor(Math.random() * 5) + 1)
+          : Math.max(1, Math.min(Math.floor(stop.items / 3), remaining));
+        items.push({
+          name: product.name,
+          productId: product.id,
+          typeName: type.name,
+          qty,
+          price: type.price,
+        });
+        remaining -= qty;
+      }
+    }
+    return items;
   }, [stop, relatedOrder]);
 
   if (!stop) {
@@ -585,18 +701,7 @@ function StopDetailPanel({
       {/* Header */}
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
-          <div className="flex items-center gap-2 flex-wrap">
-            <p className="text-sm font-semibold">{stop.customer}</p>
-            {relatedOrder?.paymentStatus === 'paid' ? (
-              <Badge className="gap-0.5 border-0 bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300 text-[10px] px-1.5 py-0">
-                <Wallet className="size-2.5" />Paid
-              </Badge>
-            ) : relatedOrder?.paymentStatus === 'unpaid' ? (
-              <Badge className="gap-0.5 border-0 bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300 text-[10px] px-1.5 py-0">
-                <AlertTriangle className="size-2.5" />Unpaid
-              </Badge>
-            ) : null}
-          </div>
+          <p className="text-sm font-semibold">{stop.customer}</p>
           <p className="text-xs text-muted-foreground mt-0.5 font-mono">{stop.orderId}</p>
         </div>
         <StatusBadge
@@ -640,16 +745,11 @@ function StopDetailPanel({
 
       {/* Order items */}
       <div className="space-y-2">
-        <div className="flex items-center justify-between">
-          <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-            Order Items ({stop.items})
-          </p>
-          <p className="text-[10px] text-muted-foreground">
-            Showing all {orderItems.length} items
-          </p>
-        </div>
-        <div className="max-h-[400px] overflow-y-auto custom-scrollbar space-y-1">
-          {orderItems.map((item, idx) => (
+        <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+          Order Items ({stop.items})
+        </p>
+        <div className="space-y-1">
+          {orderItems.slice(0, 4).map((item, idx) => (
             <div
               key={idx}
               className="flex items-center justify-between rounded-md border px-2.5 py-1.5"
@@ -659,7 +759,7 @@ function StopDetailPanel({
                   <Package className="h-3 w-3 text-muted-foreground" />
                 </div>
                 <div className="min-w-0">
-                  <p className="text-xs font-medium truncate">{item.name}</p>
+                  <p className="text-xs font-medium truncate">{item.name} — {item.typeName}</p>
                   <p className="text-[10px] text-muted-foreground">{item.productId}</p>
                 </div>
               </div>
@@ -769,6 +869,188 @@ function DriverInfoCard({ route }: { route: DeliveryRoute }) {
 }
 
 /* ================================================================
+   CURRENT DESTINATION CARD — Shows next/active delivery stop
+   ================================================================ */
+
+function CurrentDestinationCard({
+  stops,
+  routeStatus,
+}: {
+  stops: DeliveryStop[];
+  routeStatus: string;
+}) {
+  // Find the current destination: in_transit > first pending > null
+  const currentStop = useMemo(() => {
+    return (
+      stops.find((s) => s.status === 'in_transit') ??
+      (routeStatus !== 'delivered'
+        ? stops.find((s) => s.status === 'pending')
+        : null)
+    );
+  }, [stops, routeStatus]);
+
+  const isDelivered = routeStatus === 'delivered';
+  const isInTransit = currentStop?.status === 'in_transit';
+
+  // Payment status for the current stop
+  const paymentStatus = useMemo(() => {
+    if (!currentStop) return undefined;
+    return orders.find((o) => o.id === currentStop.orderId)?.paymentStatus ?? 'unpaid';
+  }, [currentStop]);
+
+  // Find the next pending stop after the current one
+  const nextStop = useMemo(() => {
+    if (!currentStop) return null;
+    const currentIdx = stops.findIndex((s) => s.id === currentStop.id);
+    return stops.find((s, i) => i > currentIdx && s.status === 'pending') ?? null;
+  }, [stops, currentStop]);
+
+  if (isDelivered && !currentStop) {
+    // All stops delivered — show completion summary
+    return (
+      <div className="rounded-xl border border-green-200 bg-green-50/50 dark:border-green-800/50 dark:bg-green-950/20 p-4">
+        <div className="flex items-center gap-2 mb-3">
+          <div className="flex h-7 w-7 items-center justify-center rounded-full bg-green-100 dark:bg-green-900/40">
+            <CheckCircle2 className="h-4 w-4 text-green-600 dark:text-green-400" />
+          </div>
+          <h3 className="text-xs font-semibold uppercase tracking-wider text-green-700 dark:text-green-400">
+            Route Complete
+          </h3>
+        </div>
+        <p className="text-sm text-green-700 dark:text-green-300 font-medium">
+          All {stops.length} stop{stops.length !== 1 ? 's' : ''} delivered successfully
+        </p>
+        {stops.length > 0 && stops[stops.length - 1].deliveredAt && (
+          <p className="text-xs text-muted-foreground mt-1">
+            Completed at {stops[stops.length - 1].deliveredAt}
+          </p>
+        )}
+      </div>
+    );
+  }
+
+  if (!currentStop) return null;
+
+  const stopIndex = stops.findIndex((s) => s.id === currentStop.id);
+
+  return (
+    <div className="rounded-xl border bg-card p-4 space-y-3">
+      {/* Header */}
+      <div className="flex items-center gap-2">
+        <div className={cn(
+          'flex h-7 w-7 items-center justify-center rounded-full',
+          isInTransit
+            ? 'bg-blue-100 dark:bg-blue-900/40'
+            : 'bg-amber-100 dark:bg-amber-900/40'
+        )}>
+          <Navigation className={cn(
+            'h-3.5 w-3.5',
+            isInTransit
+              ? 'text-blue-600 dark:text-blue-400'
+              : 'text-amber-600 dark:text-amber-400'
+          )} />
+        </div>
+        <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+          Current Destination
+        </h3>
+      </div>
+
+      {/* Stop number badge */}
+      <div className="flex items-center gap-1.5">
+        <span className={cn(
+          'inline-flex items-center justify-center h-5 min-w-[20px] px-1.5 rounded-full text-[10px] font-bold',
+          isInTransit
+            ? 'bg-blue-500 text-white'
+            : 'bg-amber-500 text-white'
+        )}>
+          {stopIndex + 1}
+        </span>
+        <span className="text-xs text-muted-foreground">
+          of {stops.length} stops
+        </span>
+      </div>
+
+      {/* Customer name + payment badge */}
+      <div className="flex items-center gap-2">
+        <span className="font-semibold text-sm">{currentStop.customer}</span>
+        {paymentStatus === 'unpaid' && (
+          <Badge variant="destructive" className="text-[10px] px-1.5 py-0 h-5">
+            Unpaid
+          </Badge>
+        )}
+      </div>
+
+      {/* Address */}
+      <div className="flex items-start gap-1.5">
+        <MapPin className="h-3.5 w-3.5 text-muted-foreground shrink-0 mt-0.5" />
+        <p className="text-xs text-muted-foreground leading-relaxed">{currentStop.address}</p>
+      </div>
+
+      {/* Info grid */}
+      <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-xs pt-1 border-t border-border">
+        <div className="flex items-center gap-1.5">
+          <Clock className={cn(
+            'h-3 w-3 shrink-0',
+            isInTransit ? 'text-blue-600 dark:text-blue-400' : 'text-amber-600 dark:text-amber-400'
+          )} />
+          <span className={cn(
+            'font-medium',
+            isInTransit ? 'text-blue-700 dark:text-blue-300' : 'text-amber-700 dark:text-amber-300'
+          )}>
+            {isInTransit ? 'In Transit' : 'Next Up'}
+          </span>
+        </div>
+        <div className="flex items-center gap-1.5 text-muted-foreground">
+          <Clock className="h-3 w-3 shrink-0" />
+          <span>ETA: {currentStop.estimatedArrival}</span>
+        </div>
+        <div className="flex items-center gap-1.5 text-muted-foreground">
+          <Route className="h-3 w-3 shrink-0" />
+          <span>{currentStop.distanceFromPrev} km away</span>
+        </div>
+        <div className="flex items-center gap-1.5 text-muted-foreground">
+          <Package className="h-3 w-3 shrink-0" />
+          <span>{currentStop.items} item{currentStop.items !== 1 ? 's' : ''}</span>
+        </div>
+      </div>
+
+      {/* Order total */}
+      <div className="flex items-center justify-between pt-2 border-t border-border">
+        <span className="text-xs text-muted-foreground">Order Total</span>
+        <span className="text-sm font-semibold">₱{currentStop.total.toLocaleString('en-PH', { minimumFractionDigits: 2 })}</span>
+      </div>
+
+      {/* Notes */}
+      {currentStop.notes && (
+        <div className="rounded-lg bg-amber-50 dark:bg-amber-950/20 border border-amber-200/60 dark:border-amber-800/30 p-2.5">
+          <div className="flex items-center gap-1.5 mb-1">
+            <StickyNote className="h-3 w-3 text-amber-600 dark:text-amber-400" />
+            <span className="text-[10px] font-semibold text-amber-700 dark:text-amber-400 uppercase tracking-wider">
+              Notes
+            </span>
+          </div>
+          <p className="text-xs text-amber-800 dark:text-amber-300">{currentStop.notes}</p>
+        </div>
+      )}
+
+      {/* Next stop teaser */}
+      {nextStop && (
+        <div className="rounded-lg bg-muted/50 p-2.5">
+          <div className="flex items-center gap-1.5 mb-1">
+            <ArrowLeft className="h-3 w-3 text-muted-foreground rotate-180" />
+            <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
+              Next Stop
+            </span>
+          </div>
+          <p className="text-xs font-medium">{nextStop.customer}</p>
+          <p className="text-[11px] text-muted-foreground truncate">{nextStop.address}</p>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ================================================================
    ROUTE SUMMARY — Compact key-value grid
    ================================================================ */
 
@@ -780,7 +1062,7 @@ function RouteSummary({ route }: { route: DeliveryRoute }) {
       { label: 'Distance', value: `${route.totalDistance} km` },
       {
         label: 'Value',
-        value: `₱${route.totalValue.toLocaleString('en-US', { minimumFractionDigits: 2 })}`,
+        value: formatPeso(route.totalValue),
         className: 'font-semibold',
       },
     ];
@@ -1074,7 +1356,6 @@ export default function DeliveryDetailPage() {
   const returnTo = usePageContext((s) => s.returnTo);
 
   const [selectedStop, setSelectedStop] = useState<DeliveryStop | null>(null);
-  const [itemSearchQuery, setItemSearchQuery] = useState('');
   const [localStops, setLocalStops] = useState<DeliveryStop[] | null>(null);
   const [localRouteStatus, setLocalRouteStatus] = useState<string | null>(null);
   const [localCancelledAt, setLocalCancelledAt] = useState<string | null>(null);
@@ -1107,12 +1388,17 @@ export default function DeliveryDetailPage() {
   const routeStops = localStops || delivery?.stops || [];
 
   const handleGoBack = useCallback(() => {
-    setCurrentView(returnTo === 'deliveries' ? 'deliveries' : 'deliveries');
+    setCurrentView(returnTo === 'shipping-tracker' ? 'shipping-tracker' : 'deliveries');
   }, [setCurrentView, returnTo]);
+
+  // Drawer state for stop detail
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [drawerStop, setDrawerStop] = useState<DeliveryStop | null>(null);
 
   const handleSelectStop = useCallback((stop: DeliveryStop) => {
     setSelectedStop(stop);
-    setItemSearchQuery('');
+    setDrawerStop(stop);
+    setDrawerOpen(true);
   }, []);
 
   const handleMarkDelivered = useCallback(() => {
@@ -1362,7 +1648,7 @@ export default function DeliveryDetailPage() {
 
         <Separator />
 
-        {/* ====== RESPONSIVE LAYOUT (always 3-column) ====== */}
+        {/* ====== 2-COLUMN LAYOUT ====== */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
           {/* Left Column: Map + Stop Cards */}
           <div className="lg:col-span-2 space-y-5">
@@ -1395,262 +1681,27 @@ export default function DeliveryDetailPage() {
           {/* Right Column: Detail Panel (sticky) */}
           <div className="lg:col-span-1">
             <FadeIn delay={0.08}>
-              <div className="lg:sticky lg:top-6 space-y-4 max-h-[calc(100vh-12rem)] overflow-y-auto pr-1 custom-scrollbar">
-                {/* Stop Detail Panel (empty state prompt when no stop selected) */}
-                <div className="rounded-xl border bg-card p-4">
-                  <StopDetailPanel
-                    stop={null}
-                    onMarkDelivered={handleMarkDelivered}
-                  />
-                </div>
-
+              <div className="lg:sticky lg:top-6 space-y-4">
                 {/* Driver Info */}
                 <div className="rounded-xl border bg-card p-4">
                   <DriverInfoCard route={{ ...delivery, stops: routeStops }} />
                 </div>
 
+                {/* Current Destination */}
+                <CurrentDestinationCard stops={routeStops} routeStatus={routeStatus} />
               </div>
             </FadeIn>
           </div>
         </div>
-
-        {/* ====== STOP DETAIL SHEET (right-side drawer) ====== */}
-        <Sheet open={selectedStop !== null} onOpenChange={(open) => { if (!open) setSelectedStop(null); }}>
-          <SheetContent side="right" className="w-full sm:max-w-md overflow-y-auto">
-            {selectedStop && (
-              <>
-                <SheetHeader className="pr-6">
-                  <SheetTitle>Stop Details</SheetTitle>
-                  <SheetDescription>{selectedStop.customer}</SheetDescription>
-                </SheetHeader>
-
-                <div className="flex flex-col gap-4 px-4 pb-6">
-                  <Separator />
-
-                  {/* Customer name + payment badge + status badge */}
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="min-w-0">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <p className="text-base font-semibold">{selectedStop.customer}</p>
-                        {(() => {
-                          const ps = orders.find(o => o.id === selectedStop.orderId)?.paymentStatus;
-                          if (ps === 'paid') {
-                            return (
-                              <Badge className="gap-0.5 border-0 bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300 text-[10px] px-1.5 py-0">
-                                <Wallet className="size-2.5" />Paid
-                              </Badge>
-                            );
-                          }
-                          if (ps === 'unpaid') {
-                            return (
-                              <Badge className="gap-0.5 border-0 bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300 text-[10px] px-1.5 py-0">
-                                <AlertTriangle className="size-2.5" />Unpaid
-                              </Badge>
-                            );
-                          }
-                          return null;
-                        })()}
-                        <StatusBadge
-                          status={selectedStop.status === 'delivered' ? 'delivered' : selectedStop.status === 'in_transit' ? 'on_delivery' : 'pending'}
-                          pulse={selectedStop.status === 'in_transit'}
-                        />
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Order ID */}
-                  <div>
-                    <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-0.5">Order ID</p>
-                    <p className="text-sm font-mono">{selectedStop.orderId}</p>
-                  </div>
-
-                  {/* Address */}
-                  <div className="flex items-start gap-2 text-sm">
-                    <MapPin className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
-                    <span className="text-muted-foreground">{selectedStop.address}</span>
-                  </div>
-
-                  {/* ETA / Delivered time */}
-                  <div className="flex items-center gap-2 text-sm">
-                    <Clock className="h-4 w-4 text-muted-foreground shrink-0" />
-                    {selectedStop.status === 'delivered' && selectedStop.deliveredAt ? (
-                      <span>
-                        Delivered <span className="font-medium text-foreground">{selectedStop.deliveredAt}</span>
-                      </span>
-                    ) : (
-                      <span>
-                        ETA <span className="font-medium text-foreground">{selectedStop.estimatedArrival}</span>
-                      </span>
-                    )}
-                  </div>
-
-                  {/* Delivery Notes */}
-                  {selectedStop.notes && (
-                    <div className="rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 px-3 py-2">
-                      <div className="flex items-center gap-1.5 mb-0.5">
-                        <StickyNote className="h-3.5 w-3.5 text-amber-500" />
-                        <p className="text-[11px] font-medium text-amber-700 dark:text-amber-400 uppercase tracking-wider">
-                          Notes
-                        </p>
-                      </div>
-                      <p className="text-sm text-amber-900 dark:text-amber-200">{selectedStop.notes}</p>
-                    </div>
-                  )}
-
-                  {/* Order Items */}
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                        Order Items ({selectedStop.items})
-                      </p>
-                    </div>
-
-                    {/* Search input */}
-                    {selectedStop.items > 4 && (
-                      <div className="relative">
-                        <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
-                        <Input
-                          placeholder="Search items..."
-                          value={itemSearchQuery}
-                          onChange={(e) => setItemSearchQuery(e.target.value)}
-                          className="h-8 pl-8 text-xs"
-                        />
-                      </div>
-                    )}
-
-                    {(() => {
-                      const relatedOrder = orders.find(o => o.id === selectedStop.orderId);
-                      const productCatalog = [
-                        { name: 'Widget Pro X200', price: 149.99 },
-                        { name: 'Smart Sensor V3', price: 89.99 },
-                        { name: 'Premium Widget XL', price: 249.99 },
-                        { name: 'Basic Connector Kit', price: 29.99 },
-                        { name: 'USB-C Hub Adapter', price: 44.99 },
-                        { name: 'Wireless Charger Pad', price: 59.99 },
-                        { name: 'Noise Cancelling Buds', price: 129.99 },
-                        { name: 'Mechanical Keyboard', price: 159.99 },
-                        { name: 'Power Strip Surge', price: 34.99 },
-                        { name: 'LED Desk Lamp', price: 79.99 },
-                        { name: 'Bluetooth Speaker Mini', price: 69.99 },
-                        { name: 'Portable SSD 256GB', price: 199.99 },
-                        { name: 'HDMI Cable 2m', price: 12.99 },
-                        { name: 'Phone Stand Holder', price: 19.99 },
-                        { name: 'Webcam HD 1080p', price: 109.99 },
-                        { name: 'Mouse Pad XL', price: 24.99 },
-                        { name: 'USB Flash Drive 64GB', price: 39.99 },
-                        { name: 'Screen Protector Pack', price: 49.99 },
-                        { name: 'Wireless Mouse', price: 89.99 },
-                        { name: 'USB Micro Cable 3m', price: 14.99 },
-                      ];
-                      const count = relatedOrder ? relatedOrder.items : selectedStop.items;
-                      const allItems = productCatalog.slice(0, Math.min(count, 20)).map((p, idx) => ({
-                        name: p.name,
-                        productId: `SKU-${String(idx + 1).padStart(3, '0')}`,
-                        qty: relatedOrder
-                          ? Math.max(1, Math.floor(Math.random() * 5) + 1)
-                          : Math.max(1, Math.floor(selectedStop.items / 3)),
-                        price: p.price,
-                      }));
-
-                      const query = itemSearchQuery.toLowerCase().trim();
-                      const filteredItems = query
-                        ? allItems.filter(item =>
-                            item.name.toLowerCase().includes(query) || item.productId.toLowerCase().includes(query)
-                          )
-                        : allItems;
-
-                      const showingCount = filteredItems.length;
-                      const totalCount = allItems.length;
-
-                      return (
-                        <>
-                          {/* Showing count */}
-                          {(query || showingCount !== totalCount) && (
-                            <p className="text-[10px] text-muted-foreground">
-                              Showing {showingCount} of {totalCount} items
-                            </p>
-                          )}
-
-                          <div className="max-h-[50vh] overflow-y-auto custom-scrollbar space-y-1">
-                            {filteredItems.length === 0 ? (
-                              <div className="flex items-center justify-center py-6 text-xs text-muted-foreground">
-                                No items match "{itemSearchQuery}"
-                              </div>
-                            ) : (
-                              filteredItems.map((item, idx) => (
-                                <div
-                                  key={idx}
-                                  className="flex items-center justify-between rounded-md border px-2.5 py-1.5"
-                                >
-                                  <div className="flex items-center gap-2 min-w-0">
-                                    <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded bg-muted">
-                                      <Package className="h-3 w-3 text-muted-foreground" />
-                                    </div>
-                                    <div className="min-w-0">
-                                      <p className="text-xs font-medium truncate">{item.name}</p>
-                                      <p className="text-[10px] text-muted-foreground">{item.productId}</p>
-                                    </div>
-                                  </div>
-                                  <div className="text-right shrink-0 ml-2">
-                                    <p className="text-xs font-semibold tabular-nums">
-                                      ₱{(item.qty * item.price).toFixed(2)}
-                                    </p>
-                                    <p className="text-[10px] text-muted-foreground">x{item.qty}</p>
-                                  </div>
-                                </div>
-                              ))
-                            )}
-                          </div>
-                        </>
-                      );
-                    })()}
-
-                    <div className="flex items-center justify-between rounded-md bg-muted/40 px-2.5 py-1.5">
-                      <span className="text-xs text-muted-foreground">Total</span>
-                      <span className="text-sm font-bold tabular-nums">₱{selectedStop.total.toFixed(2)}</span>
-                    </div>
-                  </div>
-
-                  <Separator />
-
-                  {/* Route Summary (compact) */}
-                  <div className="space-y-2">
-                    <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                      Route Summary
-                    </p>
-                    <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-xs">
-                      <div>
-                        <p className="text-muted-foreground">Route ID</p>
-                        <p className="font-medium font-mono truncate">{delivery.id}</p>
-                      </div>
-                      <div>
-                        <p className="text-muted-foreground">Stops</p>
-                        <p className="font-medium">{routeStops.length}</p>
-                      </div>
-                      <div>
-                        <p className="text-muted-foreground">Distance</p>
-                        <p className="font-medium">{delivery.totalDistance} km</p>
-                      </div>
-                      <div>
-                        <p className="text-muted-foreground">Value</p>
-                        <p className="font-semibold">₱{delivery.totalValue.toLocaleString('en-US', { minimumFractionDigits: 2 })}</p>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Mark as Delivered button */}
-                  {selectedStop.status === 'in_transit' && (
-                    <Button className="w-full gap-2" onClick={handleMarkDelivered}>
-                      <CheckCircle2 className="h-4 w-4" />
-                      Mark as Delivered
-                    </Button>
-                  )}
-                </div>
-              </>
-            )}
-          </SheetContent>
-        </Sheet>
       </div>
+
+      {/* Stop Detail Drawer */}
+      <StopDetailDrawer
+        stop={drawerStop}
+        route={{ ...delivery, stops: routeStops }}
+        open={drawerOpen}
+        onOpenChange={setDrawerOpen}
+      />
 
       {/* Cancel Order Dialog */}
       <CancelOrderDialog

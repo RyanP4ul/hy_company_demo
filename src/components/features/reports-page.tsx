@@ -67,15 +67,17 @@ const reportTypes: ReportConfig[] = [
 // Sample report data per type
 const sampleReportData: Record<ReportType, { headers: string[]; rows: string[][] }> = {
   inventory: {
-    headers: ['Product', 'SKU', 'Category', 'Stock', 'Min Stock', 'Status', 'Warehouse'],
+    headers: ['Product', 'SKU', 'Type', 'Stock', 'Min Stock', 'Status', 'Warehouse'],
     rows: [
-      ['Widget Pro X200', 'SKU-001', 'Electronics', '5', '10', 'Low Stock', 'Warehouse A'],
-      ['Smart Sensor V3', 'SKU-002', 'Electronics', '234', '50', 'In Stock', 'Warehouse A'],
-      ['Premium Widget XL', 'SKU-003', 'Electronics', '67', '20', 'In Stock', 'Warehouse B'],
-      ['Basic Connector Kit', 'SKU-004', 'Electronics', '1,024', '200', 'In Stock', 'Warehouse A'],
-      ['Eco-Friendly Case', 'SKU-005', 'Accessories', '0', '30', 'Out of Stock', 'Warehouse B'],
-      ['Wireless Charger Pad', 'SKU-006', 'Electronics', '189', '40', 'In Stock', 'Warehouse A'],
-      ['USB-C Hub Adapter', 'SKU-007', 'Accessories', '456', '100', 'In Stock', 'Warehouse C'],
+      ['Tarpaulin', 'SKU-001', 'C1', '150', '50', 'In Stock', 'Warehouse A'],
+      ['Tarpaulin', 'SKU-001', 'S4', '200', '50', 'In Stock', 'Warehouse A'],
+      ['Tarpaulin', 'SKU-001', 'S2', '180', '50', 'In Stock', 'Warehouse A'],
+      ['Tarpaulin', 'SKU-001', 'A2', '75', '30', 'In Stock', 'Warehouse A'],
+      ['Linoleum', 'SKU-002', 'Kilo 17', '120', '30', 'In Stock', 'Warehouse B'],
+      ['Linoleum', 'SKU-002', '28', '0', '20', 'Out of Stock', 'Warehouse B'],
+      ['Linoleum', 'SKU-002', '40', '0', '15', 'Out of Stock', 'Warehouse B'],
+      ['Sakolin', 'SKU-003', '.32mm', '200', '40', 'In Stock', 'Warehouse C'],
+      ['Sakolin', 'SKU-003', '1mm', '0', '20', 'Out of Stock', 'Warehouse C'],
     ],
   },
   sales: {

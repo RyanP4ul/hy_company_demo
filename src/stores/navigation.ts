@@ -9,18 +9,14 @@ export type NavItem =
   | 'analytics'
   | 'users'
   | 'customers'
-  | 'roles'
   | 'drivers'
-  | 'audit-logs'
   | 'notifications'
   | 'settings'
   | 'reports'
   | 'archived'
   | 'central-inbox'
   | 'sales'
-  | 'categories'
   | 'warehouses'
-  | 'shipping-tracker'
   // Sub-pages (no sidebar nav item)
   | 'create-order'
   | 'create-delivery'
@@ -64,15 +60,18 @@ export const NAV_ITEMS: { id: NavItem; label: string; icon: string; group: strin
   { id: 'reports', label: 'Reports', icon: 'FileText', group: 'Insights' },
   { id: 'users', label: 'Users', icon: 'Users', group: 'Management' },
   { id: 'customers', label: 'Customers', icon: 'Contact', group: 'Management' },
-  { id: 'roles', label: 'Roles & Permissions', icon: 'Shield', group: 'Management' },
   { id: 'drivers', label: 'Drivers', icon: 'UserCheck', group: 'Management' },
+  { id: 'warehouses', label: 'Warehouses', icon: 'Warehouse', group: 'Management' },
   { id: 'audit-logs', label: 'Audit Logs', icon: 'ScrollText', group: 'System' },
   { id: 'notifications', label: 'Notifications', icon: 'Bell', group: 'System' },
   { id: 'settings', label: 'Settings', icon: 'Settings', group: 'System' },
   { id: 'archived', label: 'Archived', icon: 'Archive', group: 'System' },
   { id: 'central-inbox', label: 'Central Inbox', icon: 'MessageSquare', group: 'Main' },
   { id: 'sales', label: 'Sales', icon: 'CirclePesoSign', group: 'Main' },
-  { id: 'categories', label: 'Categories', icon: 'Tags', group: 'Management' },
-  { id: 'warehouses', label: 'Warehouses', icon: 'Warehouse', group: 'Management' },
-  { id: 'shipping-tracker', label: 'Shipping Tracker', icon: 'Ship', group: 'Main' },
 ];
+
+// Pages hidden from Staff role
+export const STAFF_HIDDEN_PAGES: NavItem[] = ['sales', 'users', 'audit-logs', 'archived'];
+
+// Pages where Staff has view-only access
+export const STAFF_VIEW_ONLY_PAGES: NavItem[] = ['customers', 'warehouses'];

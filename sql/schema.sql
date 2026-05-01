@@ -13,14 +13,13 @@
 
 CREATE TYPE user_status AS ENUM ('active', 'inactive');
 CREATE TYPE customer_status AS ENUM ('active', 'inactive');
-CREATE TYPE inventory_status AS ENUM ('in_stock', 'low_stock', 'out_of_stock');
 CREATE TYPE order_status AS ENUM ('pending', 'processing', 'shipped', 'delivered', 'cancelled');
 CREATE TYPE order_priority AS ENUM ('low', 'medium', 'high');
-CREATE TYPE delivery_status AS ENUM ('pending', 'in_transit', 'delivered');
+CREATE TYPE delivery_status AS ENUM ('pending', 'in_transit', 'delivered', 'cancelled');
 CREATE TYPE driver_status AS ENUM ('available', 'on_delivery', 'offline');
 CREATE TYPE notification_type AS ENUM ('info', 'success', 'warning', 'error');
 CREATE TYPE audit_action AS ENUM ('CREATE', 'UPDATE', 'DELETE', 'ALERT');
-CREATE TYPE entity_type AS ENUM ('inventory', 'order', 'delivery', 'user', 'driver', 'customer');
+CREATE TYPE entity_type AS ENUM ('inventory', 'order', 'delivery', 'user', 'driver', 'customer', 'warehouse', 'sale');
 CREATE TYPE activity_type AS ENUM ('order', 'alert', 'delivery', 'inventory', 'user', 'payment');
 
 -- ============================================================================
@@ -35,7 +34,7 @@ CREATE TABLE users (
     name        VARCHAR(100) NOT NULL,
     email       VARCHAR(255) NOT NULL UNIQUE,
     password    VARCHAR(255) NOT NULL,                       -- bcrypt hash
-    role_id     VARCHAR(50)  NOT NULL REFERENCES roles(id), -- FK to roles
+    role        VARCHAR(10)  NOT NULL DEFAULT 'Staff' CHECK (role IN ('Admin', 'Staff')),
     avatar      TEXT         DEFAULT '',
     status      user_status  NOT NULL DEFAULT 'active',
     last_active TIMESTAMP    DEFAULT NOW(),
@@ -44,29 +43,7 @@ CREATE TABLE users (
 );
 
 -- ---------------------------------------------------------------------------
--- 2.2 Roles & Permissions
--- ---------------------------------------------------------------------------
-CREATE TABLE roles (
-    id          VARCHAR(50)  PRIMARY KEY,                    -- admin, manager, staff, driver, viewer
-    name        VARCHAR(50)  NOT NULL UNIQUE,
-    description TEXT         NOT NULL DEFAULT ''
-);
-
-CREATE TABLE permissions (
-    id          VARCHAR(50)  PRIMARY KEY,                    -- inv-view, ord-create, etc.
-    label       VARCHAR(100) NOT NULL,
-    category    VARCHAR(50)  NOT NULL                        -- Inventory, Orders, Deliveries, Users, Reports, Settings
-);
-
-CREATE TABLE role_permissions (
-    role_id         VARCHAR(50) NOT NULL REFERENCES roles(id) ON DELETE CASCADE,
-    permission_id   VARCHAR(50) NOT NULL REFERENCES permissions(id) ON DELETE CASCADE,
-    enabled         BOOLEAN     NOT NULL DEFAULT TRUE,
-    PRIMARY KEY (role_id, permission_id)
-);
-
--- ---------------------------------------------------------------------------
--- 2.3 Customers
+-- 2.2 Customers
 -- ---------------------------------------------------------------------------
 CREATE TABLE customers (
     id              VARCHAR(20)      PRIMARY KEY,            -- CST-001 format
@@ -84,72 +61,84 @@ CREATE TABLE customers (
 );
 
 -- ---------------------------------------------------------------------------
--- 2.4 Warehouses (Lookup table)
+-- 2.3 Warehouses
 -- ---------------------------------------------------------------------------
 CREATE TABLE warehouses (
-    id      VARCHAR(50)  PRIMARY KEY,
-    name    VARCHAR(100) NOT NULL UNIQUE,
-    address TEXT         DEFAULT ''
+    id            VARCHAR(20)   PRIMARY KEY,                 -- WH-001 format
+    name          VARCHAR(200)  NOT NULL,
+    address       TEXT          DEFAULT '',
+    city          VARCHAR(100)  DEFAULT '',
+    type          VARCHAR(20)   NOT NULL DEFAULT 'main' CHECK (type IN ('main', 'regional', 'fulfillment', 'cold_storage')),
+    status        VARCHAR(20)   NOT NULL DEFAULT 'active' CHECK (status IN ('active', 'inactive', 'maintenance')),
+    utilized      INTEGER       NOT NULL DEFAULT 0,
+    manager       VARCHAR(100)  DEFAULT '',
+    contact_phone VARCHAR(30)   DEFAULT '',
+    created_at    TIMESTAMP     NOT NULL DEFAULT NOW()
 );
 
 -- ---------------------------------------------------------------------------
--- 2.5 Inventory Categories (Lookup table)
--- ---------------------------------------------------------------------------
-CREATE TABLE inventory_categories (
-    id      VARCHAR(50)  PRIMARY KEY,
-    name    VARCHAR(100) NOT NULL UNIQUE
-);
-
--- ---------------------------------------------------------------------------
--- 2.6 Inventory Items (Products)
+-- 2.4 Inventory Items (Products)
 -- ---------------------------------------------------------------------------
 CREATE TABLE inventory (
-    id          VARCHAR(20)        PRIMARY KEY,              -- SKU-001 format
-    name        VARCHAR(200)       NOT NULL,
-    category_id VARCHAR(50)        NOT NULL REFERENCES inventory_categories(id),
-    price       DECIMAL(10,2)      NOT NULL DEFAULT 0.00,
-    stock       INTEGER            NOT NULL DEFAULT 0,
-    min_stock   INTEGER            NOT NULL DEFAULT 0,
+    id           VARCHAR(20)       PRIMARY KEY,              -- SKU-001 format
+    name         VARCHAR(200)      NOT NULL,
     warehouse_id VARCHAR(50)       NOT NULL REFERENCES warehouses(id),
-    status      inventory_status   NOT NULL DEFAULT 'in_stock',
     last_updated DATE              NOT NULL DEFAULT CURRENT_DATE,
-    created_at  TIMESTAMP          NOT NULL DEFAULT NOW(),
-    updated_at  TIMESTAMP          NOT NULL DEFAULT NOW()
+    created_at   TIMESTAMP         NOT NULL DEFAULT NOW(),
+    updated_at   TIMESTAMP         NOT NULL DEFAULT NOW()
 );
 
 -- ---------------------------------------------------------------------------
--- 2.7 Orders
+-- 2.5 Product Types (variants per product)
+-- ---------------------------------------------------------------------------
+CREATE TABLE product_types (
+    id           VARCHAR(20)   PRIMARY KEY,                 -- T-001 format
+    product_id   VARCHAR(20)   NOT NULL REFERENCES inventory(id) ON DELETE CASCADE,
+    name         VARCHAR(100)  NOT NULL,                     -- e.g. 'Small', 'Medium', 'Pro'
+    stock        INTEGER       NOT NULL DEFAULT 0,
+    min_stock    INTEGER       NOT NULL DEFAULT 0,
+    price        DECIMAL(10,2) NOT NULL DEFAULT 0.00,
+    created_at   TIMESTAMP     NOT NULL DEFAULT NOW(),
+    updated_at   TIMESTAMP     NOT NULL DEFAULT NOW()
+);
+
+-- ---------------------------------------------------------------------------
+-- 2.6 Orders
 -- ---------------------------------------------------------------------------
 CREATE TABLE orders (
-    id              VARCHAR(20)      PRIMARY KEY,            -- ORD-2847 format
-    customer_id     VARCHAR(20)      REFERENCES customers(id),
-    customer_name   VARCHAR(200)     NOT NULL,               -- denormalized for quick lookup
-    item_count      INTEGER          NOT NULL DEFAULT 0,
-    total           DECIMAL(12,2)    NOT NULL DEFAULT 0.00,
-    status          order_status     NOT NULL DEFAULT 'pending',
-    priority        order_priority   NOT NULL DEFAULT 'medium',
-    notes           TEXT             DEFAULT '',
-    assigned_driver_id VARCHAR(20)   DEFAULT NULL,           -- FK to drivers (set later)
-    created_at      TIMESTAMP        NOT NULL DEFAULT NOW(),
-    updated_at      TIMESTAMP        NOT NULL DEFAULT NOW()
+    id                VARCHAR(20)      PRIMARY KEY,          -- ORD-2847 format
+    customer_id       VARCHAR(20)      REFERENCES customers(id),
+    customer_name     VARCHAR(200)     NOT NULL,             -- denormalized for quick lookup
+    item_count        INTEGER          NOT NULL DEFAULT 0,
+    total             DECIMAL(12,2)    NOT NULL DEFAULT 0.00,
+    status            order_status     NOT NULL DEFAULT 'pending',
+    priority          order_priority   NOT NULL DEFAULT 'medium',
+    payment_status    VARCHAR(10)      NOT NULL DEFAULT 'unpaid' CHECK (payment_status IN ('paid', 'unpaid', 'delayed')),
+    delivery_type     VARCHAR(20)      DEFAULT '',
+    notes             TEXT             DEFAULT '',
+    assigned_driver_id VARCHAR(20)     DEFAULT NULL,         -- FK to drivers (set later)
+    created_at        TIMESTAMP        NOT NULL DEFAULT NOW(),
+    updated_at        TIMESTAMP        NOT NULL DEFAULT NOW()
 );
 
 -- ---------------------------------------------------------------------------
--- 2.8 Order Items (Line items within an order)
+-- 2.7 Order Items (Line items within an order)
 -- ---------------------------------------------------------------------------
 CREATE TABLE order_items (
-    id          VARCHAR(50)    PRIMARY KEY,
-    order_id    VARCHAR(20)    NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
-    product_id  VARCHAR(20)    NOT NULL REFERENCES inventory(id),
-    product_name VARCHAR(200)  NOT NULL,                     -- denormalized
-    quantity    INTEGER        NOT NULL DEFAULT 1 CHECK (quantity > 0),
-    unit_price  DECIMAL(10,2)  NOT NULL DEFAULT 0.00,
-    subtotal    DECIMAL(12,2)  GENERATED ALWAYS AS (quantity * unit_price) STORED,
-    created_at  TIMESTAMP      NOT NULL DEFAULT NOW()
+    id           VARCHAR(50)    PRIMARY KEY,
+    order_id     VARCHAR(20)    NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
+    product_id   VARCHAR(20)    NOT NULL REFERENCES inventory(id),
+    product_name VARCHAR(200)   NOT NULL,                     -- denormalized
+    type_id      VARCHAR(20)    NOT NULL REFERENCES product_types(id),  -- NEW
+    type_name    VARCHAR(100)   NOT NULL DEFAULT '',          -- denormalized type name, NEW
+    quantity     INTEGER        NOT NULL DEFAULT 1 CHECK (quantity > 0),
+    unit_price   DECIMAL(10,2)  NOT NULL DEFAULT 0.00,
+    subtotal     DECIMAL(12,2)  GENERATED ALWAYS AS (quantity * unit_price) STORED,
+    created_at   TIMESTAMP      NOT NULL DEFAULT NOW()
 );
 
 -- ---------------------------------------------------------------------------
--- 2.9 Drivers
+-- 2.8 Drivers
 -- ---------------------------------------------------------------------------
 CREATE TABLE drivers (
     id                  VARCHAR(20)    PRIMARY KEY,          -- DRV-001 format
@@ -166,20 +155,52 @@ CREATE TABLE drivers (
 );
 
 -- ---------------------------------------------------------------------------
--- 2.10 Deliveries
+-- 2.9 Deliveries
 -- ---------------------------------------------------------------------------
 CREATE TABLE deliveries (
-    id              VARCHAR(20)      PRIMARY KEY,            -- DEL-1092 format
-    order_id        VARCHAR(20)      NOT NULL REFERENCES orders(id),
-    driver_id       VARCHAR(20)      NOT NULL REFERENCES drivers(id),
-    destination     TEXT             NOT NULL,
-    status          delivery_status  NOT NULL DEFAULT 'pending',
-    eta             VARCHAR(100)     DEFAULT '',
-    progress        INTEGER          NOT NULL DEFAULT 0 CHECK (progress >= 0 AND progress <= 100),
-    started_at      TIMESTAMP        DEFAULT NULL,
-    completed_at    TIMESTAMP        DEFAULT NULL,
-    created_at      TIMESTAMP        NOT NULL DEFAULT NOW(),
-    updated_at      TIMESTAMP        NOT NULL DEFAULT NOW()
+    id                  VARCHAR(20)      PRIMARY KEY,        -- DEL-1092 format
+    order_id            VARCHAR(20)      NOT NULL REFERENCES orders(id),
+    driver_id           VARCHAR(20)      NOT NULL REFERENCES drivers(id),
+    status              delivery_status  NOT NULL DEFAULT 'pending',
+    eta                 VARCHAR(100)     DEFAULT '',
+    progress            INTEGER          NOT NULL DEFAULT 0 CHECK (progress >= 0 AND progress <= 100),
+    origin_lat          DECIMAL(10,7),
+    origin_lng          DECIMAL(10,7),
+    current_stop_index  INTEGER          DEFAULT 0,
+    total_distance      DECIMAL(8,2)     DEFAULT 0,
+    total_orders        INTEGER          DEFAULT 0,
+    total_value         DECIMAL(12,2)    DEFAULT 0,
+    scheduled_date      DATE,
+    scheduled_time      VARCHAR(10),
+    rescheduled_date    DATE,
+    rescheduled_time    VARCHAR(10),
+    reschedule_reason   TEXT,
+    cancel_reason       TEXT,
+    started_at          TIMESTAMP        DEFAULT NULL,
+    completed_at        TIMESTAMP        DEFAULT NULL,
+    created_at          TIMESTAMP        NOT NULL DEFAULT NOW(),
+    updated_at          TIMESTAMP        NOT NULL DEFAULT NOW()
+);
+
+-- ---------------------------------------------------------------------------
+-- 2.10 Delivery Stops (Multi-stop delivery model)
+-- ---------------------------------------------------------------------------
+CREATE TABLE delivery_stops (
+    id                VARCHAR(20)      PRIMARY KEY,
+    delivery_id       VARCHAR(20)      NOT NULL REFERENCES deliveries(id) ON DELETE CASCADE,
+    order_id          VARCHAR(20)      DEFAULT NULL,
+    customer          VARCHAR(200)     NOT NULL,
+    address           TEXT             NOT NULL,
+    status            VARCHAR(20)      NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'in_transit', 'delivered')),
+    items             INTEGER          NOT NULL DEFAULT 0,
+    total             DECIMAL(12,2)    NOT NULL DEFAULT 0.00,
+    delivered_at      TIMESTAMP        DEFAULT NULL,
+    distance_from_prev DECIMAL(8,2)    DEFAULT 0,
+    estimated_arrival VARCHAR(50)      DEFAULT '',
+    notes             TEXT             DEFAULT '',
+    lat               DECIMAL(10,7)    DEFAULT 0,
+    lng               DECIMAL(10,7)    DEFAULT 0,
+    sort_order        INTEGER          NOT NULL DEFAULT 0
 );
 
 -- ---------------------------------------------------------------------------
@@ -195,7 +216,24 @@ CREATE TABLE delivery_timeline (
 );
 
 -- ---------------------------------------------------------------------------
--- 2.12 Notifications
+-- 2.12 Sales
+-- ---------------------------------------------------------------------------
+CREATE TABLE sales (
+    id              VARCHAR(20)      PRIMARY KEY,
+    order_id        VARCHAR(20)      NOT NULL REFERENCES orders(id),
+    customer        VARCHAR(200)     NOT NULL,
+    items           INTEGER          NOT NULL DEFAULT 0,
+    subtotal        DECIMAL(12,2)    NOT NULL DEFAULT 0.00,
+    tax             DECIMAL(12,2)    NOT NULL DEFAULT 0.00,
+    total           DECIMAL(12,2)    NOT NULL DEFAULT 0.00,
+    payment_method  VARCHAR(10)      NOT NULL DEFAULT 'cash' CHECK (payment_method IN ('cash', 'gcash', 'visa')),
+    status          VARCHAR(20)      NOT NULL DEFAULT 'completed' CHECK (status IN ('completed', 'refunded', 'pending')),
+    sold_at         DATE             NOT NULL DEFAULT CURRENT_DATE,
+    recorded_at     TIMESTAMP        NOT NULL DEFAULT NOW()
+);
+
+-- ---------------------------------------------------------------------------
+-- 2.13 Notifications
 -- ---------------------------------------------------------------------------
 CREATE TABLE notifications (
     id          SERIAL      PRIMARY KEY,
@@ -208,7 +246,7 @@ CREATE TABLE notifications (
 );
 
 -- ---------------------------------------------------------------------------
--- 2.13 Audit Logs
+-- 2.14 Audit Logs
 -- ---------------------------------------------------------------------------
 CREATE TABLE audit_logs (
     id          VARCHAR(20)    PRIMARY KEY,                  -- LOG-001 format
@@ -222,7 +260,7 @@ CREATE TABLE audit_logs (
 );
 
 -- ---------------------------------------------------------------------------
--- 2.14 Activity Timeline
+-- 2.15 Activity Timeline
 -- ---------------------------------------------------------------------------
 CREATE TABLE activity_timeline (
     id          SERIAL          PRIMARY KEY,
@@ -234,7 +272,7 @@ CREATE TABLE activity_timeline (
 );
 
 -- ---------------------------------------------------------------------------
--- 2.15 Archives (Soft-delete records)
+-- 2.16 Archives (Soft-delete records)
 -- ---------------------------------------------------------------------------
 CREATE TABLE archives (
     id          SERIAL      PRIMARY KEY,
@@ -248,7 +286,7 @@ CREATE TABLE archives (
 );
 
 -- ---------------------------------------------------------------------------
--- 2.16 Settings (Key-value store for app settings)
+-- 2.17 Settings (Key-value store for app settings)
 -- ---------------------------------------------------------------------------
 CREATE TABLE settings (
     key         VARCHAR(100) PRIMARY KEY,
@@ -258,6 +296,40 @@ CREATE TABLE settings (
     updated_by  VARCHAR(20)  DEFAULT 'system'
 );
 
+-- ---------------------------------------------------------------------------
+-- 2.18 Inbox Conversations
+-- ---------------------------------------------------------------------------
+CREATE TABLE inbox_conversations (
+    id                  VARCHAR(20)      PRIMARY KEY,
+    channel             VARCHAR(10)      NOT NULL CHECK (channel IN ('viber', 'wechat')),
+    customer_name       VARCHAR(200)     NOT NULL,
+    customer_phone      VARCHAR(30)      NOT NULL,
+    customer_type       VARCHAR(10)      NOT NULL DEFAULT 'regular' CHECK (customer_type IN ('regular', 'new')),
+    customer_orders     INTEGER          NOT NULL DEFAULT 0,
+    customer_total_spent DECIMAL(12,2)   NOT NULL DEFAULT 0.00,
+    customer_since      DATE,
+    status              VARCHAR(20)      NOT NULL DEFAULT 'open' CHECK (status IN ('open', 'resolved', 'pending')),
+    assigned_to         VARCHAR(100)     DEFAULT '',
+    last_message        TEXT             DEFAULT '',
+    last_message_time   VARCHAR(50)      DEFAULT '',
+    unread_count        INTEGER          NOT NULL DEFAULT 0,
+    created_at          TIMESTAMP        NOT NULL DEFAULT NOW(),
+    updated_at          TIMESTAMP        NOT NULL DEFAULT NOW()
+);
+
+-- ---------------------------------------------------------------------------
+-- 2.19 Inbox Messages
+-- ---------------------------------------------------------------------------
+CREATE TABLE inbox_messages (
+    id              VARCHAR(20)  PRIMARY KEY,
+    conversation_id VARCHAR(20)  NOT NULL REFERENCES inbox_conversations(id) ON DELETE CASCADE,
+    sender          VARCHAR(10)  NOT NULL CHECK (sender IN ('customer', 'agent')),
+    content         TEXT         NOT NULL,
+    timestamp       TIMESTAMP    NOT NULL DEFAULT NOW(),
+    type            VARCHAR(20)  NOT NULL DEFAULT 'text' CHECK (type IN ('text', 'image', 'order_inquiry', 'location')),
+    created_at      TIMESTAMP    NOT NULL DEFAULT NOW()
+);
+
 
 -- ============================================================================
 -- 3. INDEXES
@@ -265,7 +337,7 @@ CREATE TABLE settings (
 
 -- Users
 CREATE INDEX idx_users_email    ON users(email);
-CREATE INDEX idx_users_role     ON users(role_id);
+CREATE INDEX idx_users_role     ON users(role);
 CREATE INDEX idx_users_status   ON users(status);
 
 -- Customers
@@ -273,24 +345,32 @@ CREATE INDEX idx_customers_name     ON customers(name);
 CREATE INDEX idx_customers_status   ON customers(status);
 CREATE INDEX idx_customers_company  ON customers(company);
 
+-- Warehouses
+CREATE INDEX idx_warehouses_type    ON warehouses(type);
+CREATE INDEX idx_warehouses_status  ON warehouses(status);
+CREATE INDEX idx_warehouses_city    ON warehouses(city);
+
 -- Inventory
-CREATE INDEX idx_inventory_category   ON inventory(category_id);
 CREATE INDEX idx_inventory_warehouse  ON inventory(warehouse_id);
-CREATE INDEX idx_inventory_status     ON inventory(status);
 CREATE INDEX idx_inventory_name       ON inventory(name);
-CREATE INDEX idx_inventory_low_stock  ON inventory(status, stock, min_stock)
-    WHERE status IN ('out_of_stock', 'low_stock');
+
+-- Product Types
+CREATE INDEX idx_product_types_product   ON product_types(product_id);
+CREATE INDEX idx_product_types_stock     ON product_types(stock, min_stock);
+CREATE INDEX idx_product_types_name      ON product_types(name);
 
 -- Orders
-CREATE INDEX idx_orders_customer    ON orders(customer_id);
-CREATE INDEX idx_orders_status      ON orders(status);
-CREATE INDEX idx_orders_priority    ON orders(priority);
-CREATE INDEX idx_orders_date        ON orders(created_at DESC);
-CREATE INDEX idx_orders_driver      ON orders(assigned_driver_id);
+CREATE INDEX idx_orders_customer     ON orders(customer_id);
+CREATE INDEX idx_orders_status       ON orders(status);
+CREATE INDEX idx_orders_priority     ON orders(priority);
+CREATE INDEX idx_orders_date         ON orders(created_at DESC);
+CREATE INDEX idx_orders_driver       ON orders(assigned_driver_id);
+CREATE INDEX idx_orders_payment      ON orders(payment_status);
 
 -- Order Items
 CREATE INDEX idx_order_items_order    ON order_items(order_id);
 CREATE INDEX idx_order_items_product  ON order_items(product_id);
+CREATE INDEX idx_order_items_type     ON order_items(type_id);
 
 -- Drivers
 CREATE INDEX idx_drivers_status    ON drivers(status);
@@ -302,8 +382,19 @@ CREATE INDEX idx_deliveries_driver   ON deliveries(driver_id);
 CREATE INDEX idx_deliveries_status   ON deliveries(status);
 CREATE INDEX idx_deliveries_date     ON deliveries(created_at DESC);
 
+-- Delivery Stops
+CREATE INDEX idx_delivery_stops_delivery  ON delivery_stops(delivery_id);
+CREATE INDEX idx_delivery_stops_status    ON delivery_stops(status);
+CREATE INDEX idx_delivery_stops_order     ON delivery_stops(order_id);
+
 -- Delivery Timeline
 CREATE INDEX idx_delivery_timeline_delivery ON delivery_timeline(delivery_id);
+
+-- Sales
+CREATE INDEX idx_sales_order       ON sales(order_id);
+CREATE INDEX idx_sales_customer    ON sales(customer);
+CREATE INDEX idx_sales_sold_at     ON sales(sold_at DESC);
+CREATE INDEX idx_sales_status      ON sales(status);
 
 -- Notifications
 CREATE INDEX idx_notifications_user    ON notifications(user_id);
@@ -325,32 +416,38 @@ CREATE INDEX idx_archives_type     ON archives(entity_type);
 CREATE INDEX idx_archives_entity   ON archives(entity_type, entity_id);
 CREATE INDEX idx_archives_deleted  ON archives(is_deleted) WHERE is_deleted = FALSE;
 
+-- Inbox
+CREATE INDEX idx_inbox_conversations_status    ON inbox_conversations(status);
+CREATE INDEX idx_inbox_conversations_channel   ON inbox_conversations(channel);
+CREATE INDEX idx_inbox_conversations_assigned  ON inbox_conversations(assigned_to);
+CREATE INDEX idx_inbox_messages_conversation   ON inbox_messages(conversation_id);
+
 
 -- ============================================================================
 -- 4. VIEWS (Common queries)
 -- ============================================================================
 
--- 4.1 Inventory with category and warehouse names
+-- 4.1 Inventory with warehouse and type summary
 CREATE VIEW v_inventory_detail AS
 SELECT
     i.id,
     i.name,
-    c.name           AS category,
-    i.price,
-    i.stock,
-    i.min_stock,
-    i.status,
-    w.name           AS warehouse,
+    w.name                              AS warehouse,
     i.last_updated,
+    -- Aggregated from product_types
+    (SELECT COUNT(*) FROM product_types pt WHERE pt.product_id = i.id) AS type_count,
+    (SELECT COALESCE(SUM(pt.stock), 0) FROM product_types pt WHERE pt.product_id = i.id) AS total_stock,
+    (SELECT MIN(pt.price) FROM product_types pt WHERE pt.product_id = i.id) AS min_price,
+    (SELECT MAX(pt.price) FROM product_types pt WHERE pt.product_id = i.id) AS max_price,
+    -- Computed status (matches frontend logic)
     CASE
-        WHEN i.stock = 0 THEN 'out_of_stock'
-        WHEN i.stock <= i.min_stock THEN 'low_stock'
+        WHEN EXISTS (SELECT 1 FROM product_types pt WHERE pt.product_id = i.id AND pt.stock = 0) THEN 'out_of_stock'
+        WHEN EXISTS (SELECT 1 FROM product_types pt WHERE pt.product_id = i.id AND pt.stock < pt.min_stock) THEN 'low_stock'
         ELSE 'in_stock'
-    END              AS computed_status,
+    END                                  AS computed_status,
     i.created_at,
     i.updated_at
 FROM inventory i
-LEFT JOIN inventory_categories c ON i.category_id = c.id
 LEFT JOIN warehouses w ON i.warehouse_id = w.id;
 
 -- 4.2 Orders with customer details
@@ -365,6 +462,8 @@ SELECT
     o.total,
     o.status,
     o.priority,
+    o.payment_status,
+    o.delivery_type,
     o.notes,
     d.name           AS assigned_driver,
     o.created_at,
@@ -379,16 +478,27 @@ SELECT
     del.id,
     del.order_id,
     ord.customer_name,
-    ord.total          AS order_total,
-    drv.name          AS driver_name,
-    drv.phone         AS driver_phone,
+    ord.total              AS order_total,
+    drv.name              AS driver_name,
+    drv.phone             AS driver_phone,
     drv.vehicle,
-    del.destination,
     del.status,
     del.eta,
     del.progress,
+    del.origin_lat,
+    del.origin_lng,
+    del.current_stop_index,
+    del.total_distance,
+    del.total_orders,
+    del.total_value,
+    del.scheduled_date,
+    del.scheduled_time,
+    del.rescheduled_date,
+    del.rescheduled_time,
     del.started_at,
     del.completed_at,
+    (SELECT COUNT(*) FROM delivery_stops WHERE delivery_id = del.id) AS stop_count,
+    (SELECT COUNT(*) FROM delivery_stops WHERE delivery_id = del.id AND status = 'delivered') AS stops_delivered,
     del.created_at
 FROM deliveries del
 LEFT JOIN orders ord ON del.order_id = ord.id
@@ -406,7 +516,9 @@ SELECT
     )                                                                               AS delivery_rate_pct,
     (SELECT COUNT(*) FROM customers WHERE status = 'active')                        AS active_customers,
     (SELECT COUNT(*) FROM drivers WHERE status = 'available')                       AS available_drivers,
-    (SELECT COUNT(*) FROM inventory WHERE status = 'low_stock' OR status = 'out_of_stock') AS low_stock_items;
+    (SELECT COUNT(*) FROM inventory i WHERE EXISTS (
+        SELECT 1 FROM product_types pt WHERE pt.product_id = i.id AND (pt.stock = 0 OR pt.stock < pt.min_stock)
+    )) AS low_stock_items;
 
 -- 4.5 Top customers by total orders
 CREATE VIEW v_top_customers AS
@@ -470,34 +582,43 @@ WHERE status != 'cancelled'
 GROUP BY TO_CHAR(created_at, 'Mon'), EXTRACT(MONTH FROM created_at)
 ORDER BY month_num;
 
+-- 4.9 Warehouse summary
+CREATE VIEW v_warehouse_summary AS
+SELECT
+    w.id,
+    w.name,
+    w.city,
+    w.type,
+    w.status,
+    w.utilized,
+    w.manager,
+    w.contact_phone,
+    (SELECT COUNT(*) FROM inventory i WHERE i.warehouse_id = w.id) AS product_count,
+    (SELECT COALESCE(SUM(pt.stock), 0) FROM inventory i JOIN product_types pt ON pt.product_id = i.id WHERE i.warehouse_id = w.id) AS total_stock,
+    (SELECT COALESCE(SUM(pt.price * pt.stock), 0) FROM inventory i JOIN product_types pt ON pt.product_id = i.id WHERE i.warehouse_id = w.id) AS inventory_value
+FROM warehouses w;
+
 
 -- ============================================================================
 -- 5. TRIGGERS & FUNCTIONS
 -- ============================================================================
 
--- 5.1 Auto-calculate inventory status based on stock vs min_stock
-CREATE OR REPLACE FUNCTION fn_update_inventory_status()
+-- 5.1 Recalculate inventory status when product types change
+CREATE OR REPLACE FUNCTION fn_recalc_product_types()
 RETURNS TRIGGER AS $$
 BEGIN
-    IF NEW.stock = 0 THEN
-        NEW.status := 'out_of_stock';
-    ELSIF NEW.stock <= NEW.min_stock THEN
-        NEW.status := 'low_stock';
-    ELSE
-        NEW.status := 'in_stock';
-    END IF;
-    NEW.last_updated := CURRENT_DATE;
-    NEW.updated_at := NOW();
+    -- Update the parent inventory's last_updated timestamp
+    UPDATE inventory SET last_updated = CURRENT_DATE, updated_at = NOW() WHERE id = NEW.product_id;
     RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
 
-CREATE TRIGGER trg_inventory_status
-    BEFORE INSERT OR UPDATE OF stock, min_stock ON inventory
-    FOR EACH ROW EXECUTE FUNCTION fn_update_inventory_status();
+CREATE TRIGGER trg_product_types_update
+    AFTER INSERT OR UPDATE OR DELETE ON product_types
+    FOR EACH ROW EXECUTE FUNCTION fn_recalc_product_types();
 
--- 5.2 Log audit trail for inventory changes
-CREATE OR REPLACE FUNCTION fn_audit_inventory_changes()
+-- 5.2 Log audit trail for product type changes
+CREATE OR REPLACE FUNCTION fn_audit_product_type_changes()
 RETURNS TRIGGER AS $$
 BEGIN
     IF TG_OP = 'INSERT' THEN
@@ -506,9 +627,9 @@ BEGIN
             'LOG-' || LPAD(NEXTVAL('audit_seq')::TEXT, 4, '0'),
             current_setting('app.current_user', TRUE),
             'CREATE',
-            'Product',
+            'ProductType',
             NEW.id,
-            jsonb_build_object('name', NEW.name, 'price', NEW.price, 'stock', NEW.stock),
+            jsonb_build_object('product_id', NEW.product_id, 'name', NEW.name, 'price', NEW.price, 'stock', NEW.stock),
             current_setting('app.client_ip', TRUE)
         );
     ELSIF TG_OP = 'UPDATE' THEN
@@ -517,7 +638,7 @@ BEGIN
             'LOG-' || LPAD(NEXTVAL('audit_seq')::TEXT, 4, '0'),
             current_setting('app.current_user', TRUE),
             'UPDATE',
-            'Product',
+            'ProductType',
             NEW.id,
             jsonb_build_object(
                 'changes', jsonb_agg(
@@ -536,7 +657,10 @@ END;
 $$ LANGUAGE plpgsql;
 
 CREATE SEQUENCE IF NOT EXISTS audit_seq START 1000;
--- (Adjust trigger as needed — the above is a template for column-level diff)
+
+CREATE TRIGGER trg_product_type_audit
+    AFTER INSERT OR UPDATE ON product_types
+    FOR EACH ROW EXECUTE FUNCTION fn_audit_product_type_changes();
 
 -- 5.3 Auto-update order total from line items
 CREATE OR REPLACE FUNCTION fn_update_order_total()
@@ -581,6 +705,10 @@ BEGIN
         );
     END IF;
 
+    IF NEW.status = 'cancelled' AND (OLD.status IS NULL OR OLD.status != 'cancelled') THEN
+        NEW.eta := 'Cancelled';
+    END IF;
+
     IF NEW.status = 'in_transit' AND (OLD.status IS NULL OR OLD.status = 'pending') THEN
         NEW.started_at := COALESCE(NEW.started_at, NOW());
     END IF;
@@ -603,30 +731,35 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
-CREATE TRIGGER trg_users_updated     BEFORE UPDATE ON users      FOR EACH ROW EXECUTE FUNCTION fn_update_timestamp();
-CREATE TRIGGER trg_customers_updated BEFORE UPDATE ON customers  FOR EACH ROW EXECUTE FUNCTION fn_update_timestamp();
-CREATE TRIGGER trg_orders_updated    BEFORE UPDATE ON orders     FOR EACH ROW EXECUTE FUNCTION fn_update_timestamp();
-CREATE TRIGGER trg_drivers_updated   BEFORE UPDATE ON drivers    FOR EACH ROW EXECUTE FUNCTION fn_update_timestamp();
-CREATE TRIGGER trg_settings_updated  BEFORE UPDATE ON settings   FOR EACH ROW EXECUTE FUNCTION fn_update_timestamp();
+CREATE TRIGGER trg_users_updated        BEFORE UPDATE ON users                FOR EACH ROW EXECUTE FUNCTION fn_update_timestamp();
+CREATE TRIGGER trg_customers_updated    BEFORE UPDATE ON customers            FOR EACH ROW EXECUTE FUNCTION fn_update_timestamp();
+CREATE TRIGGER trg_orders_updated       BEFORE UPDATE ON orders               FOR EACH ROW EXECUTE FUNCTION fn_update_timestamp();
+CREATE TRIGGER trg_drivers_updated      BEFORE UPDATE ON drivers              FOR EACH ROW EXECUTE FUNCTION fn_update_timestamp();
+CREATE TRIGGER trg_settings_updated     BEFORE UPDATE ON settings             FOR EACH ROW EXECUTE FUNCTION fn_update_timestamp();
+CREATE TRIGGER trg_warehouses_updated   BEFORE UPDATE ON warehouses           FOR EACH ROW EXECUTE FUNCTION fn_update_timestamp();
+CREATE TRIGGER trg_inbox_updated        BEFORE UPDATE ON inbox_conversations  FOR EACH ROW EXECUTE FUNCTION fn_update_timestamp();
+CREATE TRIGGER trg_product_types_updated BEFORE UPDATE ON product_types       FOR EACH ROW EXECUTE FUNCTION fn_update_timestamp();
 
--- 5.6 Notify on low stock
+-- 5.6 Notify on low stock (fires on product_types table)
 CREATE OR REPLACE FUNCTION fn_check_low_stock()
 RETURNS TRIGGER AS $$
 DECLARE
-    low_stock_count INTEGER;
+    v_product_name VARCHAR(200);
 BEGIN
+    SELECT name INTO v_product_name FROM inventory WHERE id = NEW.product_id;
+
     IF NEW.stock <= NEW.min_stock THEN
         INSERT INTO notifications (user_id, title, message, type)
         SELECT
             u.id,
             'Low Stock Alert',
-            NEW.name || ' is running low on stock (' || NEW.stock || ' units remaining, minimum: ' || NEW.min_stock || ')',
+            v_product_name || ' — ' || NEW.name || ' is running low on stock (' || NEW.stock || ' units remaining, minimum: ' || NEW.min_stock || ')',
             CASE
                 WHEN NEW.stock = 0 THEN 'error'
                 ELSE 'warning'
             END
         FROM users u
-        WHERE u.role_id IN (SELECT id FROM roles WHERE id IN ('admin', 'manager'))
+        WHERE u.role = 'Admin'
           AND u.status = 'active';
     END IF;
     RETURN NEW;
@@ -634,7 +767,7 @@ END;
 $$ LANGUAGE plpgsql;
 
 CREATE TRIGGER trg_low_stock_alert
-    AFTER UPDATE OF stock ON inventory
+    AFTER UPDATE OF stock ON product_types
     FOR EACH ROW
     WHEN (NEW.stock <= NEW.min_stock)
     EXECUTE FUNCTION fn_check_low_stock();
@@ -692,6 +825,12 @@ BEGIN
         WHEN 'customer' THEN
             SELECT row_to_json(c)::JSONB INTO v_data FROM customers c WHERE c.id = p_entity_id;
             SELECT name INTO v_label FROM customers WHERE id = p_entity_id;
+        WHEN 'warehouse' THEN
+            SELECT row_to_json(w)::JSONB INTO v_data FROM warehouses w WHERE w.id = p_entity_id;
+            SELECT name INTO v_label FROM warehouses WHERE id = p_entity_id;
+        WHEN 'sale' THEN
+            SELECT row_to_json(s)::JSONB INTO v_data FROM sales s WHERE s.id = p_entity_id;
+            SELECT 'Sale ' || id INTO v_label FROM sales WHERE id = p_entity_id;
     END CASE;
 
     IF v_data IS NOT NULL THEN
@@ -736,14 +875,13 @@ $$;
 -- ALTER TABLE deliveries ENABLE ROW LEVEL SECURITY;
 -- ALTER TABLE customers ENABLE ROW LEVEL SECURITY;
 
--- -- Example: Staff can only view/edit their assigned orders
--- CREATE POLICY staff_order_access ON orders
+-- -- Example: Admin can access everything; Staff can only view their own data
+-- CREATE POLICY admin_full_access ON orders
 --     FOR ALL USING (
---         EXISTS (
---             SELECT 1 FROM users u
---             JOIN role_permissions rp ON u.role_id = rp.role_id
---             JOIN permissions p ON rp.permission_id = p.id
---             WHERE u.id = current_setting('app.current_user_id') TRUE
---               AND p.id = 'ord-view'
---         )
+--         (SELECT role FROM users WHERE id = current_setting('app.current_user_id', TRUE)) = 'Admin'
+--     );
+
+-- CREATE POLICY staff_read_only ON orders
+--     FOR SELECT USING (
+--         (SELECT role FROM users WHERE id = current_setting('app.current_user_id', TRUE)) = 'Staff'
 --     );

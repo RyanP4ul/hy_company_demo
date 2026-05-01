@@ -70,7 +70,7 @@ import {
   DialogDescription,
   DialogFooter,
 } from '@/components/ui/dialog';
-import { cn } from '@/lib/utils';
+import { cn, formatPeso } from '@/lib/utils';
 
 // ---------------------------------------------------------------------------
 // Type configuration
@@ -175,12 +175,9 @@ function InventoryDetailView({ data }: { data: Record<string, unknown> }) {
         </div>
       </div>
       <Separator />
-      <DetailRow icon={Hash} label="Category" value={String(data.category)} />
-      <DetailRow icon={PesoSign} label="Price" value={data.price ? `₱${Number(data.price).toFixed(2)}` : undefined} />
-      <DetailRow icon={BarChart3} label="Stock" value={data.stock ? Number(data.stock).toLocaleString() : undefined} />
-      <DetailRow icon={BarChart3} label="Min. Stock" value={data.minStock ? Number(data.minStock).toLocaleString() : undefined} />
+      <DetailRow icon={Hash} label="Warehouse" value={String(data.warehouse)} />
+      <DetailRow icon={BarChart3} label="Types" value={String(data.types ? `${(data.types as unknown[]).length} type(s)` : '-')} />
       <DetailRow icon={Package} label="Status" value={data.status ? String(data.status).replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase()) : undefined} />
-      <DetailRow icon={Warehouse} label="Warehouse" value={String(data.warehouse)} />
       <DetailRow icon={Calendar} label="Last Updated" value={String(data.lastUpdated)} />
       {data.status && (
         <div className="pt-2">
@@ -220,7 +217,7 @@ function OrderDetailView({ data }: { data: Record<string, unknown> }) {
       </div>
       <Separator />
       <DetailRow icon={Package} label="Items" value={data.items ? `${data.items} items` : undefined} />
-      <DetailRow icon={PesoSign} label="Total" value={data.total ? `₱${Number(data.total).toLocaleString('en-US', { minimumFractionDigits: 2 })}` : undefined} />
+      <DetailRow icon={PesoSign} label="Total" value={data.total ? formatPeso(Number(data.total)) : undefined} />
       <DetailRow icon={Calendar} label="Date" value={String(data.date)} />
       <div className="flex items-center gap-3 pt-2">
         {data.status && (
@@ -393,6 +390,7 @@ export default function ArchivedPage() {
   const [searchQuery, setSearchQuery] = useState('');
 
   // Dialog states
+  const [restoreTarget, setRestoreTarget] = useState<ArchivedItem | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<ArchivedItem | null>(null);
   const [showClearAllDialog, setShowClearAllDialog] = useState(false);
   const [viewingItem, setViewingItem] = useState<ArchivedItem | null>(null);
@@ -424,20 +422,20 @@ export default function ArchivedPage() {
   }, [items, typeFilter, searchQuery]);
 
   // ------- Handlers -------
-  const handleRestore = useCallback(
-    (item: ArchivedItem) => {
-      const restored = restoreItem(item.type, item.id);
-      if (restored) {
-        window.dispatchEvent(
-          new CustomEvent('archive:restored', {
-            detail: { type: restored.type, id: restored.id, data: restored.data },
-          })
-        );
-        toast.success('Item restored');
-      }
-    },
-    [restoreItem]
-  );
+  const confirmRestore = useCallback(() => {
+    if (!restoreTarget) return;
+    const restored = restoreItem(restoreTarget.type, restoreTarget.id);
+    if (restored) {
+      window.dispatchEvent(
+        new CustomEvent('archive:restored', {
+          detail: { type: restored.type, id: restored.id, data: restored.data },
+        })
+      );
+      toast.success('Item restored');
+      setViewingItem(null);
+    }
+    setRestoreTarget(null);
+  }, [restoreTarget, restoreItem]);
 
   const confirmDelete = useCallback(() => {
     if (!deleteTarget) return;
@@ -599,7 +597,7 @@ export default function ArchivedPage() {
                           <Button
                             size="sm"
                             className="gap-1.5"
-                            onClick={() => handleRestore(item)}
+                            onClick={() => setRestoreTarget(item)}
                           >
                             <RotateCcw className="h-3.5 w-3.5" />
                             Restore
@@ -673,7 +671,7 @@ export default function ArchivedPage() {
                   <Button
                     variant="outline"
                     className="gap-1.5"
-                    onClick={() => { handleRestore(viewingItem); setViewingItem(null); }}
+                    onClick={() => { setRestoreTarget(viewingItem); }}
                   >
                     <RotateCcw className="h-3.5 w-3.5" />
                     Restore
@@ -691,6 +689,24 @@ export default function ArchivedPage() {
             )}
           </DialogContent>
         </Dialog>
+
+        {/* ---- Restore Confirmation Dialog ---- */}
+        <AlertDialog open={restoreTarget !== null} onOpenChange={(open) => { if (!open) setRestoreTarget(null); }}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Restore Item</AlertDialogTitle>
+              <AlertDialogDescription>
+                Are you sure you want to restore{' '}
+                <span className="font-semibold text-foreground">{restoreTarget?.label || restoreTarget?.id}</span>{' '}
+                ({restoreTarget ? typeConfig[restoreTarget.type].label : ''})? It will be moved back to its original location.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel onClick={() => setRestoreTarget(null)}>Cancel</AlertDialogCancel>
+              <AlertDialogAction onClick={confirmRestore}>Restore</AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
 
         {/* ---- Delete Confirmation Dialog ---- */}
         <AlertDialog open={deleteTarget !== null} onOpenChange={(open) => { if (!open) setDeleteTarget(null); }}>

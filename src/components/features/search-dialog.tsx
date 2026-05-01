@@ -10,6 +10,9 @@ import {
   Users,
   UserCheck,
   X,
+  Contact,
+  Warehouse,
+  Receipt,
 } from 'lucide-react';
 import { useNavigationStore, type NavItem } from '@/stores/navigation';
 import { useSearchStore, type SearchEntityType } from '@/stores/search';
@@ -19,7 +22,11 @@ import {
   deliveries,
   users,
   drivers,
+  customers,
+  warehouses,
+  salesTransactions,
 } from '@/lib/mock-data';
+import { cn } from '@/lib/utils';
 
 interface SearchResult {
   id: string;
@@ -36,6 +43,9 @@ const typeLabels: Record<SearchEntityType, string> = {
   delivery: 'Delivery',
   user: 'User',
   driver: 'Driver',
+  customer: 'Customer',
+  warehouse: 'Warehouse',
+  sale: 'Sale',
 };
 
 const typeColors: Record<SearchEntityType, string> = {
@@ -44,6 +54,9 @@ const typeColors: Record<SearchEntityType, string> = {
   delivery: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400',
   user: 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400',
   driver: 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400',
+  customer: 'bg-cyan-100 text-cyan-700 dark:bg-cyan-900/30 dark:text-cyan-400',
+  warehouse: 'bg-teal-100 text-teal-700 dark:bg-teal-900/30 dark:text-teal-400',
+  sale: 'bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400',
 };
 
 const iconColors: Record<SearchEntityType, string> = {
@@ -52,6 +65,9 @@ const iconColors: Record<SearchEntityType, string> = {
   delivery: 'bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400',
   user: 'bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400',
   driver: 'bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400',
+  customer: 'bg-cyan-100 dark:bg-cyan-900/30 text-cyan-600 dark:text-cyan-400',
+  warehouse: 'bg-teal-100 dark:bg-teal-900/30 text-teal-600 dark:text-teal-400',
+  sale: 'bg-rose-100 dark:bg-rose-900/30 text-rose-600 dark:text-rose-400',
 };
 
 export function SearchDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
@@ -65,7 +81,7 @@ export function SearchDialog({ open, onClose }: { open: boolean; onClose: () => 
     ...inventoryItems.map((item) => ({
       id: item.id,
       title: item.name,
-      subtitle: `${item.id} · ${item.category} · ₱${item.price.toFixed(2)}`,
+      subtitle: `${item.id} · ${item.types.length} type${item.types.length > 1 ? 's' : ''} · ${item.warehouse}`,
       entityType: 'inventory' as SearchEntityType,
       navView: 'inventory' as NavItem,
       icon: <Package className="h-4 w-4" />,
@@ -81,7 +97,7 @@ export function SearchDialog({ open, onClose }: { open: boolean; onClose: () => 
     ...deliveries.map((delivery) => ({
       id: delivery.id,
       title: `${delivery.id} — ${delivery.driver}`,
-      subtitle: `${delivery.destination} · ${delivery.status}`,
+      subtitle: `${delivery.stops.length} stops · ${delivery.totalOrders} orders · ${delivery.status}`,
       entityType: 'delivery' as SearchEntityType,
       navView: 'deliveries' as NavItem,
       icon: <Truck className="h-4 w-4" />,
@@ -101,6 +117,30 @@ export function SearchDialog({ open, onClose }: { open: boolean; onClose: () => 
       entityType: 'driver' as SearchEntityType,
       navView: 'drivers' as NavItem,
       icon: <UserCheck className="h-4 w-4" />,
+    })),
+    ...customers.map((customer) => ({
+      id: customer.id,
+      title: customer.name,
+      subtitle: `${customer.id} · ${customer.totalOrders} orders · ₱${customer.totalSpent.toLocaleString()}`,
+      entityType: 'customer' as SearchEntityType,
+      navView: 'customers' as NavItem,
+      icon: <Contact className="h-4 w-4" />,
+    })),
+    ...warehouses.map((warehouse) => ({
+      id: warehouse.id,
+      title: warehouse.name,
+      subtitle: `${warehouse.id} · ${warehouse.city} · ${warehouse.type.replace('_', ' ')} · ${warehouse.status}`,
+      entityType: 'warehouse' as SearchEntityType,
+      navView: 'warehouses' as NavItem,
+      icon: <Warehouse className="h-4 w-4" />,
+    })),
+    ...salesTransactions.map((sale) => ({
+      id: sale.id,
+      title: `${sale.id} — ${sale.customer}`,
+      subtitle: `₱${sale.total.toFixed(2)} · ${sale.paymentMethod.toUpperCase()} · ${sale.status}`,
+      entityType: 'sale' as SearchEntityType,
+      navView: 'sales' as NavItem,
+      icon: <Receipt className="h-4 w-4" />,
     })),
   ], []);
 
@@ -178,7 +218,7 @@ export function SearchDialog({ open, onClose }: { open: boolean; onClose: () => 
   }, [open, handleKeyDown]);
 
   // Group order
-  const groupOrder: SearchEntityType[] = ['order', 'delivery', 'inventory', 'user', 'driver'];
+  const groupOrder: SearchEntityType[] = ['order', 'sale', 'delivery', 'inventory', 'driver', 'customer', 'warehouse', 'user'];
 
   return (
     <AnimatePresence>
@@ -205,7 +245,7 @@ export function SearchDialog({ open, onClose }: { open: boolean; onClose: () => 
                 <Search className="h-5 w-5 shrink-0 text-muted-foreground" />
                 <input
                   type="text"
-                  placeholder="Search orders, inventory, deliveries, users, drivers..."
+                  placeholder="Search orders, deliveries, inventory, customers, drivers, warehouses, sales..."
                   value={query}
                   onChange={(e) => { setQuery(e.target.value); setSelectedIndex(-1); }}
                   className="h-14 w-full bg-transparent text-sm outline-none placeholder:text-muted-foreground"
@@ -308,6 +348,3 @@ export function SearchDialog({ open, onClose }: { open: boolean; onClose: () => 
     </AnimatePresence>
   );
 }
-
-// Need cn utility
-import { cn } from '@/lib/utils';

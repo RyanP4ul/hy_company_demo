@@ -163,7 +163,7 @@ export default function SettingsPage() {
                       </SettingRow>
                       <SectionDivider />
                       <SettingRow icon={KeyRound} label="Currency" description="Default currency for pricing and reports">
-                        <Select defaultValue="usd" className="w-64">
+                        <Select defaultValue="php" className="w-64">
                           <SelectTrigger className="w-64">
                             <SelectValue />
                           </SelectTrigger>
