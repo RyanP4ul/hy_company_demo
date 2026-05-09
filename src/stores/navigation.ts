@@ -1,26 +1,26 @@
-import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
+import { create } from "zustand";
+import { persist } from "zustand/middleware";
 
-export type NavItem = 
-  | 'dashboard'
-  | 'inventory'
-  | 'orders'
-  | 'deliveries'
-  | 'analytics'
-  | 'users'
-  | 'customers'
-  | 'drivers'
-  | 'notifications'
-  | 'settings'
-  | 'reports'
-  | 'archived'
-  | 'central-inbox'
-  | 'sales'
-  | 'warehouses'
+export type NavItem =
+  | "dashboard"
+  | "inventory"
+  | "orders"
+  | "deliveries"
+  | "analytics"
+  | "users"
+  | "customers"
+  | "drivers"
+  | "notifications"
+  | "settings"
+  | "reports"
+  | "archived"
+  | "central-inbox"
+  | "sales"
+  | "warehouses"
   // Sub-pages (no sidebar nav item)
-  | 'create-order'
-  | 'create-delivery'
-  | 'delivery-detail';
+  | "create-order"
+  | "create-delivery"
+  | "delivery-detail";
 
 interface NavigationState {
   currentView: NavItem;
@@ -35,43 +35,75 @@ interface NavigationState {
 export const useNavigationStore = create<NavigationState>()(
   persist(
     (set) => ({
-      currentView: 'dashboard',
+      currentView: "dashboard",
       mobileMenuOpen: false,
       sidebarCollapsed: false,
-      setCurrentView: (view) => set({ currentView: view, mobileMenuOpen: false }),
-      toggleSidebar: () => set((state) => ({ sidebarCollapsed: !state.sidebarCollapsed })),
+      setCurrentView: (view) =>
+        set({ currentView: view, mobileMenuOpen: false }),
+      toggleSidebar: () =>
+        set((state) => ({ sidebarCollapsed: !state.sidebarCollapsed })),
       setMobileMenuOpen: (open) => set({ mobileMenuOpen: open }),
       setSidebarCollapsed: (collapsed) => set({ sidebarCollapsed: collapsed }),
     }),
     {
-      name: 'nav-storage',
+      name: "nav-storage",
       partialize: (state) => ({ sidebarCollapsed: state.sidebarCollapsed }),
-    }
-  )
+    },
+  ),
 );
 
 // Only sidebar-visible nav items
-export const NAV_ITEMS: { id: NavItem; label: string; icon: string; group: string }[] = [
-  { id: 'dashboard', label: 'Dashboard', icon: 'LayoutDashboard', group: 'Main' },
-  { id: 'inventory', label: 'Inventory', icon: 'Package', group: 'Main' },
-  { id: 'orders', label: 'Orders', icon: 'ShoppingCart', group: 'Main' },
-  { id: 'deliveries', label: 'Deliveries', icon: 'Truck', group: 'Main' },
-  { id: 'analytics', label: 'Analytics', icon: 'BarChart3', group: 'Insights' },
-  { id: 'reports', label: 'Reports', icon: 'FileText', group: 'Insights' },
-  { id: 'users', label: 'Users', icon: 'Users', group: 'Management' },
-  { id: 'customers', label: 'Customers', icon: 'Contact', group: 'Management' },
-  { id: 'drivers', label: 'Drivers', icon: 'UserCheck', group: 'Management' },
-  { id: 'warehouses', label: 'Warehouses', icon: 'Warehouse', group: 'Management' },
-  { id: 'audit-logs', label: 'Audit Logs', icon: 'ScrollText', group: 'System' },
-  { id: 'notifications', label: 'Notifications', icon: 'Bell', group: 'System' },
-  { id: 'settings', label: 'Settings', icon: 'Settings', group: 'System' },
-  { id: 'archived', label: 'Archived', icon: 'Archive', group: 'System' },
-  { id: 'central-inbox', label: 'Central Inbox', icon: 'MessageSquare', group: 'Main' },
-  { id: 'sales', label: 'Sales', icon: 'CirclePesoSign', group: 'Main' },
+export const NAV_ITEMS: {
+  id: NavItem;
+  label: string;
+  icon: string;
+  group: string;
+}[] = [
+  {
+    id: "dashboard",
+    label: "Dashboard",
+    icon: "LayoutDashboard",
+    group: "Main",
+  },
+  { id: "inventory", label: "Inventory", icon: "Package", group: "Main" },
+  { id: "orders", label: "Orders", icon: "ShoppingCart", group: "Main" },
+  { id: "deliveries", label: "Deliveries", icon: "Truck", group: "Main" },
+  { id: "analytics", label: "Analytics", icon: "BarChart3", group: "Insights" },
+  { id: "reports", label: "Reports", icon: "FileText", group: "Insights" },
+  { id: "users", label: "Users", icon: "Users", group: "Management" },
+  { id: "customers", label: "Customers", icon: "Contact", group: "Management" },
+  { id: "drivers", label: "Drivers", icon: "UserCheck", group: "Management" },
+  {
+    id: "warehouses",
+    label: "Warehouses",
+    icon: "Warehouse",
+    group: "Management",
+  },
+  {
+    id: "audit-logs",
+    label: "Audit Logs",
+    icon: "ScrollText",
+    group: "System",
+  },
+  {
+    id: "notifications",
+    label: "Notifications",
+    icon: "Bell",
+    group: "System",
+  },
+  { id: "settings", label: "Settings", icon: "Settings", group: "System" },
+  { id: "archived", label: "Archived", icon: "Archive", group: "System" },
+  // { id: 'central-inbox', label: 'Central Inbox', icon: 'MessageSquare', group: 'Main' },
+  { id: "sales", label: "Sales", icon: "CirclePesoSign", group: "Main" },
 ];
 
 // Pages hidden from Staff role
-export const STAFF_HIDDEN_PAGES: NavItem[] = ['sales', 'users', 'audit-logs', 'archived'];
+export const STAFF_HIDDEN_PAGES: NavItem[] = [
+  "sales",
+  "users",
+  "audit-logs",
+  "archived",
+];
 
 // Pages where Staff has view-only access
-export const STAFF_VIEW_ONLY_PAGES: NavItem[] = ['customers', 'warehouses'];
+export const STAFF_VIEW_ONLY_PAGES: NavItem[] = ["customers", "warehouses"];

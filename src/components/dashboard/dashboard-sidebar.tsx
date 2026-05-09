@@ -1,11 +1,16 @@
-'use client';
+"use client";
 
-import React, { useState, useCallback } from 'react';
-import { cn } from '@/lib/utils';
-import { useNavigationStore, NAV_ITEMS, STAFF_HIDDEN_PAGES, type NavItem } from '@/stores/navigation';
-import { useTranslation } from '@/lib/i18n/use-translation';
-import { useAuthStore, type UserRole } from '@/stores/auth';
-import { motion, AnimatePresence } from 'framer-motion';
+import React, { useState, useCallback } from "react";
+import { cn } from "@/lib/utils";
+import {
+  useNavigationStore,
+  NAV_ITEMS,
+  STAFF_HIDDEN_PAGES,
+  type NavItem,
+} from "@/stores/navigation";
+import { useTranslation } from "@/lib/i18n/use-translation";
+import { useAuthStore, type UserRole } from "@/stores/auth";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   LayoutDashboard,
   Package,
@@ -29,11 +34,15 @@ import {
   Tags,
   Warehouse,
   Navigation,
-} from 'lucide-react';
-import { CirclePesoSign } from '@/components/icons/peso-sign';
-import { Button } from '@/components/ui/button';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+} from "lucide-react";
+import { CirclePesoSign } from "@/components/icons/peso-sign";
+import { Button } from "@/components/ui/button";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
   LayoutDashboard,
@@ -63,23 +72,29 @@ interface SidebarProps {
   onMobileClose?: () => void;
 }
 
-export function DashboardSidebar({ className, mobileOpen, onMobileClose }: SidebarProps) {
-  const { currentView, setCurrentView, sidebarCollapsed, toggleSidebar } = useNavigationStore();
+export function DashboardSidebar({
+  className,
+  mobileOpen,
+  onMobileClose,
+}: SidebarProps) {
+  const { currentView, setCurrentView, sidebarCollapsed, toggleSidebar } =
+    useNavigationStore();
   const logout = useAuthStore((s) => s.logout);
-  const userRole = useAuthStore((s) => s.user?.role ?? 'Admin' as UserRole);
+  const userRole = useAuthStore((s) => s.user?.role ?? ("Admin" as UserRole));
   const { t } = useTranslation();
 
   // Filter nav items based on user role
-  const visibleNavItems = userRole === 'Admin'
-    ? NAV_ITEMS
-    : NAV_ITEMS.filter((item) => !STAFF_HIDDEN_PAGES.includes(item.id));
+  const visibleNavItems =
+    userRole === "Admin"
+      ? NAV_ITEMS
+      : NAV_ITEMS.filter((item) => !STAFF_HIDDEN_PAGES.includes(item.id));
 
   // i18n mapping for nav item IDs
   const navLabel = (id: string): string => {
     const key = `nav.${id}`;
     const translated = t(key);
     // Fall back to original label if translation is same as key
-    const original = NAV_ITEMS.find(item => item.id === id);
+    const original = NAV_ITEMS.find((item) => item.id === id);
     return translated !== key ? translated : (original?.label ?? id);
   };
 
@@ -95,18 +110,24 @@ export function DashboardSidebar({ className, mobileOpen, onMobileClose }: Sideb
   // Whether to show expanded labels (either permanently expanded, or temporarily via hover)
   const showLabels = !sidebarCollapsed || hoverExpanded;
 
-  const groups = ['Main', 'Insights', 'Management', 'System'];
+  const groups = ["Main", "Insights", "Management", "System"];
   const filteredItems = groups.map((group) => ({
     group,
-    items: visibleNavItems.filter((item) => item.group === group).length > 0
-      ? visibleNavItems.filter((item) => item.group === group)
-      : NAV_ITEMS.filter((item) => item.group === group).filter((item) => !STAFF_HIDDEN_PAGES.includes(item.id)),
+    items:
+      visibleNavItems.filter((item) => item.group === group).length > 0
+        ? visibleNavItems.filter((item) => item.group === group)
+        : NAV_ITEMS.filter((item) => item.group === group).filter(
+            (item) => !STAFF_HIDDEN_PAGES.includes(item.id),
+          ),
   }));
 
-  const handleNavClick = useCallback((view: NavItem) => {
-    setCurrentView(view);
-    onMobileClose?.();
-  }, [setCurrentView, onMobileClose]);
+  const handleNavClick = useCallback(
+    (view: NavItem) => {
+      setCurrentView(view);
+      onMobileClose?.();
+    },
+    [setCurrentView, onMobileClose],
+  );
 
   const handleMouseEnter = useCallback(() => {
     if (sidebarCollapsed) {
@@ -123,23 +144,27 @@ export function DashboardSidebar({ className, mobileOpen, onMobileClose }: Sideb
       {/* Logo area with vertical gap */}
       <div
         className={cn(
-          'flex items-center border-b px-4 py-5 transition-all duration-300',
-          showLabels ? 'justify-between' : 'justify-center px-4 py-5'
+          "flex items-center border-b px-4 py-5 transition-all duration-300",
+          showLabels ? "justify-between" : "justify-center px-4 py-5",
         )}
       >
         {/* Logo + name */}
         <div className="flex items-center gap-3">
-          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-            <Boxes className="h-5 w-5" />
+          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-primary-foreground">
+            <img
+              alt="HyOps"
+              className="h-8 w-8 shrink-0 rounded-lg object-contain"
+              src="/logo.png"
+            ></img>
           </div>
           <AnimatePresence>
             {showLabels && (
               <motion.span
                 initial={{ opacity: 0, width: 0 }}
-                animate={{ opacity: 1, width: 'auto' }}
+                animate={{ opacity: 1, width: "auto" }}
                 exit={{ opacity: 0, width: 0 }}
                 transition={{ duration: 0.2 }}
-                className="overflow-hidden whitespace-nowrap text-base font-semibold tracking-tight"
+                className=""
               >
                 HyOps
               </motion.span>
@@ -199,31 +224,39 @@ export function DashboardSidebar({ className, mobileOpen, onMobileClose }: Sideb
                       onClick={() => handleNavClick(item.id)}
                       whileTap={{ scale: 0.97 }}
                       className={cn(
-                        'group relative flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
+                        "group relative flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
                         isActive
-                          ? 'bg-primary/10 text-primary'
-                          : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground',
-                        isCollapsed && 'justify-center px-2'
+                          ? "bg-primary/10 text-primary"
+                          : "text-muted-foreground hover:bg-accent hover:text-accent-foreground",
+                        isCollapsed && "justify-center px-2",
                       )}
                     >
                       {isActive && (
                         <motion.div
                           layoutId="sidebar-active"
                           className="absolute inset-0 rounded-lg bg-primary/10"
-                          transition={{ type: 'spring', stiffness: 350, damping: 30 }}
+                          transition={{
+                            type: "spring",
+                            stiffness: 350,
+                            damping: 30,
+                          }}
                         />
                       )}
                       {Icon && (
-                        <Icon className={cn(
-                          'relative z-10 h-5 w-5 shrink-0 transition-colors',
-                          isActive ? 'text-primary' : 'text-muted-foreground group-hover:text-foreground'
-                        )} />
+                        <Icon
+                          className={cn(
+                            "relative z-10 h-5 w-5 shrink-0 transition-colors",
+                            isActive
+                              ? "text-primary"
+                              : "text-muted-foreground group-hover:text-foreground",
+                          )}
+                        />
                       )}
                       <AnimatePresence>
                         {showLabels && (
                           <motion.span
                             initial={{ opacity: 0, width: 0 }}
-                            animate={{ opacity: 1, width: 'auto' }}
+                            animate={{ opacity: 1, width: "auto" }}
                             exit={{ opacity: 0, width: 0 }}
                             transition={{ duration: 0.2 }}
                             className="relative z-10 truncate"
@@ -247,7 +280,9 @@ export function DashboardSidebar({ className, mobileOpen, onMobileClose }: Sideb
                     );
                   }
 
-                  return <React.Fragment key={item.id}>{navButton}</React.Fragment>;
+                  return (
+                    <React.Fragment key={item.id}>{navButton}</React.Fragment>
+                  );
                 })}
               </div>
             </div>
@@ -258,7 +293,7 @@ export function DashboardSidebar({ className, mobileOpen, onMobileClose }: Sideb
       {/* Footer — expand button when collapsed */}
       <div className="border-t p-3">
         <AnimatePresence mode="wait">
-          {(!showLabels) ? (
+          {!showLabels ? (
             <motion.div
               key="expand-btn"
               initial={{ opacity: 0 }}
@@ -296,7 +331,7 @@ export function DashboardSidebar({ className, mobileOpen, onMobileClose }: Sideb
                 className="w-full gap-3 text-muted-foreground hover:text-destructive"
               >
                 <LogOut className="h-5 w-5 shrink-0" />
-                <span className="truncate">{t('common.logout')}</span>
+                <span className="truncate">{t("common.logout")}</span>
               </Button>
             </motion.div>
           )}
@@ -328,7 +363,7 @@ export function DashboardSidebar({ className, mobileOpen, onMobileClose }: Sideb
             initial={{ x: -280 }}
             animate={{ x: 0 }}
             exit={{ x: -280 }}
-            transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+            transition={{ type: "spring", stiffness: 300, damping: 30 }}
             className="fixed inset-y-0 left-0 z-50 w-[260px] border-r bg-sidebar md:hidden"
           >
             {/* Mobile close button */}
@@ -351,11 +386,11 @@ export function DashboardSidebar({ className, mobileOpen, onMobileClose }: Sideb
       {/* Desktop sidebar */}
       <motion.div
         animate={{ width: showLabels ? 260 : 64 }}
-        transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+        transition={{ type: "spring", stiffness: 300, damping: 30 }}
         className={cn(
-          'hidden h-screen border-r bg-sidebar md:block md:relative md:z-auto',
+          "hidden h-screen border-r bg-sidebar md:block md:relative md:z-auto",
           // Add a subtle shadow when hover-expanded so it floats above content
-          hoverExpanded && 'absolute z-40 shadow-xl'
+          hoverExpanded && "absolute z-40 shadow-xl",
         )}
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}

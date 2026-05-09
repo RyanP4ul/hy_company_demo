@@ -1,14 +1,14 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import Image from 'next/image';
-import { motion } from 'framer-motion';
-import { useAuthStore } from '@/stores/auth';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Button } from '@/components/ui/button';
-import { Package, Loader2, Mail, Lock, AlertCircle, Phone } from 'lucide-react';
+import { useState } from "react";
+import Image from "next/image";
+import { motion } from "framer-motion";
+import { useAuthStore } from "@/stores/auth";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Button } from "@/components/ui/button";
+import { Package, Loader2, Mail, Lock, AlertCircle, Phone } from "lucide-react";
 
 const fadeInUp = {
   initial: { opacity: 0, y: 20 },
@@ -28,25 +28,27 @@ export default function LoginPage() {
   const login = useAuthStore((s) => s.login);
   const isLoading = useAuthStore((s) => s.isLoading);
 
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [remember, setRemember] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError('');
+    setError("");
 
     // Demo error: show error for "wrong" email format
-    if (!email.includes('@') || email.endsWith('@wrong.com')) {
-      setError('Invalid email address. Please check your credentials and try again.');
+    if (!email.includes("@") || email.endsWith("@wrong.com")) {
+      setError(
+        "Invalid email address. Please check your credentials and try again.",
+      );
       return;
     }
 
     try {
       await login(email, password);
     } catch {
-      setError('An unexpected error occurred. Please try again.');
+      setError("An unexpected error occurred. Please try again.");
     }
   };
 
@@ -57,7 +59,7 @@ export default function LoginPage() {
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          transition={{ duration: 0.7, ease: 'easeOut' }}
+          transition={{ duration: 0.7, ease: "easeOut" }}
           className="relative hidden lg:flex lg:w-1/2 xl:w-[55%]"
         >
           {/* Background image */}
@@ -77,14 +79,20 @@ export default function LoginPage() {
           <motion.div
             initial={{ opacity: 0, y: 24 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.6, duration: 0.6, ease: [0.25, 0.46, 0.45, 0.94] }}
+            transition={{
+              delay: 0.6,
+              duration: 0.6,
+              ease: [0.25, 0.46, 0.45, 0.94],
+            }}
             className="absolute inset-x-0 bottom-0 px-10 pb-12 xl:px-16 xl:pb-16"
           >
             <p className="text-xs font-semibold uppercase tracking-widest text-white/60">
               HyOps
             </p>
             <h2 className="mt-3 text-3xl font-bold leading-tight text-white xl:text-4xl">
-              Smart Inventory<br />Management
+              Smart Inventory
+              <br />
+              Management
             </h2>
             <p className="mt-3 max-w-md text-sm leading-relaxed text-white/70">
               Streamline your warehouse operations with real-time tracking,
@@ -102,19 +110,35 @@ export default function LoginPage() {
             className="flex w-full max-w-sm flex-col items-center"
           >
             {/* Logo */}
-            <motion.div variants={fadeInUp} transition={{ duration: 0.5 }} className="mb-8 flex items-center gap-3 self-start">
-              <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-lg shadow-primary/25">
-                <Package className="size-5" />
+            <motion.div
+              variants={fadeInUp}
+              transition={{ duration: 0.5 }}
+              className="mb-8 flex items-center gap-3 self-start"
+            >
+              <div className="flex h-11 w-11 items-center justify-center rounded-xl text-white-foreground shadow-lg shadow-white/25">
+                <img
+                  alt="HyOps"
+                  className="h-8 w-8 shrink-0 rounded-lg object-contain"
+                  src="/logo.png"
+                ></img>
               </div>
               <div>
                 <h1 className="text-xl font-bold tracking-tight">HyOps</h1>
-                <p className="text-xs text-muted-foreground">Inventory & Warehouse Platform</p>
+                <p className="text-xs text-muted-foreground">
+                  Inventory & Warehouse Platform
+                </p>
               </div>
             </motion.div>
 
             {/* Welcome text */}
-            <motion.div variants={fadeInUp} transition={{ duration: 0.4 }} className="w-full">
-              <h2 className="text-2xl font-bold tracking-tight">Welcome back</h2>
+            <motion.div
+              variants={fadeInUp}
+              transition={{ duration: 0.4 }}
+              className="w-full"
+            >
+              <h2 className="text-2xl font-bold tracking-tight">
+                Welcome back
+              </h2>
               <p className="mt-1 text-sm text-muted-foreground">
                 Enter your credentials to access your account
               </p>
@@ -132,7 +156,7 @@ export default function LoginPage() {
               {error && (
                 <motion.div
                   initial={{ opacity: 0, height: 0 }}
-                  animate={{ opacity: 1, height: 'auto' }}
+                  animate={{ opacity: 1, height: "auto" }}
                   exit={{ opacity: 0, height: 0 }}
                   className="flex items-start gap-2 rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2.5 text-sm text-destructive"
                 >
@@ -142,7 +166,11 @@ export default function LoginPage() {
               )}
 
               {/* Email field */}
-              <motion.div variants={fadeInUp} transition={{ duration: 0.35 }} className="space-y-2">
+              <motion.div
+                variants={fadeInUp}
+                transition={{ duration: 0.35 }}
+                className="space-y-2"
+              >
                 <Label htmlFor="email">Email address</Label>
                 <div className="relative">
                   <Mail className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
@@ -153,7 +181,7 @@ export default function LoginPage() {
                     value={email}
                     onChange={(e) => {
                       setEmail(e.target.value);
-                      if (error) setError('');
+                      if (error) setError("");
                     }}
                     className="pl-9"
                     disabled={isLoading}
@@ -163,7 +191,11 @@ export default function LoginPage() {
               </motion.div>
 
               {/* Password field */}
-              <motion.div variants={fadeInUp} transition={{ duration: 0.35 }} className="space-y-2">
+              <motion.div
+                variants={fadeInUp}
+                transition={{ duration: 0.35 }}
+                className="space-y-2"
+              >
                 <Label htmlFor="password">Password</Label>
                 <div className="relative">
                   <Lock className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
@@ -174,7 +206,7 @@ export default function LoginPage() {
                     value={password}
                     onChange={(e) => {
                       setPassword(e.target.value);
-                      if (error) setError('');
+                      if (error) setError("");
                     }}
                     className="pl-9"
                     disabled={isLoading}
@@ -222,7 +254,7 @@ export default function LoginPage() {
                       Signing in...
                     </motion.span>
                   ) : (
-                    'Sign In'
+                    "Sign In"
                   )}
                 </Button>
               </motion.div>
